@@ -81,9 +81,18 @@ function wp_secrets_api_bootstrap() {
 	}
 
 	/*
-	 * Core-bound requires land here from commit 2 onward, in dependency order:
-	 * value objects, then crypto, then storage, then the public functions.
+	 * Dependency order: public helper functions first (WP_Secret's destructor calls
+	 * wp_secrets_memzero()), then value objects, then crypto, then storage.
 	 */
+	$core_bound = array(
+		'secrets.php',
+		'class-wp-secret-version.php',
+		'class-wp-secret.php',
+	);
+
+	foreach ( $core_bound as $file ) {
+		require_once WP_SECRETS_API_PLUGIN_DIR . 'src/wp-includes/' . $file;
+	}
 }
 
 /**

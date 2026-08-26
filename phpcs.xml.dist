@@ -90,4 +90,10 @@
 	<rule ref="Squiz.Commenting.VariableComment">
 		<exclude-pattern>/tests/*</exclude-pattern>
 	</rule>
+	<rule ref="Squiz.Commenting.FileComment.Missing">
+		<exclude-pattern>/tests/*</exclude-pattern>
+	</rule>
+	<rule ref="Generic.Commenting.DocComment.MissingShort">
+		<exclude-pattern>/tests/*</exclude-pattern>
+	</rule>
 </ruleset>
