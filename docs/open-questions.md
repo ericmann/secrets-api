@@ -1,0 +1,220 @@
+# Open questions
+
+Things this implementation deliberately did **not** decide. Each entry states the conservative
+choice that was made, where the seam is, and who needs to resolve it.
+
+Maintained from commit 1 onward. When you hit one of these, do not resolve it silently — add to
+the entry.
+
+Status legend: 🔴 blocks a release · 🟡 needs an answer before the core patch · 🟢 tracking only
+
+---
+
+## 1. 🔴 Plugin slug and display name
+
+The plugin is currently `secrets-api`, with the display name "Secrets API". This must not be a
+Displace-branded slug. Needs a human decision before any WordPress.org submission, and the
+decision changes the text domain in every plugin-only file.
+
+**Current state:** `secrets-api` used throughout as a placeholder, flagged in `secrets-api.php`.
+
+---
+
+## 2. 🔴 Plaintext-boundary stores
+
+From Chris Reynolds (Pantheon) in the proposal comments:
+
+> For a platform store that's inverted — the store *is* the encryption boundary, and it *needs*
+> the plaintext over an authenticated channel so the same secret is usable from other
+> environments on the same account. If the drop-in only ever sees WP's ciphertext, we'd be
+> double-encrypting and the value would be opaque outside WordPress.
+
+This directly contradicts the proposal's own commitment that "Neither is ever handed a plaintext
+secret, and neither can turn encryption off."
+
+**Current state:** not implemented, and deliberately so. `WP_Secrets_Store` is never handed a
+plaintext. A clearly-commented seam marks where such a store would have to hook in. Resolving
+this requires a decision about whether the published guarantee is being amended, which is not a
+decision the implementation gets to make.
+
+**Do not** implement a plaintext passthrough without that decision.
+
+---
+
+## 3. 🟡 Read-only stores — `supports()` is beyond the published surface
+
+The other half of the Pantheon feedback:
+
+> A storage drop-in for us would need to serve `wp_get_secret()` and reject `wp_set_secret()` —
+> but the API has no way to express "readable, but not writable here," and every plugin settings
+> screen assumes `set()` works.
+
+**Current state:** implemented as `WP_Secrets_Store::supports( $capability )` with capabilities
+`write`, `list`, `delete`, plus a `wp_secrets_store_supports()` helper so a settings screen can
+disable its save button before the user types a credential. A read-only store makes
+`wp_set_secret()` return `secret_store_read_only`.
+
+Needs a note in the proposal comments thread, because it is an addition to a published design.
+
+---
+
+## 4. 🟡 API surface that was never published
+
+The proposal published exactly four functions and two `WP_Secret` methods. Everything below is
+this implementation's invention and should be confirmed in the comments thread **before it
+hardens**, because names are the hardest thing to change after adoption.
+
+| Added | Justification | Risk |
+|---|---|---|
+| `wp_list_secrets()` / `wp_list_network_secrets()` | "The hooks and accessors an admin screen would need are in scope now" | Name and return shape unpublished |
+| `wp_retire_secret_version()` / `wp_retire_network_secret_version()` | "Retiring the previous slot is an explicit operator action — no timers, no cron" | Function implied but never named |
+| `wp_set_network_secret()`, `wp_get_network_secret()`, `wp_delete_network_secret()` | "Site secrets and network secrets are separate functions with separate capabilities" | **Names never published.** Highest-risk group — easy to assume these were committed to |
+| `WP_Secret::get_name()` | Needed for the `[secret:{name}]` mask | Only `reveal()` and `fingerprint()` were published |
+| `WP_Secrets_Store`, `WP_Secrets_Keyring` and every method on them | The proposal describes two extension points and names neither | Hosts will build against these. Largest unpublished surface in the project |
+| `wp_secrets_memzero()`, `wp_secrets_validate_name()`, `wp_secrets_store_supports()`, `wp_using_secrets_dropin()` | Implementation necessities | New globals in core-bound code |
+| `wp_secret_changed` hook name and argument order | Post commits to "actor, timestamp, and old and new fingerprints"; `$action` is an addition | Unpublished |
+
+---
+
+## 5. 🟢 The five questions the proposal asked the community
+
+These have a home here so answers from the comments thread land somewhere rather than being
+absorbed into an assumption.
+
+1. **Is the no-filter decision on retrieval sufficient, with providers as the substitution?**
+   — no answers recorded yet.
+2. **Are two version slots (`CURRENT`/`PREVIOUS`) adequate, or is a different rotation pattern
+   necessary?** — no answers recorded yet. Note that `'v' => 1` in the record format leaves room
+   to change this, but see #7.
+3. **Does `wp_import_option_as_secret()` fit actual plugin migration workflows?**
+   — no answers recorded yet.
+4. **Which WP-CLI commands most need this surface, and in what priority order?** — the command
+   set implemented here is a starting set, not a settled one. Track real answers rather than
+   assuming.
+5. **For hosts running secret stores or key backends: what is missing from the drop-in surface?**
+   — one answer so far, from Pantheon, split across #2 and #3 above.
+
+---
+
+## 6. 🟡 Access control language
+
+The proposal says namespacing exists "so a future admin screen can group by owner and
+cross-namespace access has something to check against" — which leaves the door open to a future
+check without specifying one.
+
+The prior proof-of-concept's README described namespace-based access control in a way that led
+people to believe one plugin's secret was inaccessible to another. Darin Kotter raised this in
+the comments. It was not true then and is not true now.
+
+**Documentation must state plainly:** there is no per-plugin isolation in 7.2. Masking is
+hygiene against shoulder-surfing and accidental logging, not a privilege boundary. Any plugin
+that can run PHP can read any secret.
+
+Phrase this as "no isolation *in 7.2*" rather than "cannot be" — the proposal deliberately left
+room for a future check, and the docs should not close a door the proposal held open.
+
+---
+
+## 7. 🟡 Record format version bump policy
+
+`'v' => 1` exists so a future format change is detectable rather than presenting as a decryption
+failure. The upgrade path for `v2` is **not designed**. Open sub-questions:
+
+- Is `v2` read-only-compatible with `v1`, or is there a migration pass?
+- `v` sits outside the AAD, so it is unauthenticated metadata. It must be treated as a routing
+  hint validated *before* decryption, and an unknown `v` must be rejected outright rather than
+  attempted.
+
+---
+
+## 8. 🟡 GitHub Enterprise specifics
+
+Unknown until a maintainer confirms them on `github.a8c.com`. See `docs/ci.md`.
+
+- Which runner labels exist. The workflow parameterises `runs-on` and defaults to `self-hosted`;
+  this is a guess.
+- Whether Marketplace Actions are available (requires GitHub Connect / action bundling). The
+  workflow assumes only `actions/checkout` and otherwise plain `run:` steps.
+- Whether runners have egress to wordpress.org and packagist. `install-wp-tests.sh` honours
+  `WP_MIRROR_BASE` and `WP_TESTS_ZIP_URL` so an internal mirror can be substituted.
+- Whether an internal WordPress tarball mirror exists.
+
+`make ci` locally is the always-works fallback and does not depend on any of this.
+
+---
+
+## 9. 🟢 `sodium_compat` coverage of the KDF
+
+The proposal commits to `sodium_compat` as the fallback where the libsodium extension is disabled
+at build time. Fingerprints (§4.4) and all multisite key derivation depend on
+`sodium_crypto_kdf_derive_from_key()`, which is a later addition to `sodium_compat` than the AEAD
+primitives.
+
+**Must be verified against the version core actually bundles.** If it is absent, the options are
+a documented HKDF-over-`generichash` fallback or a hard `secret_crypto_unavailable` — and the
+choice affects whether the plugin works at all on the hosts the fallback exists to serve.
+
+Related: `sodium_memzero()` is a no-op under `sodium_compat`, because PHP strings cannot actually
+be zeroed from userland. Documentation must not overclaim memory hygiene.
+
+---
+
+## 10. 🟢 Community requests not in scope
+
+- **Two Factor plugin integration** (Brian Haas). Reasonable, out of scope for the API itself.
+  Worth a note about whether the Two Factor plugin should be an early consumer.
+- **Iterating UX/DX inside the AI plugin's Key Encryption experiment before core merge**
+  (Jeffrey Paul). This plugin currently touches the AI plugin only as a vendored-copy hazard
+  during migration. Whether the two efforts should coordinate is a project question.
+
+---
+
+## 11. 🟢 Testability smells
+
+Per the build brief: if something is hard to test, that is usually a design smell, and it gets
+written down here rather than skipped.
+
+- `var_export()` of a `WP_Secret` cannot be masked from userland — it ignores `__debugInfo()` and
+  `__toString()` and emits private properties directly. Mitigated by not storing the plaintext
+  as an object property at all. Documented as a known limitation regardless.
+- The `options.php` all-settings screen reads the options table directly with no filter, so a
+  plugin cannot exclude secrets from it. Surfaced as a Site Health warning and documented as a
+  core-patch-only fix. There is an existing core ticket and pull request on plaintext display in
+  `options.php` to reference.
+
+---
+
+## Resolved
+
+Decisions that were open and are now closed, kept so the reasoning is not lost.
+
+### Key hierarchy on multisite — resolved 2026-08-26
+
+The build brief's original wording derived "per-site master keys **for network scope**," which
+would have made a network secret written on one blog unreadable on every other blog.
+
+**Resolved:** network secrets are readable across all blogs; site secrets are not readable across
+blogs. One random root key per install, wrapped by the site key, stored via `update_site_option()`
+— the only wrapped value, so rotating the site key on a 500-site network re-wraps exactly one
+thing, which is what the proposal promises. Site-scope master for blog N derives at subkey
+`$blog_id` with context `wpsecsit`; network-scope master derives at reserved subkey `0` with
+context `wpsecnet`. Masters are derived on demand and never stored, which also removes the
+contradiction between the brief's §4.1 and §4.6.
+
+### No-op mechanism — resolved 2026-08-26
+
+The brief originally required `function_exists()` guards around every core-bound function. That
+conflicted with keeping `src/` a clean file copy into `wordpress-develop` (core files carry no
+such guards) and, more seriously, a per-function guard on a credential retrieval function is an
+overloading surface: an mu-plugin declaring `wp_get_secret()` first would silently intercept
+every secret read on the site.
+
+**Resolved:** the entire decision lives in `secrets-api.php`. Two `function_exists()` calls in
+the whole codebase, both in the bootstrap, all-or-nothing. `src/` contains none. The version gate
+is ANDed with a positive probe rather than used alone, because the proposal's timeline allows the
+API to be deferred to 7.3 and a bare `>= 7.2` check would strand sites on a 7.2 that shipped
+without it. A symbol collision on an older WordPress refuses to load and says so, rather than
+silently deferring to an unknown implementation.
+
+The architectural test at commit 9 inverts accordingly: assert `src/` contains **no**
+`function_exists(` or `class_exists(`.

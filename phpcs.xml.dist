@@ -1,0 +1,93 @@
+<?xml version="1.0"?>
+<ruleset name="Secrets API">
+	<description>Coding standards for the Secrets API feature plugin.</description>
+
+	<file>.</file>
+
+	<exclude-pattern>/vendor/*</exclude-pattern>
+	<exclude-pattern>/node_modules/*</exclude-pattern>
+	<exclude-pattern>/coverage/*</exclude-pattern>
+
+	<arg name="extensions" value="php"/>
+	<arg name="basepath" value="."/>
+	<arg name="colors"/>
+	<arg name="parallel" value="8"/>
+	<arg value="ps"/>
+
+	<!--
+		Everything is destined for core or written alongside code that is, so core's
+		standard is the target rather than VIP's. WordPress-Extra is layered onto the
+		plugin-only directories further down.
+	-->
+	<rule ref="WordPress-Core"/>
+	<rule ref="WordPress-Docs"/>
+
+	<rule ref="WordPress-Extra">
+		<include-pattern>/plugin/*</include-pattern>
+		<include-pattern>/cli/*</include-pattern>
+		<include-pattern>/secrets-api\.php$</include-pattern>
+	</rule>
+
+	<rule ref="PHPCompatibilityWP"/>
+	<config name="testVersion" value="7.4-"/>
+
+	<config name="minimum_wp_version" value="6.6"/>
+
+	<rule ref="WordPress.WP.I18n">
+		<properties>
+			<!--
+				src/ uses the "default" domain because it is core-bound; plugin-only code
+				uses the plugin's own domain. An architectural test at commit 9 enforces
+				that src/ never uses anything but "default".
+			-->
+			<property name="text_domain" type="array">
+				<element value="default"/>
+				<element value="secrets-api"/>
+			</property>
+		</properties>
+	</rule>
+
+	<rule ref="WordPress.NamingConventions.PrefixAllGlobals">
+		<properties>
+			<property name="prefixes" type="array">
+				<element value="wp_secrets"/>
+				<element value="wp_secret"/>
+				<element value="WP_Secret"/>
+				<element value="WP_SECRETS"/>
+				<element value="secrets_api"/>
+				<element value="Secrets_API"/>
+			</property>
+		</properties>
+		<!--
+			src/ declares wp_*() functions and WP_* classes on purpose: these files are
+			meant to be copied into wordpress-develop unchanged, where those names are
+			correct rather than unprefixed.
+		-->
+		<exclude-pattern>/src/*</exclude-pattern>
+	</rule>
+
+	<!--
+		The test suite follows core's own conventions for its tests, which differ from
+		the standard applied to shipped code: PHPUnit assertion methods are camelCase,
+		the bootstrap writes to STDOUT before WordPress exists to escape with, and
+		harness globals deliberately match the names the core test suite expects.
+	-->
+	<rule ref="WordPress.NamingConventions.PrefixAllGlobals">
+		<exclude-pattern>/tests/*</exclude-pattern>
+	</rule>
+	<rule ref="WordPress.NamingConventions.ValidFunctionName.MethodNameInvalid">
+		<exclude-pattern>/tests/*</exclude-pattern>
+	</rule>
+	<rule ref="WordPress.Security.EscapeOutput">
+		<exclude-pattern>/tests/bootstrap\.php$</exclude-pattern>
+	</rule>
+	<rule ref="Squiz.Commenting.FunctionComment">
+		<exclude-pattern>/tests/*</exclude-pattern>
+	</rule>
+	<rule ref="Squiz.Commenting.ClassComment">
+		<exclude-pattern>/tests/*</exclude-pattern>
+	</rule>
+	<rule ref="Squiz.Commenting.VariableComment">
+		<exclude-pattern>/tests/*</exclude-pattern>
+	</rule>
+</ruleset>

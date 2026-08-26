@@ -1,0 +1,10 @@
+/vendor/
+/node_modules/
+/coverage/
+/.phpunit.result.cache
+/.phpcs.cache
+/phpcs.xml
+/phpunit.xml
+/phpunit-multisite.xml
+/phpstan.neon
+.DS_Store

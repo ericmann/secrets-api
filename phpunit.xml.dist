@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<phpunit
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:noNamespaceSchemaLocation="vendor/phpunit/phpunit/phpunit.xsd"
+	bootstrap="tests/bootstrap.php"
+	backupGlobals="false"
+	colors="true"
+	beStrictAboutTestsThatDoNotTestAnything="true"
+	beStrictAboutOutputDuringTests="true"
+	failOnWarning="true"
+	failOnRisky="true"
+	convertDeprecationsToExceptions="false"
+	>
+	<testsuites>
+		<testsuite name="secrets-api">
+			<directory suffix=".php">tests/phpunit</directory>
+		</testsuite>
+	</testsuites>
+
+	<coverage>
+		<include>
+			<directory suffix=".php">src</directory>
+			<directory suffix=".php">plugin</directory>
+			<directory suffix=".php">cli</directory>
+		</include>
+	</coverage>
+
+	<php>
+		<const name="WP_TESTS_MULTISITE" value="0"/>
+	</php>
+</phpunit>

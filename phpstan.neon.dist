@@ -1,0 +1,16 @@
+includes:
+	- vendor/szepeviktor/phpstan-wordpress/extension.neon
+
+parameters:
+	level: 5
+	phpVersion: 70400
+	paths:
+		- src
+		- plugin
+		- cli
+		- secrets-api.php
+	scanDirectories:
+		- src
+	bootstrapFiles:
+		- tests/phpstan-bootstrap.php
+	treatPhpDocTypesAsCertain: false
