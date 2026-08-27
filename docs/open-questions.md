@@ -256,7 +256,7 @@ shell-history warning, success/porcelain/error reporting) is covered directly.
 
 ---
 
-## 15. 🟡 `wp secret migrate-legacy` flag semantics resolved without an operator round-trip
+## 15. 🟢 `wp secret migrate-legacy` flag semantics — CLOSED
 
 Flagged at Checkpoint A: the brief's §9.5 says the default is "`--dry-run`-like
 safety: report what would move, move nothing destructive," immediately followed by
@@ -277,15 +277,17 @@ option in place; `--delete-source` additionally deletes each source, but only
 after this run's own fingerprint verification passes, and never for a name the
 vendored-copy check has flagged without `--yes`; `--dry-run` writes nothing.
 
-**Needs Checkpoint F (or the operator) to confirm or override.** The alternative
-the brief itself half-suggests -- an explicit `--execute`/`--apply` flag gating
-every write, dry-run or not, as the default -- is a straightforward change to make
-on top of the same underlying migrate-verify-delete logic if preferred; nothing
-about the verification or vendor-detection behavior would need to change.
+**Confirmed by the operator after Checkpoint F. Closed.** The alternative
+considered -- an explicit `--execute`/`--apply` flag gating every write -- was
+rejected for the same reason the rest of the compatibility surface is being kept
+deliberately thin: migration off the prototype format is a bridge, not a feature
+of the API, and adding a third flag to a command that already has four in order
+to re-guard an operation that is idempotent and non-destructive by construction
+buys safety that `--delete-source` already provides where it actually matters.
 
 ---
 
-## 16. 🟡 Compat shim assumes the migrator's default namespace
+## 16. 🟢 Compat shim namespace and prototype-compatibility scope — CLOSED
 
 `Secrets_API_Compat_Shim` (commit 20) reads and writes through a fixed `legacy/`
 namespace, since the brief's §9.6 gives the shim's four global functions no
@@ -300,14 +302,21 @@ will return `null` for a secret that does, in fact, exist under a different name
 indistinguishable, from the shim's own collapsed return, from one that was never
 migrated at all.
 
-Not resolved further: adding a filter to reconfigure the shim's namespace would
-reintroduce exactly the class of hook this build refuses to put on the retrieval
-path (see §9.6's explicit refusal to reimplement `secrets_pre_get` et al.), and a
-constant is the only alternative, which is really the same shape as
-`WP_SECRETS_LEGACY_SHIM` itself and adds a second flag for a fairly narrow case.
-Left as documented behavior. A site with a non-default migration should not enable
-the shim, or should re-migrate the affected keys into `legacy/` specifically before
-doing so.
+**Confirmed by the operator after Checkpoint F: the namespace stays fixed, with no
+way to configure it. Closed.** Adding a filter would reintroduce exactly the class
+of hook this build refuses to put on the retrieval path (see §9.6's refusal to
+reimplement `secrets_pre_get` et al.), and a constant is the only alternative --
+the same shape as `WP_SECRETS_LEGACY_SHIM` itself, and a second permanent flag in
+service of a bridge that is meant to be removed. A site with a non-default
+migration should not enable the shim, or should re-migrate the affected keys into
+`legacy/` before doing so.
+
+The broader call this follows from: prototype compatibility is retained, but given
+no configuration surface and kept off the default request path entirely. The
+reader and migrator load only under WP-CLI; the shim loads only when its constant
+is set; nothing under `src/` references any of it. See the deletion seam
+documented at `wp_secrets_api_maybe_load_compat_shim()` in `secrets-api.php` for
+the exact list of files that removes the whole surface in one commit.
 
 **Added at Checkpoint F — the state collapse can destroy a credential, not just an
 error message.** Confirmed empirically, and now pinned by

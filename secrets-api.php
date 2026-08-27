@@ -111,13 +111,15 @@ function wp_secrets_api_bootstrap() {
 	 */
 	require_once WP_SECRETS_API_PLUGIN_DIR . 'src/wp-admin/includes/secrets-site-health.php';
 
-	// Plugin-only: never copied to core. Loaded unconditionally since it is a
-	// small, side-effect-free class definition; only the migrator and the
-	// `migrate-legacy` CLI command (both landing in a later commit) actually use it.
-	require_once WP_SECRETS_API_PLUGIN_DIR . 'plugin/class-secrets-api-legacy-reader.php';
-	require_once WP_SECRETS_API_PLUGIN_DIR . 'plugin/class-secrets-api-migrator.php';
-	require_once WP_SECRETS_API_PLUGIN_DIR . 'plugin/class-secrets-api-compat-shim.php';
-
+	/*
+	 * Everything supporting the prototype's on-disk format and function names is
+	 * deliberately kept off the default request path entirely -- see the deletion
+	 * seam documented at wp_secrets_api_maybe_load_compat_shim(). The reader and
+	 * migrator load only under WP-CLI, below, since the `migrate-legacy` command
+	 * is their only caller; the shim loads only when its constant is set. A site
+	 * that never opts in pays nothing for any of it, and none of it is in the way
+	 * when the compatibility window closes.
+	 */
 	wp_secrets_api_maybe_load_compat_shim();
 
 	/*
@@ -146,6 +148,10 @@ function wp_secrets_api_bootstrap() {
 	// or, in this plugin's own test suite, the mock WP_CLI test double that
 	// tests/bootstrap.php defines before the plugin ever loads.
 	if ( defined( 'WP_CLI' ) && WP_CLI ) {
+		// Prototype-format support: only `wp secret migrate-legacy` uses these.
+		require_once WP_SECRETS_API_PLUGIN_DIR . 'plugin/class-secrets-api-legacy-reader.php';
+		require_once WP_SECRETS_API_PLUGIN_DIR . 'plugin/class-secrets-api-migrator.php';
+
 		require_once WP_SECRETS_API_PLUGIN_DIR . 'cli/class-wp-cli-secret-command.php';
 		require_once WP_SECRETS_API_PLUGIN_DIR . 'cli/class-wp-cli-secret-network-command.php';
 
@@ -187,7 +193,7 @@ function wp_secrets_api_notice_conflict() {
 }
 
 /**
- * Registers the legacy compat shim's global functions, if enabled.
+ * Registers the compat shim's global functions, if enabled.
  *
  * Off by default: WP_SECRETS_LEGACY_SHIM must be defined true, which in practice
  * means set in wp-config.php ahead of every plugin loading, exactly like
@@ -197,6 +203,26 @@ function wp_secrets_api_notice_conflict() {
  * production site, but does not need to be relived by every test that exercises
  * this path.
  *
+ * ---
+ *
+ * THE DELETION SEAM. Everything this plugin carries for compatibility with the
+ * prototype -- its on-disk format and its global function names -- is confined to
+ * these files and reachable only through these two opt-ins:
+ *
+ * - plugin/class-secrets-api-legacy-reader.php   (loaded under WP-CLI only)
+ * - plugin/class-secrets-api-migrator.php        (loaded under WP-CLI only)
+ * - plugin/class-secrets-api-compat-shim.php     (loaded only by this function)
+ * - plugin/compat-shim-functions.php             (loaded only by this function)
+ * - WP_CLI_Secret_Command::migrate_legacy()      (one method)
+ * - tests/includes/class-legacy-fixture-writer.php and the three
+ *   test-secrets-api-{legacy-reader,migrator,compat-shim}.php files
+ *
+ * Nothing under src/ references any of it, no core-bound file knows it exists,
+ * and no default request path loads any of it. When the compatibility window
+ * closes, deleting that list plus this function and its two call sites removes
+ * the entire prototype-compatibility surface in one commit, with no migration of
+ * its own required and nothing left behind in the shipped API.
+ *
  * @return void
  */
 function wp_secrets_api_maybe_load_compat_shim() {
@@ -204,6 +230,7 @@ function wp_secrets_api_maybe_load_compat_shim() {
 		return;
 	}
 
+	require_once WP_SECRETS_API_PLUGIN_DIR . 'plugin/class-secrets-api-compat-shim.php';
 	require_once WP_SECRETS_API_PLUGIN_DIR . 'plugin/compat-shim-functions.php';
 }
 

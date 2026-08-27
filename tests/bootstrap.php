@@ -49,3 +49,14 @@ require_once __DIR__ . '/includes/trait-wp-secrets-assertions.php';
 require_once __DIR__ . '/includes/class-mock-store.php';
 require_once __DIR__ . '/includes/class-mock-keyring.php';
 require_once __DIR__ . '/includes/class-legacy-fixture-writer.php';
+
+/*
+ * The compat shim's class is loaded in production only when WP_SECRETS_LEGACY_SHIM
+ * is set, by wp_secrets_api_maybe_load_compat_shim(). Its tests call the class's
+ * static methods directly -- that is where all the logic lives, and it avoids
+ * forcing a separate process per assertion just to set a constant -- so the class
+ * is loaded here unconditionally. The loader's own behavior, including that it
+ * declares nothing when the constant is absent, is tested separately and in
+ * isolated processes.
+ */
+require_once dirname( __DIR__ ) . '/plugin/class-secrets-api-compat-shim.php';
