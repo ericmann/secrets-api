@@ -73,9 +73,10 @@ define( 'WP_SECRETS_ERROR_RECORD_MALFORMED', 'secret_record_malformed' );
 define( 'WP_SECRETS_ERROR_RECORD_UNSUPPORTED_VERSION', 'secret_record_unsupported_version' );
 
 /**
- * The store refused a write or delete because it does not support that operation
- * (WP_Secrets_Store::supports() returned false) -- a read-only platform store, for
- * example.
+ * The store declined a write, delete, or list because it does not support that
+ * operation (WP_Secrets_Store::supports() returned false) -- a read-only platform
+ * store, for example. The constant name reflects the operation this was first
+ * written for; the code covers all three capabilities.
  *
  * @since 7.2.0
  */
@@ -765,6 +766,96 @@ function wp_set_secret( $name, $value ) {
 }
 
 /**
+ * Shared implementation behind wp_list_secrets() and wp_list_network_secrets().
+ *
+ * Beyond the published API surface -- see docs/open-questions.md #4. Justified by
+ * the proposal's statement that "the hooks and accessors an admin screen would need
+ * are in scope now; the screen itself is not."
+ *
+ * Fingerprints returned here come directly from the stored record field, not
+ * recomputed by decrypting each secret. That is a deliberate difference from
+ * WP_Secret::fingerprint(), which always recomputes (see Checkpoint C in
+ * docs/open-questions.md) -- recomputing here would mean decrypting every matching
+ * secret just to list them, defeating the point of a lightweight listing call. This
+ * is safe specifically because a list entry is documented as informational only and
+ * is never used to gate anything; nothing in this codebase performs a security
+ * decision based on a fingerprint returned from this function.
+ *
+ * @since 7.2.0
+ *
+ * @param string $name_prefix Only secrets whose name starts with "{$name_prefix}/"
+ *                             are returned. Default '' returns every secret in this
+ *                             scope. Named to match the public function's own
+ *                             $namespace parameter, without using the reserved word
+ *                             'namespace' in an internal signature.
+ * @param bool   $network     Whether to list network-scope secrets.
+ *
+ * @throws InvalidArgumentException If $name_prefix is not a string.
+ *
+ * @return array|WP_Error Array of associative arrays, each with keys 'name',
+ *                        'fingerprint', 'created', 'has_previous', and
+ *                        'needs_rotation'. Never a value. WP_Error on failure.
+ */
+function _wp_secrets_list( $name_prefix, $network ) {
+	if ( ! is_string( $name_prefix ) ) {
+		throw new InvalidArgumentException( 'Namespace must be a string.' );
+	}
+
+	$store = _wp_secrets_get_store();
+
+	if ( ! $store->supports( 'list' ) ) {
+		return new WP_Error(
+			WP_SECRETS_ERROR_STORE_READ_ONLY,
+			__( 'The active secret store does not support listing.', 'default' )
+		);
+	}
+
+	$names = $store->list_names( $network );
+
+	if ( is_wp_error( $names ) ) {
+		return $names;
+	}
+
+	$entries = array();
+
+	foreach ( $names as $name ) {
+		if ( '' !== $name_prefix && 0 !== strpos( $name, $name_prefix . '/' ) ) {
+			continue;
+		}
+
+		$record = $store->get( $name, $network );
+
+		if ( ! is_wp_error( $record ) && null !== $record && true === _wp_secrets_validate_record_shape( $record ) ) {
+			$entries[] = array(
+				'name'           => $name,
+				'fingerprint'    => _wp_secrets_stored_fingerprint( $record ),
+				'created'        => isset( $record['current']['created'] ) && is_int( $record['current']['created'] ) ? $record['current']['created'] : 0,
+				'has_previous'   => isset( $record['previous'] ) && is_array( $record['previous'] ),
+				'needs_rotation' => ! empty( $record['current']['needs_rotation'] ),
+			);
+
+			continue;
+		}
+
+		/*
+		 * A corrupted or unreadable record is still listed, with whatever
+		 * metadata could not be salvaged left blank, rather than silently
+		 * omitted. Site Health's "undecryptable secrets" check (§8) depends on
+		 * exactly this: a secret that has gone bad must remain visible.
+		 */
+		$entries[] = array(
+			'name'           => $name,
+			'fingerprint'    => '',
+			'created'        => 0,
+			'has_previous'   => false,
+			'needs_rotation' => false,
+		);
+	}
+
+	return $entries;
+}
+
+/**
  * Retrieves a secret.
  *
  * Three states, never collapsed: a WP_Secret if it exists and decrypts, null if it
@@ -812,4 +903,24 @@ function wp_delete_secret( $name ) {
  */
 function wp_retire_secret_version( $name ) {
 	return _wp_secrets_retire( $name, false );
+}
+
+/**
+ * Lists secrets by name and metadata. Never a value.
+ *
+ * Beyond the published API surface; see docs/open-questions.md #4. Justified by the
+ * proposal's statement that the hooks and accessors a future admin screen needs are
+ * in scope now, even though the screen itself is not.
+ *
+ * @since 7.2.0
+ *
+ * @param string $namespace Only secrets whose name starts with "{$namespace}/" are
+ *                           returned. Default '' returns every secret.
+ *
+ * @return array|WP_Error Array of associative arrays, each with keys 'name',
+ *                        'fingerprint', 'created', 'has_previous', and
+ *                        'needs_rotation'.
+ */
+function wp_list_secrets( $namespace = '' ) { // phpcs:ignore Universal.NamingConventions.NoReservedKeywordParameterNames.namespaceFound -- matches the build brief's specified signature exactly.
+	return _wp_secrets_list( $namespace, false );
 }
