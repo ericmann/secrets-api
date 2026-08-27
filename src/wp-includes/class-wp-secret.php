@@ -58,6 +58,20 @@ final class WP_Secret implements JsonSerializable {
 	private $fingerprint;
 
 	/**
+	 * Why this secret's value is unavailable to PHP, or null when it is available.
+	 *
+	 * Set only for a secret a provider can prove exists but will not hand over --
+	 * an HSM that will sign with a key but never export it, a broker that releases
+	 * a credential to a subsystem rather than to WordPress. Such a secret is still
+	 * a real secret with a real name and fingerprint; what it is not is readable,
+	 * and reveal() says so rather than returning something misleading.
+	 *
+	 * @since 7.2.0
+	 * @var WP_Error|null
+	 */
+	private $withheld_reason = null;
+
+	/**
 	 * Constructor.
 	 *
 	 * Throws, where the rest of this API returns WP_Error for a caller mistake.
@@ -105,12 +119,58 @@ final class WP_Secret implements JsonSerializable {
 	 *
 	 * This is the only path to the stored plaintext anywhere in the API.
 	 *
+	 * Returns WP_Error for a secret whose provider will not release the value to
+	 * PHP at all -- see withheld(). That case does not arise for the provider
+	 * WordPress ships, which decrypts eagerly and therefore always has a value in
+	 * hand, so most callers will never see it. It is in the signature because a
+	 * return type cannot be widened after adoption: leaving reveal() as
+	 * `string` would permanently foreclose brokered and use-only credentials,
+	 * which is a decision better made deliberately than by omission.
+	 *
 	 * @since 7.2.0
 	 *
-	 * @return string
+	 * @return string|WP_Error The plaintext, or WP_Error if this provider does not
+	 *                         release values to PHP.
 	 */
 	public function reveal() {
+		if ( null !== $this->withheld_reason ) {
+			return $this->withheld_reason;
+		}
+
 		return self::$vault[ spl_object_id( $this ) ];
+	}
+
+	/**
+	 * Builds a secret whose value exists but is not available to PHP.
+	 *
+	 * For a provider that can prove a credential exists, and can name and
+	 * fingerprint it, but will not release it -- typically because releasing it
+	 * would defeat the point of where it is held. Everything except reveal()
+	 * behaves normally, so such a secret still lists, still reports a stable
+	 * fingerprint, and still masks itself in every output path.
+	 *
+	 * @since 7.2.0
+	 *
+	 * @param string   $name        The secret's name.
+	 * @param string   $fingerprint A stable per-site digest, from the provider.
+	 * @param WP_Error $reason      Why the value cannot be produced. Returned
+	 *                              verbatim by reveal().
+	 *
+	 * @throws InvalidArgumentException If $reason is not a WP_Error, or if $name or
+	 *                                  $fingerprint fail the constructor's checks.
+	 *
+	 * @return WP_Secret
+	 */
+	public static function withheld( $name, $fingerprint, $reason ) {
+		if ( ! $reason instanceof WP_Error ) {
+			throw new InvalidArgumentException( 'A withheld WP_Secret requires a WP_Error reason.' );
+		}
+
+		$secret = new self( $name, '', $fingerprint );
+
+		$secret->withheld_reason = $reason;
+
+		return $secret;
 	}
 
 	/**

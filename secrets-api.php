@@ -89,6 +89,7 @@ function wp_secrets_api_bootstrap() {
 		'secrets.php',
 		'class-wp-secret-version.php',
 		'class-wp-secret.php',
+		'interface-wp-secrets-provider.php',
 		'interface-wp-secrets-keyring.php',
 		'class-wp-secrets-config-key-provider.php',
 		'class-wp-secrets-broken-keyring.php',

@@ -157,11 +157,21 @@ class WP_CLI_Secret_Command {
 			WP_CLI::halt( 1 );
 		}
 
-		if ( isset( $assoc_args['reveal'] ) ) {
+		$plaintext = $secret->reveal();
+
+		// A provider that holds the credential but will not release it to PHP --
+		// an HSM signing key, a brokered credential. The secret is real and its
+		// name and fingerprint below are still meaningful, so this reports the
+		// value as unavailable rather than halting: `wp secret get` is also how
+		// an operator checks that a secret exists at all.
+		if ( is_wp_error( $plaintext ) ) {
+			WP_CLI::warning( $plaintext->get_error_message() );
+			$value = '(value withheld by the provider)';
+		} elseif ( isset( $assoc_args['reveal'] ) ) {
 			WP_CLI::warning( 'Revealing a secret value. Make sure this output does not end up somewhere logged.' );
-			$value = $secret->reveal();
+			$value = $plaintext;
 		} else {
-			$value = $this->mask( $secret->reveal() );
+			$value = $this->mask( $plaintext );
 		}
 
 		$item = array(

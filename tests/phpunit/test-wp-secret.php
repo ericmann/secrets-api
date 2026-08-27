@@ -261,4 +261,66 @@ class Tests_Secrets_WPSecret extends WP_UnitTestCase {
 
 		$this->assertSame( 'value-b', $b->reveal() );
 	}
+
+	// -- withheld secrets (provider does not release the value) ---------------
+
+	/**
+	 * A secret a provider can name and fingerprint but will not hand to PHP: an
+	 * HSM signing key, a brokered credential. Everything except reveal() behaves
+	 * normally, which is the point -- it still lists, still fingerprints, and
+	 * still masks itself everywhere.
+	 */
+	public function test_withheld_reveal_returns_the_providers_reason() {
+		$reason = new WP_Error( 'provider_withholds_value', 'This key never leaves the HSM.' );
+		$secret = WP_Secret::withheld( 'myplugin/signing-key', 'abc123', $reason );
+
+		$revealed = $secret->reveal();
+
+		$this->assertWPError( $revealed );
+		$this->assertSame( 'provider_withholds_value', $revealed->get_error_code() );
+	}
+
+	public function test_withheld_still_reports_name_and_fingerprint() {
+		$secret = WP_Secret::withheld(
+			'myplugin/signing-key',
+			'abc123',
+			new WP_Error( 'provider_withholds_value', 'nope' )
+		);
+
+		$this->assertSame( 'myplugin/signing-key', $secret->get_name() );
+		$this->assertSame( 'abc123', $secret->fingerprint() );
+	}
+
+	/**
+	 * The masking guarantees are not weakened by the withheld path: there is no
+	 * plaintext to leak, and the error reason must not leak either.
+	 */
+	public function test_withheld_masks_like_any_other_secret() {
+		$secret = WP_Secret::withheld(
+			'myplugin/signing-key',
+			'abc123',
+			new WP_Error( 'provider_withholds_value', 'UNIQUE-REASON-CANARY-4b1c' )
+		);
+
+		$printed = print_r( $secret, true );
+
+		$this->assertStringNotContainsString( 'UNIQUE-REASON-CANARY-4b1c', $printed );
+		$this->assertStringContainsString( '[secret:myplugin/signing-key]', (string) $secret );
+	}
+
+	public function test_withheld_requires_a_wp_error_reason() {
+		$this->expectException( InvalidArgumentException::class );
+
+		WP_Secret::withheld( 'myplugin/signing-key', 'abc123', 'not an error' );
+	}
+
+	/**
+	 * An ordinary secret is unaffected: reveal() still returns the plaintext, and
+	 * the widened return type is not a behaviour change for the shipped provider.
+	 */
+	public function test_an_ordinary_secret_still_reveals_a_plain_string() {
+		$secret = new WP_Secret( 'myplugin/api-key', 'sk_live_value', 'fingerprint' );
+
+		$this->assertSame( 'sk_live_value', $secret->reveal() );
+	}
 }

@@ -1,6 +1,9 @@
 # The host-provider model
 
-Working document for [`open-questions.md`](open-questions.md) #2. Nothing here is implemented.
+Working document for [`open-questions.md`](open-questions.md) #2. The interface is written
+(`src/wp-includes/interface-wp-secrets-provider.php`) and `WP_Secret` supports withheld values;
+routing the public functions through a provider is the next step and is not done.
+
 It exists to answer a question the proposal asked and three hosts answered "not quite":
 
 > Providers are meant to cover what a filter would normally give you — is that substitution
@@ -77,7 +80,54 @@ value is entirely in being explicit and visible:
 
 Design for that, and do not dress it up as enforcement.
 
-## Proposed shape
+## Where this landed
+
+The framing above got one thing backwards, and it is worth correcting rather than quietly
+editing: the platform arrangements were never *meant* to be banned. The goal was always a secure
+default with more-secure upgrade paths available. The two-seam design (store + keyring) described
+WordPress's own envelope so precisely that it left no room to say "something else protects this,
+and protects it better" — that was a design accident, not an intent, and the fix is to make the
+provider the seam rather than to carve exceptions into the store contract.
+
+**`WP_Secrets_Provider` is now the outermost extension point** (`src/wp-includes/interface-wp-secrets-provider.php`,
+written; not yet wired in). The provider that ships with WordPress — libsodium, ciphertext in the
+options tables — is *one implementation of it*, not the privileged case that others must be
+reconciled with. A KMS, an HSM, or a control panel is a peer.
+
+`WP_Secrets_Store` and `WP_Secrets_Keyring` remain, and remain public, but their scope is now
+honest: they are the composable internals of the *libsodium provider*, not universal concepts. The
+proposal's argument for keeping them separate still holds and is still served — a host wanting KMS
+key-wrapping with default storage swaps the keyring inside the default provider, rather than
+implementing a provider from scratch. What changes is that neither is imposed on a platform that
+has no envelope for them to describe.
+
+### `supports()` is gone
+
+It was a flag invented to express "read-only", bolted onto the store contract, and stringly typed.
+Three declarations replace it, each answering a question someone actually asked:
+
+| Method | Answers |
+|---|---|
+| `get_label()` | "What is protecting my credentials?" — for Site Health |
+| `get_protection_boundary()` | "Is that WordPress, or something else?" — `BOUNDARY_WORDPRESS` / `BOUNDARY_PROVIDER` |
+| `is_writable()` | "Will `wp_set_secret()` work here?" — so a settings screen can disable Save before an operator types a credential |
+
+Enforcement stays where it belongs: a provider that cannot accept a write returns
+`WP_SECRETS_ERROR_PROVIDER_READ_ONLY` from `set()`. The declaration is for humans and interfaces,
+never a substitute for the check.
+
+### `reveal(): string|WP_Error` — done
+
+Implemented, with `WP_Secret::withheld( $name, $fingerprint, $reason )` for a secret a provider
+can name and fingerprint but will not release to PHP. Everything else about such a secret behaves
+normally: it lists, it reports a stable fingerprint, and it masks itself in every output path.
+`wp secret get` reports the value as withheld rather than halting, because that command is also
+how an operator checks whether a secret exists.
+
+This does not arise for the shipped provider, which decrypts eagerly and always has a value in
+hand. It is in the signature because a return type cannot be widened after adoption.
+
+## Original analysis
 
 ### 1. A distinct interface, not an overloaded store
 

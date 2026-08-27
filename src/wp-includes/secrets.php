@@ -88,6 +88,16 @@ define( 'WP_SECRETS_ERROR_RECORD_MALFORMED', 'secret_record_malformed' );
 define( 'WP_SECRETS_ERROR_RECORD_UNSUPPORTED_VERSION', 'secret_record_unsupported_version' );
 
 /**
+ * The active provider does not accept writes: its credentials are managed by host
+ * tooling, a control panel, or a key policy outside WordPress. Distinct from
+ * WP_SECRETS_ERROR_STORE_UNAVAILABLE, which means the write could have happened and
+ * did not -- this one means it was never going to.
+ *
+ * @since 7.2.0
+ */
+define( 'WP_SECRETS_ERROR_PROVIDER_READ_ONLY', 'secret_provider_read_only' );
+
+/**
  * The store declined a write, delete, or list because it does not support that
  * operation (WP_Secrets_Store::supports() returned false) -- a read-only platform
  * store, for example. The constant name reflects the operation this was first
