@@ -108,8 +108,19 @@ install_wp() {
 	case "$ARCHIVE_URL" in
 		*.zip)
 			download "$ARCHIVE_URL" "$TMPDIR/wordpress.zip"
-			unzip -q -o "$TMPDIR/wordpress.zip" -d "$TMPDIR/"
-			mv "$TMPDIR"/wordpress/* "$WP_CORE_DIR"
+
+			# Unzipped into a staging directory rather than straight into
+			# $TMPDIR. The nightly zip contains a top-level wordpress/ folder, and
+			# WP_CORE_DIR *defaults* to $TMPDIR/wordpress -- so extracting in place
+			# and then moving meant moving every file onto itself, which `mv`
+			# rightly refuses. It only worked when WP_CORE_DIR had been overridden
+			# to somewhere else, which is exactly how it got tested and exactly
+			# why the default path stayed broken.
+			rm -rf "$TMPDIR/wp-unzip"
+			mkdir -p "$TMPDIR/wp-unzip"
+			unzip -q -o "$TMPDIR/wordpress.zip" -d "$TMPDIR/wp-unzip"
+			cp -R "$TMPDIR/wp-unzip/wordpress/." "$WP_CORE_DIR/"
+			rm -rf "$TMPDIR/wp-unzip"
 			;;
 		*)
 			download "$ARCHIVE_URL" "$TMPDIR/wordpress.tar.gz"
