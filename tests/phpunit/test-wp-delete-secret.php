@@ -18,7 +18,7 @@ class Tests_Secrets_WpDeleteSecret extends WP_UnitTestCase {
 	}
 
 	public function test_rejects_an_invalid_name() {
-		$result = wp_delete_secret( 'not-namespaced' );
+		$result = wp_delete_secret( 'Not A Valid Name' );
 
 		$this->assertWPError( $result );
 		$this->assertSame( WP_SECRETS_ERROR_INVALID_NAME, $result->get_error_code() );

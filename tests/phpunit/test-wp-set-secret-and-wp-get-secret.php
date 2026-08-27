@@ -54,14 +54,14 @@ class Tests_Secrets_WpSetSecretAndWpGetSecret extends WP_UnitTestCase {
 	}
 
 	public function test_set_rejects_an_invalid_name() {
-		$result = wp_set_secret( 'not-namespaced', 'value' );
+		$result = wp_set_secret( 'Not A Valid Name', 'value' );
 
 		$this->assertWPError( $result );
 		$this->assertSame( WP_SECRETS_ERROR_INVALID_NAME, $result->get_error_code() );
 	}
 
 	public function test_get_rejects_an_invalid_name() {
-		$result = wp_get_secret( 'not-namespaced' );
+		$result = wp_get_secret( 'Not A Valid Name' );
 
 		$this->assertWPError( $result );
 		$this->assertSame( WP_SECRETS_ERROR_INVALID_NAME, $result->get_error_code() );

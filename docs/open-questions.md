@@ -93,6 +93,7 @@ hardens**, because names are the hardest thing to change after adoption.
 | `secret_invalid_argument` (`WP_SECRETS_ERROR_INVALID_ARGUMENT`) | Added when #12 converted caller-error throws to WP_Error; the proposal's error list predates that decision | A genuinely new error *string*, not just a new constant name — the only one on this list that is |
 | `WP_SECRETS_CAP_MANAGE` / `WP_SECRETS_CAP_MANAGE_NETWORK` | Wrappers over the two published capability strings | Strings match the proposal exactly (`manage_secrets`, `manage_network_secrets`); only the constant names are new |
 | `WP_SECRETS_MAX_NAME_LENGTH` (172), `WP_SECRETS_RECORD_VERSION` (1) | A cap and a format version both have to exist | 172 is derived, not published — see the note under §5.5 in the build brief about subtracting the option prefix from 191 |
+| Accepting unnamespaced names at all | Adoption path for prototype-era code; see #17 | Contradicts the brief's §5.5 outright. The proposal never discusses naming, so this is unpublished either way -- but it is the one place the implementation deliberately loosened a stated rule rather than adding to it |
 | The `wp-content/secrets.php` drop-in filename, and `$GLOBALS['wp_secrets_store']` / `$GLOBALS['wp_secrets_keyring']` | The proposal describes drop-in-style replacement without naming the file or the mechanism | A drop-in filename is effectively permanent once hosts ship against it, in the same way `object-cache.php` is |
 
 Not on this list, deliberately: `Secrets_API_Legacy_Reader`, `Secrets_API_Migrator`, and
@@ -350,12 +351,11 @@ returns here. So an AI-plugin site upgrades one secret at a time, on first use, 
 nobody running anything -- which is the outcome that actually minimises broken
 sites. It is one-way, one-time, and flagged `needs_rotation`.
 
-The mapping is namespace-agnostic: `wp_get_secret( 'ai/api_key' )` inherits the
-prototype's `api_key`. Requiring an exact namespace match would mean guessing which
-namespace the adopting plugin picks, and guessing wrong is the broken site we are
-trying to avoid. This is not a new exposure -- the prototype's keyspace is already
-global, so any plugin could read any prototype secret by bare key -- but it is worth
-knowing, and it is why the inherited copy is always a new row rather than a move.
+The mapping is exact: `wp_get_secret( 'api_key' )` inherits the prototype's
+`api_key`, and a namespaced name inherits nothing, because the prototype had no
+namespaces and so never owned that name. An earlier revision dropped the namespace
+instead, letting any namespace claim any prototype row; that was removed in favour
+of accepting the unnamespaced form outright — see #17.
 
 **Non-interference is the load-bearing promise.** The prototype's rows are never
 written to or deleted, by anything, ever. The two option namespaces do not overlap
@@ -413,6 +413,38 @@ number that gates nothing (no coverage threshold is enforced anywhere in `make c
 coverage numbers, if wanted, should come from the non-Docker path (`make install && make
 coverage` against a host PHP with Xdebug or pcov installed normally, not via a fresh `pecl
 install` inside an already-running container) rather than this one.
+
+---
+
+## 17. 🟢 Unnamespaced secret names are accepted — CLOSED
+
+**Operator decision: `wp_get_secret( 'api_key' )` works, and reports through
+`_doing_it_wrong()`.** This contradicts the build brief's §5.5 ("There is no unnamespaced form
+and no escape hatch for one"), deliberately.
+
+The reasoning is adoption, the same as everything else in #15. Code written against the Displace
+prototype uses a flat keyspace. Refusing those names means every call site has to be rewritten
+before *any* of it can be ported, which makes the move all-or-nothing for exactly the team we are
+trying not to break. Accepting them makes it incremental: swap `get_secret()` for
+`wp_get_secret()`, keep the key, add the namespace later — and the notice is a running list of
+which call sites still need one.
+
+What this replaced is worth recording, because it was worse. The prototype fallback store used to
+map `namespace/key` onto the prototype's `key` by dropping the namespace, so
+`wp_get_secret( 'anything/api_key' )` inherited it. That worked and was not a new exposure (the
+prototype's keyspace was already global), but any namespace could silently claim any prototype
+row, and a caller had no way to see which of its names were wired to prototype data. Making the
+unnamespaced form legal removed the need for the rewrite entirely.
+
+**The relaxation is narrow.** It drops the "exactly one slash" requirement and nothing else: an
+unnamespaced name is still held to the same character rules, the same length cap, and the same
+rejection of anything with uppercase, spaces, or dots. Two or more slashes are still invalid.
+
+**Consequences that are easy to miss:** an unnamespaced name has no namespace for a future
+cross-namespace access check to check against (#6), and two plugins both choosing `api-key`
+collide silently. Namespaced names remain the documented default everywhere, and
+`wp secret migrate-legacy` keeps `--namespace` and `--map` for putting a migrated secret
+somewhere specific.
 
 ---
 

@@ -52,7 +52,8 @@ final class Secrets_API_Migrator {
 	 * - array  $map       Legacy key => explicit new name, for keys whose derived
 	 *                     name would not validate.
 	 * - string $namespace Namespace prefixed onto a legacy key with no entry in
-	 *                     $map. Default 'legacy'.
+	 *                     $map. Defaults to none, which keeps the key exactly as
+	 *                     the prototype spelled it.
 	 *
 	 * @param array $args Migration options, as described above.
 	 *
@@ -71,7 +72,7 @@ final class Secrets_API_Migrator {
 				'dry_run'   => false,
 				'name'      => null,
 				'map'       => array(),
-				'namespace' => 'legacy',
+				'namespace' => '',
 			)
 		);
 
@@ -121,7 +122,7 @@ final class Secrets_API_Migrator {
 	 * @return array One report entry.
 	 */
 	private function migrate_one( $reader, $key, array $args ) {
-		$new_name = isset( $args['map'][ $key ] ) ? $args['map'][ $key ] : $args['namespace'] . '/' . $key;
+		$new_name = $this->new_name_for( $key, $args );
 
 		$entry = array(
 			'legacy_key' => $key,
@@ -179,6 +180,38 @@ final class Secrets_API_Migrator {
 		}
 
 		return $entry;
+	}
+
+	/**
+	 * Resolves the new-format name a prototype key migrates to.
+	 *
+	 * Defaults to the key unchanged, with no namespace. That deliberately matches
+	 * what Secrets_API_Prototype_Fallback_Store does on a read: if this method
+	 * prefixed a namespace by default, running the migrator would write
+	 * 'legacy/api_key' while a plain wp_get_secret( 'api_key' ) would still miss,
+	 * fall through to the untouched prototype row, and upgrade it a second time
+	 * into 'api_key'. One prototype secret, two current-format copies, diverging
+	 * from the moment either is rotated.
+	 *
+	 * --namespace and --map both remain available for an operator who wants the
+	 * migrated secret somewhere specific, which is a deliberate choice rather
+	 * than a silent default.
+	 *
+	 * @param string $key  Prototype key.
+	 * @param array  $args Resolved args from migrate().
+	 *
+	 * @return string
+	 */
+	private function new_name_for( $key, array $args ) {
+		if ( isset( $args['map'][ $key ] ) ) {
+			return $args['map'][ $key ];
+		}
+
+		if ( '' === $args['namespace'] ) {
+			return $key;
+		}
+
+		return $args['namespace'] . '/' . $key;
 	}
 
 	/**

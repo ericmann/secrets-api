@@ -368,10 +368,9 @@ class WP_CLI_Secret_Command {
 	 * validate, e.g. --map=api_key:myplugin/api-key,other:myplugin/other-key.
 	 *
 	 * [--namespace=<namespace>]
-	 * : Namespace prefixed onto a legacy key with no --map entry.
-	 * ---
-	 * default: legacy
-	 * ---
+	 * : Namespace prefixed onto a legacy key with no --map entry. Defaults to
+	 * none, keeping the key exactly as the prototype spelled it, which is the
+	 * same name a plain wp_get_secret() would upgrade it to on first read.
 	 *
 	 * [--format=<format>]
 	 * ---
@@ -411,7 +410,7 @@ class WP_CLI_Secret_Command {
 				'dry_run'   => isset( $assoc_args['dry-run'] ),
 				'name'      => isset( $assoc_args['name'] ) ? $assoc_args['name'] : null,
 				'map'       => $map,
-				'namespace' => isset( $assoc_args['namespace'] ) ? $assoc_args['namespace'] : 'legacy',
+				'namespace' => isset( $assoc_args['namespace'] ) ? $assoc_args['namespace'] : '',
 			)
 		);
 

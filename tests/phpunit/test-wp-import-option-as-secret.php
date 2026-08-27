@@ -57,7 +57,7 @@ class Tests_Secrets_WpImportOptionAsSecret extends WP_UnitTestCase {
 	public function test_rejects_an_invalid_destination_name() {
 		update_option( 'my_plugin_api_key', 'value' );
 
-		$result = wp_import_option_as_secret( 'my_plugin_api_key', 'not-namespaced' );
+		$result = wp_import_option_as_secret( 'my_plugin_api_key', 'Not A Valid Name' );
 
 		$this->assertWPError( $result );
 		$this->assertSame( WP_SECRETS_ERROR_INVALID_NAME, $result->get_error_code() );

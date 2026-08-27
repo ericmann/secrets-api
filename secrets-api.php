@@ -1,7 +1,7 @@
 <?php
 /**
  * Plugin Name:       Secrets API
- * Plugin URI:        https://github.com/WordPress/secrets-api
+ * Plugin URI:        https://github.com/ericmann/secrets-api
  * Description:       Feature plugin for the WordPress Secrets API proposed for 7.2. Encrypted, versioned credential storage with pluggable storage and keyring back ends.
  * Version:           0.1.0
  * Requires at least: 6.6
@@ -14,8 +14,9 @@
  */
 
 /*
- * The slug and display name above are provisional. See docs/open-questions.md #2 -- a
- * neutral, non-Displace-branded slug needs a human decision before any .org submission.
+ * Plugin URI points at the current home, which is private for now. Availability of
+ * the slug on WordPress.org is settled at submission, not here -- see
+ * docs/open-questions.md #1.
  */
 
 defined( 'ABSPATH' ) || exit;

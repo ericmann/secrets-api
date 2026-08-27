@@ -22,6 +22,11 @@
  * next read hits the new record directly and never comes back here. The upgrade is
  * one-way and happens once per secret, on first use.
  *
+ * Only the unnamespaced form participates. wp_get_secret( 'api_key' ) consults the
+ * prototype's 'api_key'; wp_get_secret( 'myplugin/api_key' ) consults nothing,
+ * because the prototype had no namespaces and so cannot have owned that name.
+ * Nothing is rewritten or inferred -- see prototype_key_for().
+ *
  * A note on what this is NOT. It does not implement the prototype's API, reinstate
  * its function names, or let prototype-era code keep running -- that would be a
  * compatibility layer, and there is deliberately none. It reads one option row,
@@ -166,34 +171,41 @@ final class Secrets_API_Prototype_Fallback_Store implements WP_Secrets_Store {
 	}
 
 	/**
-	 * Maps a current-format name onto the prototype key that would have held it.
+	 * Maps a name onto the prototype key that would have held it, which is only
+	 * ever the identical name.
 	 *
-	 * The prototype's keys are flat and unnamespaced ('api_key'); current names
-	 * are always 'namespace/key'. The mapping is therefore to drop the namespace,
-	 * which means any namespace can inherit a given prototype row.
+	 * The prototype's keyspace is flat, so an unnamespaced name corresponds to
+	 * exactly one prototype key and a namespaced one corresponds to none at all.
+	 * There is no rewriting here: 'api_key' looks at 'api_key', and
+	 * 'myplugin/api_key' looks at nothing.
 	 *
-	 * That is deliberate, and it is not the exposure it first looks like. The
-	 * prototype's keyspace is global: every plugin on the site could already read
-	 * every prototype secret by calling its get_secret() with the bare key, with
-	 * no namespace to check against. Inheriting one into 'ai/api_key' hands it to
-	 * code that could already have read it, and the inherited copy is a new row --
-	 * the prototype's own is never modified. Requiring an exact namespace match
-	 * instead would mean guessing which namespace the adopting plugin will choose,
-	 * and guessing wrong reintroduces exactly the broken-site outcome this exists
-	 * to prevent.
+	 * An earlier version dropped the namespace instead, so that
+	 * wp_get_secret( 'anything/api_key' ) inherited the prototype's 'api_key'.
+	 * That worked, but it meant any namespace could silently claim any prototype
+	 * row, and a caller had no way to tell which of its names were quietly wired
+	 * to prototype data. Making the unnamespaced form a legal call
+	 * (wp_secrets_validate_name() accepts it and reports through
+	 * _doing_it_wrong()) removes the need for the rewrite entirely: code being
+	 * ported off the prototype passes the same key it always passed, and gets the
+	 * value it always got, with nothing inferred on its behalf.
 	 *
-	 * @param string $name The secret's namespaced name.
+	 * @param string $name The secret's name.
 	 *
-	 * @return string|null The prototype key, or null if $name is not well-formed.
+	 * @return string|null The prototype key, or null if this name can never
+	 *                      correspond to one.
 	 */
 	private function prototype_key_for( $name ) {
-		if ( ! is_string( $name ) || 1 !== substr_count( $name, '/' ) ) {
+		if ( ! is_string( $name ) || '' === $name ) {
 			return null;
 		}
 
-		$key = substr( $name, strpos( $name, '/' ) + 1 );
+		// A namespace is something the prototype never had, so a namespaced name
+		// cannot describe a prototype row.
+		if ( false !== strpos( $name, '/' ) ) {
+			return null;
+		}
 
-		return ( '' === $key ) ? null : $key;
+		return $name;
 	}
 
 	/**

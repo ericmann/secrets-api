@@ -80,7 +80,7 @@ class Tests_Secrets_NetworkScope extends WP_UnitTestCase {
 	}
 
 	public function test_set_rejects_an_invalid_name() {
-		$result = wp_set_network_secret( 'not-namespaced', 'value' );
+		$result = wp_set_network_secret( 'Not A Valid Name', 'value' );
 
 		$this->assertWPError( $result );
 		$this->assertSame( WP_SECRETS_ERROR_INVALID_NAME, $result->get_error_code() );

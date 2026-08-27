@@ -81,7 +81,7 @@ class Tests_Secrets_WPSecretsCipher extends WP_UnitTestCase {
 	public function test_encrypt_propagates_an_invalid_name() {
 		$cipher = new WP_Secrets_Cipher();
 
-		$result = $cipher->encrypt_value( $this->master_key(), 'site', 1, 'not-namespaced', WP_Secret_Version::CURRENT, 'value' );
+		$result = $cipher->encrypt_value( $this->master_key(), 'site', 1, 'Not A Valid Name', WP_Secret_Version::CURRENT, 'value' );
 
 		$this->assertWPError( $result );
 		$this->assertSame( WP_SECRETS_ERROR_INVALID_NAME, $result->get_error_code() );

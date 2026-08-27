@@ -140,7 +140,7 @@ class Tests_Secrets_VersionSlots extends WP_UnitTestCase {
 	}
 
 	public function test_retire_rejects_an_invalid_name() {
-		$result = wp_retire_secret_version( 'not-namespaced' );
+		$result = wp_retire_secret_version( 'Not A Valid Name' );
 
 		$this->assertWPError( $result );
 		$this->assertSame( WP_SECRETS_ERROR_INVALID_NAME, $result->get_error_code() );

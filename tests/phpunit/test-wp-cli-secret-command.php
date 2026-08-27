@@ -67,7 +67,7 @@ class Tests_Secrets_WPCLISecretCommand extends WP_UnitTestCase {
 
 	public function test_set_reports_the_underlying_error() {
 		try {
-			$this->command()->set( array( 'not-namespaced', 'value' ), array() );
+			$this->command()->set( array( 'Not A Valid Name', 'value' ), array() );
 			$this->fail( 'Expected an exit.' );
 		} catch ( Mock_WP_CLI_Exit_Exception $e ) {
 			unset( $e );
@@ -324,13 +324,15 @@ class Tests_Secrets_WPCLISecretCommand extends WP_UnitTestCase {
 	}
 
 	public function test_migrate_legacy_reports_migrated_status() {
+		$this->setExpectedIncorrectUsage( 'wp_secrets_validate_name' );
+
 		( new Legacy_Fixture_Writer() )->write_secret( 'api_key', 'value' );
 
 		$this->command()->migrate_legacy( array(), array() );
 
 		$items = WP_CLI::$formatted_items[0]['items'];
 		$this->assertSame( 'migrated', $items[0]['status'] );
-		$this->assertSame( 'legacy/api_key', $items[0]['new_name'] );
+		$this->assertSame( 'api_key', $items[0]['new_name'] );
 	}
 
 	public function test_migrate_legacy_map_overrides_the_derived_name() {
@@ -344,6 +346,8 @@ class Tests_Secrets_WPCLISecretCommand extends WP_UnitTestCase {
 	}
 
 	public function test_migrate_legacy_warns_when_vendor_class_detected() {
+		$this->setExpectedIncorrectUsage( 'wp_secrets_validate_name' );
+
 		( new Legacy_Fixture_Writer() )->write_secret( 'api_key', 'value' );
 
 		$this->command()->migrate_legacy( array(), array() );
@@ -357,6 +361,8 @@ class Tests_Secrets_WPCLISecretCommand extends WP_UnitTestCase {
 	 * @preserveGlobalState disabled
 	 */
 	public function test_migrate_legacy_warns_and_still_migrates_when_vendor_class_is_present() {
+		$this->setExpectedIncorrectUsage( 'wp_secrets_validate_name' );
+
 		eval( 'namespace WordPress\AI\Vendor\Secrets; class Secrets_Manager {}' ); // phpcs:ignore Squiz.PHP.Eval.Discouraged -- only way to define a class under a namespace conditionally, for this one test.
 
 		( new Legacy_Fixture_Writer() )->write_secret( 'api_key', 'value' );
@@ -372,6 +378,8 @@ class Tests_Secrets_WPCLISecretCommand extends WP_UnitTestCase {
 
 
 	public function test_migrate_legacy_halts_with_exit_code_1_on_any_error_entry() {
+		$this->setExpectedIncorrectUsage( 'wp_secrets_validate_name' );
+
 		$writer = new Legacy_Fixture_Writer();
 		$writer->write_secret( 'api_key', 'value' );
 		$writer->corrupt_secret( 'api_key' ); // undecryptable -> a genuine 'error' entry, not 'needs_mapping'.
@@ -385,6 +393,8 @@ class Tests_Secrets_WPCLISecretCommand extends WP_UnitTestCase {
 	}
 
 	public function test_migrate_legacy_never_logs_a_plaintext() {
+		$this->setExpectedIncorrectUsage( 'wp_secrets_validate_name' );
+
 		( new Legacy_Fixture_Writer() )->write_secret( 'api_key', 'UNIQUE-CLI-PLAINTEXT-CANARY-7c2e' );
 
 		$this->command()->migrate_legacy( array(), array() );

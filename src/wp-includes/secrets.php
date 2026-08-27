@@ -186,19 +186,26 @@ function wp_secrets_memzero( &$value ) {
 }
 
 /**
- * Validates a secret's namespaced name.
+ * Validates a secret's name.
  *
  * Names take the form 'plugin-slug/secret-name': lowercase alphanumerics,
  * hyphens, and underscores in each segment, exactly one '/' separating them,
- * and no segment starting or ending with a hyphen or underscore. There is no
- * unnamespaced form and no escape hatch for one.
+ * and no segment starting or ending with a hyphen or underscore.
+ *
+ * An unnamespaced name ('secret-name', no '/') is accepted, but reports through
+ * _doing_it_wrong(). It exists for one reason: code written against the Displace
+ * prototype used a flat keyspace, and refusing those names outright would mean
+ * every such call site has to be rewritten before it can be ported at all.
+ * Accepting them keeps that migration incremental. Nothing else should use one --
+ * without a namespace there is nothing for a future cross-namespace access check
+ * to check against, and two plugins picking 'api-key' collide silently.
  *
  * @since 7.2.0
  *
  * @param string $name Candidate secret name.
  *
- * @return true|WP_Error True if $name is valid. Otherwise WP_Error with code
- *                       WP_SECRETS_ERROR_INVALID_NAME.
+ * @return true|WP_Error True if $name is usable, including the unnamespaced form.
+ *                       Otherwise WP_Error with code WP_SECRETS_ERROR_INVALID_NAME.
  */
 function wp_secrets_validate_name( $name ) {
 	if ( ! is_string( $name ) || '' === $name ) {
@@ -219,11 +226,41 @@ function wp_secrets_validate_name( $name ) {
 		);
 	}
 
-	if ( 1 !== substr_count( $name, '/' ) ) {
+	$slashes = substr_count( $name, '/' );
+
+	if ( $slashes > 1 ) {
 		return new WP_Error(
 			WP_SECRETS_ERROR_INVALID_NAME,
-			__( 'Secret names must contain exactly one "/", separating a namespace from a key.', 'default' )
+			__( 'Secret names may contain at most one "/", separating a namespace from a key.', 'default' )
 		);
+	}
+
+	$segment_pattern = '/^[a-z0-9]([a-z0-9_-]*[a-z0-9])?$/';
+
+	if ( 0 === $slashes ) {
+		if ( ! preg_match( $segment_pattern, $name ) ) {
+			return new WP_Error(
+				WP_SECRETS_ERROR_INVALID_NAME,
+				__( 'Secret names may contain only lowercase letters, numbers, hyphens, and underscores, and must not start or end with a hyphen or underscore.', 'default' )
+			);
+		}
+
+		/*
+		 * Reported here rather than at each public entry point: this is the one
+		 * place that decides what a name is, so a caller cannot reach the store
+		 * with an unnamespaced name without passing through it.
+		 */
+		_doing_it_wrong(
+			__FUNCTION__,
+			sprintf(
+				/* translators: %s: The unnamespaced secret name. */
+				__( 'The secret name "%s" has no namespace. Namespaced names ("plugin-slug/secret-name") group secrets by owner and give a future access check something to check against; unnamespaced names are supported only so that code written against the Displace prototype can be ported incrementally.', 'default' ),
+				$name
+			),
+			'7.2.0'
+		);
+
+		return true;
 	}
 
 	$segments  = explode( '/', $name );
@@ -236,8 +273,6 @@ function wp_secrets_validate_name( $name ) {
 			__( 'Both segments of a secret name must be non-empty.', 'default' )
 		);
 	}
-
-	$segment_pattern = '/^[a-z0-9]([a-z0-9_-]*[a-z0-9])?$/';
 
 	if ( ! preg_match( $segment_pattern, $namespace ) || ! preg_match( $segment_pattern, $key ) ) {
 		return new WP_Error(
