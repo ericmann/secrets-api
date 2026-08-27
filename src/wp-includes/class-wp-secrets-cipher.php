@@ -261,10 +261,13 @@ final class WP_Secrets_Cipher {
 	 * Validates the parameters shared by encrypt_value() and decrypt_value().
 	 *
 	 * $scope, $site_id, and $slot are never influenced by external input -- every
-	 * call site in this API supplies them internally -- so a bad value here is a
-	 * programming error and throws, matching how WP_Secret guards its own
-	 * constructor. $name and $master_key legitimately vary at runtime (a plugin
-	 * author's typo, an unavailable key backend) and report through WP_Error instead.
+	 * call site in this API supplies them internally -- so a bad value here means
+	 * the calling code is wrong, not that a runtime condition failed. That still
+	 * reports as a WP_Error rather than an exception: WordPress functions return
+	 * WP_Error or false, they do not throw. The _doing_it_wrong() notice is what
+	 * makes the distinction visible during development. $name and $master_key
+	 * legitimately vary at runtime (a plugin author's typo, an unavailable key
+	 * backend) and have always reported the same way.
 	 *
 	 * @since 7.2.0
 	 *
@@ -274,21 +277,19 @@ final class WP_Secrets_Cipher {
 	 * @param string $name       Candidate secret name.
 	 * @param string $slot       Candidate slot.
 	 *
-	 * @throws InvalidArgumentException If $scope, $site_id, or $slot is invalid.
-	 *
 	 * @return true|WP_Error
 	 */
 	private function validate_common( $master_key, $scope, $site_id, $name, $slot ) {
 		if ( ! in_array( $scope, array( 'site', 'network' ), true ) ) {
-			throw new InvalidArgumentException( 'Scope must be "site" or "network".' );
+			return $this->invalid_argument( __( 'The scope must be "site" or "network".', 'default' ) );
 		}
 
 		if ( ! is_int( $site_id ) || $site_id < 0 ) {
-			throw new InvalidArgumentException( 'Site id must be a non-negative integer.' );
+			return $this->invalid_argument( __( 'The site id must be a non-negative integer.', 'default' ) );
 		}
 
 		if ( ! in_array( $slot, array( WP_Secret_Version::CURRENT, WP_Secret_Version::PREVIOUS ), true ) ) {
-			throw new InvalidArgumentException( 'Slot must be a WP_Secret_Version constant.' );
+			return $this->invalid_argument( __( 'The slot must be a WP_Secret_Version constant.', 'default' ) );
 		}
 
 		if ( ! $this->is_valid_master_key( $master_key ) ) {
@@ -305,6 +306,22 @@ final class WP_Secrets_Cipher {
 		}
 
 		return true;
+	}
+
+	/**
+	 * Reports a caller error the way WordPress does: a _doing_it_wrong() notice a
+	 * developer will see, plus a WP_Error the caller can act on.
+	 *
+	 * @since 7.2.0
+	 *
+	 * @param string $message What the caller got wrong.
+	 *
+	 * @return WP_Error
+	 */
+	private function invalid_argument( $message ) {
+		_doing_it_wrong( __CLASS__ . '::encrypt_value()/decrypt_value()', $message, '7.2.0' );
+
+		return new WP_Error( WP_SECRETS_ERROR_INVALID_ARGUMENT, $message );
 	}
 
 	/**

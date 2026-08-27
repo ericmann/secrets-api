@@ -38,10 +38,19 @@ class Tests_Secrets_WpSetSecretAndWpGetSecret extends WP_UnitTestCase {
 		$this->assertNull( wp_get_secret( 'myplugin/api-key', WP_Secret_Version::PREVIOUS ) );
 	}
 
-	public function test_get_throws_on_an_invalid_version() {
-		$this->expectException( InvalidArgumentException::class );
+	/**
+	 * An unrecognised version is a caller mistake, and WordPress reports those as
+	 * WP_Error plus a _doing_it_wrong() notice rather than by throwing. The
+	 * WP_Error branch of the three-state contract already covers it, so this adds
+	 * no fourth state -- see docs/open-questions.md #12.
+	 */
+	public function test_an_invalid_version_is_a_wp_error_not_an_exception() {
+		$this->setExpectedIncorrectUsage( '_wp_secrets_get' );
 
-		wp_get_secret( 'myplugin/api-key', 'not-a-real-version' );
+		$result = wp_get_secret( 'myplugin/api-key', 'not-a-real-version' );
+
+		$this->assertWPError( $result );
+		$this->assertSame( WP_SECRETS_ERROR_INVALID_ARGUMENT, $result->get_error_code() );
 	}
 
 	public function test_set_rejects_an_invalid_name() {

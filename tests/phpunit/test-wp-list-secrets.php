@@ -87,10 +87,13 @@ class Tests_Secrets_WpListSecrets extends WP_UnitTestCase {
 		$this->assertSame( array(), wp_list_secrets( 'plugin' ) );
 	}
 
-	public function test_throws_on_a_non_string_namespace() {
-		$this->expectException( InvalidArgumentException::class );
+	public function test_a_non_string_namespace_is_a_wp_error_not_an_exception() {
+		$this->setExpectedIncorrectUsage( '_wp_secrets_list' );
 
-		wp_list_secrets( array( 'not', 'a', 'string' ) );
+		$result = wp_list_secrets( array( 'not', 'a', 'string' ) );
+
+		$this->assertWPError( $result );
+		$this->assertSame( WP_SECRETS_ERROR_INVALID_ARGUMENT, $result->get_error_code() );
 	}
 
 	/**

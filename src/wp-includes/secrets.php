@@ -45,6 +45,21 @@ define( 'WP_SECRETS_ERROR_INVALID_NAME', 'secret_invalid_name' );
 define( 'WP_SECRETS_ERROR_INVALID_VALUE', 'secret_invalid_value' );
 
 /**
+ * A caller passed an argument this API cannot act on -- an unrecognised version
+ * constant, an invalid scope or slot, a non-string namespace.
+ *
+ * Distinct from the codes above in cause rather than in severity: those describe
+ * a runtime condition a correct caller can still hit (a name that failed
+ * validation, an unavailable key), while this one only ever means the calling
+ * code is wrong. Every site that returns it also calls _doing_it_wrong(), so the
+ * mistake is visible in development rather than only in a return value the caller
+ * may not be checking.
+ *
+ * @since 7.2.0
+ */
+define( 'WP_SECRETS_ERROR_INVALID_ARGUMENT', 'secret_invalid_argument' );
+
+/**
  * The cipher this API depends on (libsodium, or its sodium_compat fallback) is
  * not available in this environment.
  *
@@ -635,13 +650,20 @@ function _wp_secrets_set( $name, $value, $network, $needs_rotation = false, $act
  * @param string $version A WP_Secret_Version constant.
  * @param bool   $network Whether this is a network-scope secret.
  *
- * @throws InvalidArgumentException If $version is not a WP_Secret_Version constant.
- *
  * @return WP_Secret|null|WP_Error
  */
 function _wp_secrets_get( $name, $version, $network ) {
 	if ( ! in_array( $version, array( WP_Secret_Version::CURRENT, WP_Secret_Version::PREVIOUS ), true ) ) {
-		throw new InvalidArgumentException( 'Version must be a WP_Secret_Version constant.' );
+		_doing_it_wrong(
+			__FUNCTION__,
+			__( 'The version must be WP_Secret_Version::CURRENT or WP_Secret_Version::PREVIOUS.', 'default' ),
+			'7.2.0'
+		);
+
+		return new WP_Error(
+			WP_SECRETS_ERROR_INVALID_ARGUMENT,
+			__( 'The version must be WP_Secret_Version::CURRENT or WP_Secret_Version::PREVIOUS.', 'default' )
+		);
 	}
 
 	$name_check = wp_secrets_validate_name( $name );
@@ -937,15 +959,22 @@ function wp_import_option_as_secret( $option, $name ) {
  *                             'namespace' in an internal signature.
  * @param bool   $network     Whether to list network-scope secrets.
  *
- * @throws InvalidArgumentException If $name_prefix is not a string.
- *
  * @return array|WP_Error Array of associative arrays, each with keys 'name',
  *                        'fingerprint', 'created', 'has_previous', and
  *                        'needs_rotation'. Never a value. WP_Error on failure.
  */
 function _wp_secrets_list( $name_prefix, $network ) {
 	if ( ! is_string( $name_prefix ) ) {
-		throw new InvalidArgumentException( 'Namespace must be a string.' );
+		_doing_it_wrong(
+			__FUNCTION__,
+			__( 'The namespace must be a string.', 'default' ),
+			'7.2.0'
+		);
+
+		return new WP_Error(
+			WP_SECRETS_ERROR_INVALID_ARGUMENT,
+			__( 'The namespace must be a string.', 'default' )
+		);
 	}
 
 	$store = _wp_secrets_get_store();

@@ -86,6 +86,7 @@ hardens**, because names are the hardest thing to change after adoption.
 | `wp_secret_changed` hook name and argument order | Post commits to "actor, timestamp, and old and new fingerprints"; `$action` is an addition | Unpublished |
 | `WP_Secrets_Cipher`, `WP_Secrets_Key_Manager`, `WP_Secrets_Option_Store`, `WP_Secrets_Config_Key_Provider`, `WP_Secrets_Broken_Store`, `WP_Secrets_Broken_Keyring` | The envelope described in the proposal has to be built out of *something* | Six permanent class names in `wp-includes`. The proposal names none of them, and the `Broken_*` pair in particular encodes a fail-closed design decision in a class name |
 | `WP_SECRETS_ERROR_*` constants | The proposal publishes error *strings* (`secret_decryption_failed` et al.) but no constant names | Callers will `use` whichever spelling ships first |
+| `secret_invalid_argument` (`WP_SECRETS_ERROR_INVALID_ARGUMENT`) | Added when #12 converted caller-error throws to WP_Error; the proposal's error list predates that decision | A genuinely new error *string*, not just a new constant name — the only one on this list that is |
 | `WP_SECRETS_CAP_MANAGE` / `WP_SECRETS_CAP_MANAGE_NETWORK` | Wrappers over the two published capability strings | Strings match the proposal exactly (`manage_secrets`, `manage_network_secrets`); only the constant names are new |
 | `WP_SECRETS_MAX_NAME_LENGTH` (172), `WP_SECRETS_RECORD_VERSION` (1) | A cap and a format version both have to exist | 172 is derived, not published — see the note under §5.5 in the build brief about subtracting the option prefix from 191 |
 | The `wp-content/secrets.php` drop-in filename, and `$GLOBALS['wp_secrets_store']` / `$GLOBALS['wp_secrets_keyring']` | The proposal describes drop-in-style replacement without naming the file or the mechanism | A drop-in filename is effectively permanent once hosts ship against it, in the same way `object-cache.php` is |
@@ -205,22 +206,33 @@ written down here rather than skipped.
 
 ---
 
-## 12. 🟡 Throwing versus WP_Error for programming errors
+## 12. 🟢 Throwing versus WP_Error for programming errors — CLOSED
 
-The public functions mix two error strategies. Values that vary legitimately at
-runtime -- a bad secret name, an unavailable key, a corrupt record -- return `WP_Error`.
-Values that can only be wrong because a *caller* got them wrong -- an unrecognized
-`$version` passed to `wp_get_secret()`, an invalid scope or slot inside
-`WP_Secrets_Cipher` -- throw `InvalidArgumentException`.
+**Resolved by the operator: WordPress functions return `WP_Error` or `false`. They do not
+throw.** Applied.
 
-The published contract for `wp_get_secret()` is `WP_Secret|null|WP_Error`, and throwing
-is arguably a fourth state outside it. Core's own convention in this situation leans
-toward `_doing_it_wrong()` plus a `WP_Error` return rather than an exception.
+Previously, values that could only be wrong because a *caller* got them wrong — an unrecognised
+`$version`, an invalid scope or slot, a non-string namespace — threw `InvalidArgumentException`,
+on the reasoning that failing loudly beats returning something a caller might not check. That is
+a defensible position in general and the wrong one for WordPress, where a thrown exception from
+`wp_get_secret()` is a fatal on a site whose author had no reason to wrap the call in a
+`try`/`catch` nobody told them about.
 
-**Current state:** throws, on the reasoning that a bad version constant is never
-recoverable at runtime and failing loudly beats returning something a caller may not
-check. Worth an explicit decision before the API freezes, since it changes what a
-plugin author has to defend against.
+Every one of those sites now calls `_doing_it_wrong()` and returns
+`WP_Error( WP_SECRETS_ERROR_INVALID_ARGUMENT )` — loud in development, recoverable in production,
+and canonical. Seven sites converted, across `_wp_secrets_get()`, `_wp_secrets_list()`,
+`WP_Secrets_Cipher::validate_common()`, and `WP_Secrets_Key_Manager::get_master_key()`.
+
+This adds no fourth state to `wp_get_secret()`. `WP_Secret|null|WP_Error` already covers it: a
+bad `$version` is now simply one more reason the `WP_Error` branch happens.
+
+**What still throws, and why it is not an oversight:** `WP_Secret`'s constructor, and its
+`__sleep()`/`__serialize()`/`__wakeup()`/`__unserialize()`/`__clone()` refusals. Neither has a
+return channel — a constructor cannot hand back a `WP_Error`, and a magic method cannot either.
+The alternatives are throwing or constructing a half-valid `WP_Secret` that fails somewhere less
+obvious, and for the serialization refusals specifically, silently permitting the operation would
+leak a plaintext. The build brief mandates those throws for that reason. Nothing outside this API
+constructs a `WP_Secret` in normal use.
 
 ---
 

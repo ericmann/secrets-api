@@ -70,10 +70,13 @@ class Tests_Secrets_NetworkScope extends WP_UnitTestCase {
 		$this->assertSame( array( 'myplugin/network-only' ), $names );
 	}
 
-	public function test_get_throws_on_an_invalid_version_same_as_site_scope() {
-		$this->expectException( InvalidArgumentException::class );
+	public function test_an_invalid_version_is_a_wp_error_same_as_site_scope() {
+		$this->setExpectedIncorrectUsage( '_wp_secrets_get' );
 
-		wp_get_network_secret( 'myplugin/api-key', 'not-a-real-version' );
+		$result = wp_get_network_secret( 'myplugin/api-key', 'not-a-real-version' );
+
+		$this->assertWPError( $result );
+		$this->assertSame( WP_SECRETS_ERROR_INVALID_ARGUMENT, $result->get_error_code() );
 	}
 
 	public function test_set_rejects_an_invalid_name() {

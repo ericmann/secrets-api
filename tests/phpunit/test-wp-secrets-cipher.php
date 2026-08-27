@@ -87,28 +87,37 @@ class Tests_Secrets_WPSecretsCipher extends WP_UnitTestCase {
 		$this->assertSame( WP_SECRETS_ERROR_INVALID_NAME, $result->get_error_code() );
 	}
 
-	public function test_encrypt_throws_on_an_invalid_scope() {
+	public function test_encrypt_reports_an_invalid_scope_as_a_wp_error() {
 		$cipher = new WP_Secrets_Cipher();
 
-		$this->expectException( InvalidArgumentException::class );
+		$this->setExpectedIncorrectUsage( 'WP_Secrets_Cipher::encrypt_value()/decrypt_value()' );
 
-		$cipher->encrypt_value( $this->master_key(), 'bogus-scope', 1, self::NAME, WP_Secret_Version::CURRENT, 'value' );
+		$result = $cipher->encrypt_value( $this->master_key(), 'bogus-scope', 1, self::NAME, WP_Secret_Version::CURRENT, 'value' );
+
+		$this->assertWPError( $result );
+		$this->assertSame( WP_SECRETS_ERROR_INVALID_ARGUMENT, $result->get_error_code() );
 	}
 
-	public function test_encrypt_throws_on_a_negative_site_id() {
+	public function test_encrypt_reports_a_negative_site_id_as_a_wp_error() {
 		$cipher = new WP_Secrets_Cipher();
 
-		$this->expectException( InvalidArgumentException::class );
+		$this->setExpectedIncorrectUsage( 'WP_Secrets_Cipher::encrypt_value()/decrypt_value()' );
 
-		$cipher->encrypt_value( $this->master_key(), 'site', -1, self::NAME, WP_Secret_Version::CURRENT, 'value' );
+		$result = $cipher->encrypt_value( $this->master_key(), 'site', -1, self::NAME, WP_Secret_Version::CURRENT, 'value' );
+
+		$this->assertWPError( $result );
+		$this->assertSame( WP_SECRETS_ERROR_INVALID_ARGUMENT, $result->get_error_code() );
 	}
 
-	public function test_encrypt_throws_on_an_invalid_slot() {
+	public function test_encrypt_reports_an_invalid_slot_as_a_wp_error() {
 		$cipher = new WP_Secrets_Cipher();
 
-		$this->expectException( InvalidArgumentException::class );
+		$this->setExpectedIncorrectUsage( 'WP_Secrets_Cipher::encrypt_value()/decrypt_value()' );
 
-		$cipher->encrypt_value( $this->master_key(), 'site', 1, self::NAME, 'not-a-real-slot', 'value' );
+		$result = $cipher->encrypt_value( $this->master_key(), 'site', 1, self::NAME, 'not-a-real-slot', 'value' );
+
+		$this->assertWPError( $result );
+		$this->assertSame( WP_SECRETS_ERROR_INVALID_ARGUMENT, $result->get_error_code() );
 	}
 
 	/**

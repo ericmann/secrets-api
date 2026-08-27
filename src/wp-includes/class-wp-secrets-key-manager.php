@@ -107,13 +107,18 @@ final class WP_Secrets_Key_Manager {
 	 * @param int|null $site_id Blog id for site scope. Defaults to the current blog.
 	 *                          Ignored for network scope.
 	 *
-	 * @throws InvalidArgumentException If $scope or $site_id is invalid.
-	 *
-	 * @return string|WP_Error 32-byte master key on success. WP_Error on failure.
+	 * @return string|WP_Error 32-byte master key on success. WP_Error on failure,
+	 *                         including when a caller passes an invalid scope or
+	 *                         site id -- see WP_Secrets_Cipher::validate_common()
+	 *                         for why that is a WP_Error and not an exception.
 	 */
 	public function get_master_key( $scope, $site_id = null ) {
 		if ( ! in_array( $scope, array( 'site', 'network' ), true ) ) {
-			throw new InvalidArgumentException( 'Scope must be "site" or "network".' );
+			$message = __( 'The scope must be "site" or "network".', 'default' );
+
+			_doing_it_wrong( __METHOD__, $message, '7.2.0' );
+
+			return new WP_Error( WP_SECRETS_ERROR_INVALID_ARGUMENT, $message );
 		}
 
 		if ( 'network' === $scope ) {
@@ -123,7 +128,11 @@ final class WP_Secrets_Key_Manager {
 			$subkey_id = null === $site_id ? get_current_blog_id() : $site_id;
 
 			if ( ! is_int( $subkey_id ) || $subkey_id < 1 ) {
-				throw new InvalidArgumentException( 'Site id must be a positive integer.' );
+				$message = __( 'The site id must be a positive integer.', 'default' );
+
+				_doing_it_wrong( __METHOD__, $message, '7.2.0' );
+
+				return new WP_Error( WP_SECRETS_ERROR_INVALID_ARGUMENT, $message );
 			}
 
 			$context = self::SITE_KDF_CONTEXT;

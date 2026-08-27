@@ -60,6 +60,18 @@ final class WP_Secret implements JsonSerializable {
 	/**
 	 * Constructor.
 	 *
+	 * Throws, where the rest of this API returns WP_Error for a caller mistake.
+	 * That is not an inconsistency to be tidied up later: a constructor has no
+	 * return channel, so the only alternatives are throwing or building a
+	 * half-valid WP_Secret and letting it fail somewhere less obvious. Every
+	 * function that *can* return WP_Error does -- see
+	 * docs/open-questions.md #12. The same reasoning covers the serialization
+	 * and clone refusals below, which are magic methods with the same problem
+	 * and an additional one: silently permitting them would leak a plaintext.
+	 *
+	 * Nothing outside this API constructs a WP_Secret in normal use; the values
+	 * passed here come from _wp_secrets_get() having just decrypted them.
+	 *
 	 * @since 7.2.0
 	 *
 	 * @param string $name        The secret's namespaced name.
