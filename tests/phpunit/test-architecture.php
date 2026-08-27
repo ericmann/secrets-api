@@ -180,8 +180,7 @@ class Tests_Secrets_Architecture extends WP_UnitTestCase {
 		$symbols = array(
 			'Secrets_API_Legacy_Reader',
 			'Secrets_API_Migrator',
-			'Secrets_API_Compat_Shim',
-			'WP_SECRETS_LEGACY_SHIM',
+			'Secrets_API_Prototype_Fallback_Store',
 		);
 
 		foreach ( $this->src_files() as $file ) {
@@ -198,45 +197,77 @@ class Tests_Secrets_Architecture extends WP_UnitTestCase {
 	}
 
 	/**
-	 * Prototype-compatibility code stays off the default request path.
+	 * The bulk migrator loads only under WP-CLI.
 	 *
-	 * The reader and migrator load only inside the WP-CLI guard, and the shim's
-	 * class and functions load only inside wp_secrets_api_maybe_load_compat_shim().
-	 * Hoisting any of these to the top of wp_secrets_api_bootstrap() would still
-	 * pass every other test in the suite while quietly making every request on
-	 * every site pay for compatibility it never opted into -- and would blunt the
-	 * deletion seam, since the files would no longer be reachable from exactly two
-	 * places. Pinned by offset because that is the property that matters: not that
-	 * the requires exist, but where.
+	 * The read-time fallback store and the reader it depends on legitimately load
+	 * on every request -- that is the whole point of them. The migrator does not:
+	 * it is a one-shot operator tool, and hoisting it out of the WP-CLI guard
+	 * would pass every other test in the suite while quietly loading a class no
+	 * web request can reach.
 	 */
-	public function test_prototype_compat_files_load_only_behind_their_gates() {
+	public function test_the_migrator_loads_only_under_wp_cli() {
 		$bootstrap = file_get_contents( WP_SECRETS_API_PLUGIN_DIR . 'secrets-api.php' );
 
-		$cli_guard   = strpos( $bootstrap, "if ( defined( 'WP_CLI' ) && WP_CLI ) {" );
-		$shim_loader = strpos( $bootstrap, 'function wp_secrets_api_maybe_load_compat_shim' );
+		$cli_guard = strpos( $bootstrap, "if ( defined( 'WP_CLI' ) && WP_CLI ) {" );
 
 		$this->assertNotFalse( $cli_guard, 'The WP-CLI guard is no longer recognisable in secrets-api.php.' );
-		$this->assertNotFalse( $shim_loader, 'wp_secrets_api_maybe_load_compat_shim() is no longer present.' );
 
-		$gated = array(
-			'plugin/class-secrets-api-legacy-reader.php' => $cli_guard,
-			'plugin/class-secrets-api-migrator.php'      => $cli_guard,
-			'plugin/class-secrets-api-compat-shim.php'   => $shim_loader,
-			'plugin/compat-shim-functions.php'           => $shim_loader,
+		$matches = array();
+		preg_match_all(
+			'/require_once[^;]*' . preg_quote( 'plugin/class-secrets-api-migrator.php', '/' ) . '/',
+			$bootstrap,
+			$matches,
+			PREG_OFFSET_CAPTURE
 		);
 
-		foreach ( $gated as $file => $gate_offset ) {
-			$matches = array();
-			preg_match_all( '/require_once[^;]*' . preg_quote( $file, '/' ) . '/', $bootstrap, $matches, PREG_OFFSET_CAPTURE );
+		$this->assertNotEmpty( $matches[0], 'No require_once found for the migrator.' );
 
-			$this->assertNotEmpty( $matches[0], "No require_once found for {$file}." );
+		foreach ( $matches[0] as $match ) {
+			$this->assertGreaterThan(
+				$cli_guard,
+				$match[1],
+				'The migrator is required outside the WP-CLI guard -- it would load on every request.'
+			);
+		}
+	}
 
-			foreach ( $matches[0] as $match ) {
-				$this->assertGreaterThan(
-					$gate_offset,
-					$match[1],
-					"{$file} is required outside its gate -- it would load on every request."
-				);
+	/**
+	 * Nothing in this plugin writes to or deletes an option the prototype owns.
+	 *
+	 * This is the load-bearing promise to the team still running that code: both
+	 * systems share a site, and ours is strictly a reader of theirs. It is checked
+	 * statically rather than only behaviourally because the dangerous version of
+	 * this mistake is a code path nobody thought to write a test for -- a cleanup
+	 * step, a "tidy up after migrating" convenience, an uninstall routine.
+	 *
+	 * The reader is exempt for get_option() specifically: reading is its job.
+	 */
+	public function test_never_writes_to_a_prototype_owned_option() {
+		$forbidden = array( 'update_option', 'delete_option', 'add_option' );
+
+		$files = glob( WP_SECRETS_API_PLUGIN_DIR . 'plugin/*.php' );
+		$files = array_merge( $files, glob( WP_SECRETS_API_PLUGIN_DIR . 'cli/*.php' ) );
+		$files = array_merge( $files, glob( WP_SECRETS_API_PLUGIN_DIR . 'src/wp-includes/*.php' ) );
+
+		foreach ( $files as $file ) {
+			$contents = file_get_contents( $file );
+
+			foreach ( $forbidden as $call ) {
+				$matches = array();
+				preg_match_all( '/' . $call . '\s*\(\s*([^,)]+)/', $contents, $matches );
+
+				foreach ( $matches[1] as $argument ) {
+					$this->assertStringNotContainsString(
+						"'_secret_",
+						$argument,
+						"{$call}() targets a prototype-owned option in {$file}."
+					);
+					$this->assertStringNotContainsString(
+						"'_secrets_master_key'",
+						$argument,
+						"{$call}() targets the prototype's master key in {$file}."
+					);
+				}
 			}
 		}
 	}

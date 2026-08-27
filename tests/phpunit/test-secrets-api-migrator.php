@@ -83,50 +83,24 @@ class Tests_Secrets_ApiMigrator extends WP_UnitTestCase {
 		$report = $this->migrator()->migrate( array( 'name' => 'api_key' ) );
 
 		$this->assertCount( 1, $report['entries'] );
-		$this->assertNull( wp_get_secret( 'legacy/other_key' ) );
+
+		// Checked as a stored record rather than through wp_get_secret(): the
+		// read-time fallback store would upgrade it on the spot and report a hit.
+		$this->assertFalse( get_option( '_wp_secret_legacy/other_key' ) );
 	}
 
-	// -- default leaves the source in place, --delete-source removes it --------
+	// -- the prototype's own rows are never touched ---------------------------
 
-	public function test_default_run_leaves_the_legacy_option_in_place() {
+	public function test_migrating_never_modifies_or_removes_the_prototype_rows() {
 		( new Legacy_Fixture_Writer() )->write_secret( 'api_key', 'value' );
+
+		$secret_before = get_option( '_secret_api_key' );
+		$master_before = get_option( '_secrets_master_key' );
 
 		$this->migrator()->migrate();
 
-		$this->assertNotFalse( get_option( '_secret_api_key' ) );
-	}
-
-	public function test_delete_source_removes_the_legacy_option_after_verification() {
-		( new Legacy_Fixture_Writer() )->write_secret( 'api_key', 'value' );
-
-		$report = $this->migrator()->migrate( array( 'delete_source' => true ) );
-
-		$this->assertTrue( $this->entry_for( $report, 'api_key' )['source_deleted'] );
-		$this->assertFalse( get_option( '_secret_api_key' ) );
-	}
-
-	/**
-	 * The central safety property of this whole class: if verification would fail,
-	 * the source is never deleted, no matter what flags were passed.
-	 */
-	public function test_verification_failure_never_deletes_the_source() {
-		$writer = new Legacy_Fixture_Writer();
-		$writer->write_secret( 'api_key', 'value' );
-
-		// Migrate once, without deleting, so a fingerprint of 'value' is recorded.
-		$this->migrator()->migrate();
-
-		// Simulate the legacy value having changed since migration (e.g. something
-		// else wrote a new value under the same legacy option). A delete-time
-		// re-verification against the fingerprint recorded at migration time must
-		// now fail, since the current legacy plaintext no longer matches it.
-		$writer->write_secret( 'api_key', 'a different value' );
-
-		$report = $this->migrator()->migrate( array( 'delete_source' => true ) );
-		$entry  = $this->entry_for( $report, 'api_key' );
-
-		$this->assertFalse( $entry['source_deleted'] );
-		$this->assertNotFalse( get_option( '_secret_api_key' ) );
+		$this->assertSame( $secret_before, get_option( '_secret_api_key' ) );
+		$this->assertSame( $master_before, get_option( '_secrets_master_key' ) );
 	}
 
 	// -- dry run -------------------------------------------------------------
@@ -137,20 +111,14 @@ class Tests_Secrets_ApiMigrator extends WP_UnitTestCase {
 		$report = $this->migrator()->migrate( array( 'dry_run' => true ) );
 
 		$this->assertSame( 'would_migrate', $this->entry_for( $report, 'api_key' )['status'] );
-		$this->assertNull( wp_get_secret( 'legacy/api_key' ) );
-	}
 
-	public function test_dry_run_does_not_delete_even_with_delete_source() {
-		( new Legacy_Fixture_Writer() )->write_secret( 'api_key', 'value' );
-
-		$this->migrator()->migrate(
-			array(
-				'dry_run'       => true,
-				'delete_source' => true,
-			)
-		);
-
-		$this->assertNotFalse( get_option( '_secret_api_key' ) );
+		/*
+		 * Deliberately not wp_get_secret(): that would upgrade the record through
+		 * the fallback store and the assertion would pass for the wrong reason
+		 * while silently proving the opposite of what it claims. An earlier
+		 * revision of the migrator did exactly this, and its dry run wrote.
+		 */
+		$this->assertFalse( get_option( '_wp_secret_legacy/api_key' ) );
 	}
 
 	// -- idempotency -----------------------------------------------------
@@ -166,17 +134,6 @@ class Tests_Secrets_ApiMigrator extends WP_UnitTestCase {
 		$this->assertSame( 'value', wp_get_secret( 'legacy/api_key' )->reveal() );
 	}
 
-	public function test_a_skipped_key_can_still_have_its_source_deleted_on_a_later_run() {
-		( new Legacy_Fixture_Writer() )->write_secret( 'api_key', 'value' );
-
-		$this->migrator()->migrate(); // Migrate without deleting.
-		$report = $this->migrator()->migrate( array( 'delete_source' => true ) ); // Clean up later.
-
-		$entry = $this->entry_for( $report, 'api_key' );
-		$this->assertSame( 'skipped', $entry['status'] );
-		$this->assertTrue( $entry['source_deleted'] );
-		$this->assertFalse( get_option( '_secret_api_key' ) );
-	}
 
 	// -- unnamespaced / invalid names ----------------------------------------
 
@@ -236,53 +193,6 @@ class Tests_Secrets_ApiMigrator extends WP_UnitTestCase {
 		$report = $this->migrator()->migrate();
 
 		$this->assertTrue( $report['vendor_detected'] );
-	}
-
-	/**
-	 * @runInSeparateProcess
-	 * @preserveGlobalState disabled
-	 */
-	public function test_vendored_copy_refuses_delete_source_without_yes() {
-		eval( 'namespace WordPress\AI\Vendor\Secrets; class Secrets_Manager {}' ); // phpcs:ignore Squiz.PHP.Eval.Discouraged
-
-		( new Legacy_Fixture_Writer() )->write_secret( 'api_key', 'value' );
-
-		$report = $this->migrator()->migrate( array( 'delete_source' => true ) );
-		$entry  = $this->entry_for( $report, 'api_key' );
-
-		$this->assertSame( 'migrated', $entry['status'] );
-		$this->assertFalse( $entry['source_deleted'] );
-		$this->assertStringContainsString( 'vendored', $entry['message'] );
-		$this->assertNotFalse( get_option( '_secret_api_key' ) );
-	}
-
-	/**
-	 * @runInSeparateProcess
-	 * @preserveGlobalState disabled
-	 */
-	public function test_vendored_copy_allows_delete_source_with_confirmation() {
-		eval( 'namespace WordPress\AI\Vendor\Secrets; class Secrets_Manager {}' ); // phpcs:ignore Squiz.PHP.Eval.Discouraged
-
-		( new Legacy_Fixture_Writer() )->write_secret( 'api_key', 'value' );
-
-		$report = $this->migrator()->migrate(
-			array(
-				'delete_source'                 => true,
-				'confirm_delete_despite_vendor' => true,
-			)
-		);
-
-		$this->assertTrue( $this->entry_for( $report, 'api_key' )['source_deleted'] );
-		$this->assertFalse( get_option( '_secret_api_key' ) );
-	}
-
-	public function test_no_vendored_copy_migrates_and_deletes_normally() {
-		( new Legacy_Fixture_Writer() )->write_secret( 'api_key', 'value' );
-
-		$report = $this->migrator()->migrate( array( 'delete_source' => true ) );
-
-		$this->assertFalse( $report['vendor_detected'] );
-		$this->assertTrue( $this->entry_for( $report, 'api_key' )['source_deleted'] );
 	}
 
 	// -- never leaks a plaintext ----------------------------------------------

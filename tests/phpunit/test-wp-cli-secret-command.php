@@ -300,7 +300,10 @@ class Tests_Secrets_WPCLISecretCommand extends WP_UnitTestCase {
 		$this->command()->dropin();
 
 		$log = implode( "\n", WP_CLI::$log );
-		$this->assertStringContainsString( 'WP_Secrets_Option_Store', $log );
+		// The active store is the prototype-fallback decorator wrapping the option
+		// store. Reporting the decorator is the truthful answer, and tells an
+		// operator the read-time upgrade path is live.
+		$this->assertStringContainsString( 'Secrets_API_Prototype_Fallback_Store', $log );
 		$this->assertStringContainsString( 'WP_Secrets_Config_Key_Provider', $log );
 	}
 
@@ -367,19 +370,6 @@ class Tests_Secrets_WPCLISecretCommand extends WP_UnitTestCase {
 		$this->assertSame( 'migrated', $items[0]['status'] );
 	}
 
-	/**
-	 * @runInSeparateProcess
-	 * @preserveGlobalState disabled
-	 */
-	public function test_migrate_legacy_delete_source_refused_without_yes_when_vendor_present() {
-		eval( 'namespace WordPress\AI\Vendor\Secrets; class Secrets_Manager {}' ); // phpcs:ignore Squiz.PHP.Eval.Discouraged
-
-		( new Legacy_Fixture_Writer() )->write_secret( 'api_key', 'value' );
-
-		$this->command()->migrate_legacy( array(), array( 'delete-source' => true ) );
-
-		$this->assertNotFalse( get_option( '_secret_api_key' ) );
-	}
 
 	public function test_migrate_legacy_halts_with_exit_code_1_on_any_error_entry() {
 		$writer = new Legacy_Fixture_Writer();

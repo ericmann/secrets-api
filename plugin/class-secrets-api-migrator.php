@@ -6,27 +6,37 @@
  */
 
 /**
- * Migrates secrets from displace-secrets-manager's legacy format into the new one.
+ * Copies secrets out of the prototype's on-disk format into the new one.
  *
- * Flag semantics resolved during this build -- see docs/open-questions.md #15,
- * flagged for Checkpoint F -- since the build brief's own text ("default is
- * dry-run-like safety" alongside a separate --dry-run flag) does not compose as
- * written. As implemented: writing the new-format secret is never destructive and
- * happens by default (idempotent, safe to re-run); deleting the legacy source is
- * the actually destructive action and always requires the separate $delete_source
- * flag, verified before it happens either way; $dry_run means "write nothing at
- * all," including the ordinarily-safe new-format write.
+ * Strictly additive, by construction rather than by flag: this reads the
+ * prototype's option rows and writes new-format ones, and there is no code path
+ * here that writes to, deletes, or otherwise disturbs anything the prototype
+ * owns. A site that runs this ends up with both copies, and the prototype -- and
+ * the AI plugin vendoring it -- keeps working exactly as before.
  *
- * Read-only failures (a legacy record that will not decrypt) are reported per key
+ * That is a deliberate narrowing of the build brief's §9.5, which specified a
+ * --delete-source flag to remove each legacy option once its migrated value
+ * verified. The AI team built atop the prototype and is actively reading those
+ * rows; deleting them is the one irreversible thing this plugin could do to
+ * another team's working system, and no amount of verify-before-delete makes
+ * that a good trade for a cleanup step an operator can perform explicitly with
+ * `wp option delete` if they ever actually want it. Removing the capability
+ * outright is a stronger guarantee than guarding it. See
+ * docs/open-questions.md #15.
+ *
+ * Re-running is safe: already-migrated keys are reported as skipped rather than
+ * rewritten. Read failures (a record that will not decrypt) are reported per key
  * and never abort the run -- one bad key must not block migrating the rest.
  */
 final class Secrets_API_Migrator {
 
 	/**
-	 * If this class exists, the AI plugin's own vendored copy of the legacy code is
-	 * writing to the same option rows this migrator reads from. Per the build
-	 * brief's §9.5: warn loudly, and refuse to delete a source option out from
-	 * under it without an explicit override.
+	 * The AI plugin's vendored copy of the prototype's code. Its presence means the
+	 * prototype's option rows are live, not historical -- worth telling the
+	 * operator, since after migrating, the same credential exists in two places
+	 * and the AI plugin will keep reading its own copy.
+	 *
+	 * No longer gates anything: nothing in this class can affect those rows.
 	 *
 	 * @var string
 	 */
@@ -37,17 +47,12 @@ final class Secrets_API_Migrator {
 	 *
 	 * $args accepts:
 	 *
-	 * - bool   $dry_run                       Write nothing; report only. Default false.
-	 * - string $name                          Migrate only this legacy key. Default null (all).
-	 * - bool   $delete_source                 Delete each legacy option after this
-	 *                                         run's own verification passes. Default false.
-	 * - array  $map                           Legacy key => explicit new name, for
-	 *                                         keys whose derived name would not validate.
-	 * - string $namespace                     Namespace prefixed onto a legacy key
-	 *                                         with no entry in $map. Default 'legacy'.
-	 * - bool   $confirm_delete_despite_vendor Delete a source option even though the
-	 *                                         vendored AI plugin class was detected.
-	 *                                         Corresponds to --yes. Default false.
+	 * - bool   $dry_run   Write nothing; report only. Default false.
+	 * - string $name      Migrate only this legacy key. Default null (all).
+	 * - array  $map       Legacy key => explicit new name, for keys whose derived
+	 *                     name would not validate.
+	 * - string $namespace Namespace prefixed onto a legacy key with no entry in
+	 *                     $map. Default 'legacy'.
 	 *
 	 * @param array $args Migration options, as described above.
 	 *
@@ -55,20 +60,18 @@ final class Secrets_API_Migrator {
 	 *     @type bool  $vendor_detected Whether the vendored AI plugin class exists.
 	 *     @type array $entries         One report entry per legacy key, each with
 	 *                                  'legacy_key', 'new_name', 'status', 'message',
-	 *                                  and, once migrated, 'fingerprint' and
-	 *                                  'source_deleted'. Never a value.
+	 *                                  and, once migrated, 'fingerprint'. Never a
+	 *                                  value.
 	 * }
 	 */
 	public function migrate( $args = array() ) {
 		$args = wp_parse_args(
 			$args,
 			array(
-				'dry_run'                       => false,
-				'name'                          => null,
-				'delete_source'                 => false,
-				'map'                           => array(),
-				'namespace'                     => 'legacy',
-				'confirm_delete_despite_vendor' => false,
+				'dry_run'   => false,
+				'name'      => null,
+				'map'       => array(),
+				'namespace' => 'legacy',
 			)
 		);
 
@@ -98,7 +101,7 @@ final class Secrets_API_Migrator {
 		$entries         = array();
 
 		foreach ( $keys as $key ) {
-			$entries[] = $this->migrate_one( $reader, $key, $args, $vendor_detected );
+			$entries[] = $this->migrate_one( $reader, $key, $args );
 		}
 
 		return array(
@@ -108,18 +111,16 @@ final class Secrets_API_Migrator {
 	}
 
 	/**
-	 * Resolves a single legacy key's new name, migrates it if not already done,
-	 * and optionally deletes the source.
+	 * Resolves a single legacy key's new name and copies it across if that has not
+	 * already happened. Never touches the source.
 	 *
-	 * @param Secrets_API_Legacy_Reader $reader          The legacy reader.
-	 * @param string                    $key             Legacy key.
-	 * @param array                     $args            Resolved args from migrate().
-	 * @param bool                      $vendor_detected Whether the vendored AI
-	 *                                                    plugin class exists.
+	 * @param Secrets_API_Legacy_Reader $reader The legacy reader.
+	 * @param string                    $key    Legacy key.
+	 * @param array                     $args   Resolved args from migrate().
 	 *
 	 * @return array One report entry.
 	 */
-	private function migrate_one( $reader, $key, array $args, $vendor_detected ) {
+	private function migrate_one( $reader, $key, array $args ) {
 		$new_name = isset( $args['map'][ $key ] ) ? $args['map'][ $key ] : $args['namespace'] . '/' . $key;
 
 		$entry = array(
@@ -144,16 +145,14 @@ final class Secrets_API_Migrator {
 			return $entry;
 		}
 
-		$existing_secret = wp_get_secret( $new_name );
+		$already_migrated = $this->has_current_record( $new_name );
 
-		if ( is_wp_error( $existing_secret ) ) {
+		if ( is_wp_error( $already_migrated ) ) {
 			$entry['status']  = 'error';
-			$entry['message'] = $existing_secret->get_error_message();
+			$entry['message'] = $already_migrated->get_error_message();
 
 			return $entry;
 		}
-
-		$already_migrated = ( $existing_secret instanceof WP_Secret );
 
 		if ( $args['dry_run'] ) {
 			$entry['status'] = $already_migrated
@@ -164,8 +163,7 @@ final class Secrets_API_Migrator {
 		}
 
 		if ( $already_migrated ) {
-			$entry['status']      = 'skipped';
-			$entry['fingerprint'] = $existing_secret->fingerprint();
+			$entry['status'] = 'skipped';
 		} else {
 			$write_result = $this->write_new_secret( $reader, $key, $new_name );
 
@@ -180,11 +178,36 @@ final class Secrets_API_Migrator {
 			$entry['fingerprint'] = $write_result;
 		}
 
-		if ( $args['delete_source'] ) {
-			$this->maybe_delete_source( $reader, $key, $entry, $args, $vendor_detected );
+		return $entry;
+	}
+
+	/**
+	 * Whether a current-format record already exists for a name.
+	 *
+	 * Deliberately not wp_get_secret(): with the read-time fallback store active,
+	 * that call is itself an upgrade trigger, so using it here would report every
+	 * prototype secret as already migrated and -- worse -- would make --dry-run
+	 * write. Where that store is active, ask it to bypass its own fallback; any
+	 * other store has no fallback to bypass and can be asked directly.
+	 *
+	 * @param string $name The secret's namespaced name.
+	 *
+	 * @return bool|WP_Error
+	 */
+	private function has_current_record( $name ) {
+		$store = _wp_secrets_get_store();
+
+		if ( $store instanceof Secrets_API_Prototype_Fallback_Store ) {
+			return $store->has_current_record( $name );
 		}
 
-		return $entry;
+		$record = $store->get( $name, false );
+
+		if ( is_wp_error( $record ) ) {
+			return $record;
+		}
+
+		return is_array( $record );
 	}
 
 	/**
@@ -253,63 +276,5 @@ final class Secrets_API_Migrator {
 		}
 
 		return $new_secret->fingerprint();
-	}
-
-	/**
-	 * Verifies a legacy key against an already-migrated new secret, then deletes
-	 * the legacy option only if that verification passes -- and only if the
-	 * vendored-copy check allows it.
-	 *
-	 * @param Secrets_API_Legacy_Reader $reader          The legacy reader.
-	 * @param string                    $key             Legacy key.
-	 * @param array                     $entry           Report entry, by reference.
-	 * @param array                     $args            Resolved args from migrate().
-	 * @param bool                      $vendor_detected Whether the vendored AI
-	 *                                                    plugin class exists.
-	 */
-	private function maybe_delete_source( $reader, $key, array &$entry, array $args, $vendor_detected ) {
-		$entry['source_deleted'] = false;
-
-		if ( $vendor_detected && ! $args['confirm_delete_despite_vendor'] ) {
-			$entry['message'] = trim(
-				$entry['message'] . ' ' . __(
-					"Source NOT deleted: the AI plugin's vendored Secrets_Manager writes to the same option rows. Pass --yes to delete anyway.",
-					'secrets-api'
-				)
-			);
-
-			return;
-		}
-
-		$plaintext = $reader->get( $key );
-
-		if ( is_wp_error( $plaintext ) ) {
-			$entry['message'] = trim( $entry['message'] . ' ' . __( 'Source NOT deleted: the legacy value could not be re-read.', 'secrets-api' ) );
-
-			return;
-		}
-
-		$master_key = _wp_secrets_get_key_manager()->get_master_key( 'site' );
-
-		if ( is_wp_error( $master_key ) ) {
-			wp_secrets_memzero( $plaintext );
-			$entry['message'] = trim( $entry['message'] . ' ' . __( 'Source NOT deleted: the current master key is unavailable.', 'secrets-api' ) );
-
-			return;
-		}
-
-		$current_fingerprint = ( new WP_Secrets_Cipher() )->fingerprint( $master_key, $plaintext );
-
-		wp_secrets_memzero( $master_key );
-		wp_secrets_memzero( $plaintext );
-
-		if ( is_wp_error( $current_fingerprint ) || $current_fingerprint !== $entry['fingerprint'] ) {
-			$entry['message'] = trim( $entry['message'] . ' ' . __( 'Source NOT deleted: verification failed.', 'secrets-api' ) );
-
-			return;
-		}
-
-		delete_option( '_secret_' . $key );
-		$entry['source_deleted'] = true;
 	}
 }

@@ -256,84 +256,60 @@ shell-history warning, success/porcelain/error reporting) is covered directly.
 
 ---
 
-## 15. 🟢 `wp secret migrate-legacy` flag semantics — CLOSED
+## 15. 🟢 Prototype compatibility: what we do and do not provide — CLOSED
 
-Flagged at Checkpoint A: the brief's §9.5 says the default is "`--dry-run`-like
-safety: report what would move, move nothing destructive," immediately followed by
-a `--dry-run` flag in the command's own signature -- taken literally, there is no
-way to make the command write anything, ever.
+Resolved by the operator after Checkpoint F, superseding the earlier flag-semantics
+question and the compat-shim question that used to sit at #16.
 
-**Resolved during commit 19, on Sonnet:** the two statements describe different
-kinds of "destructive." Writing a new-format secret is never destructive (nothing is
-touched or removed, and the whole migrator must be idempotent), so it happens by
-default with no flag needed. Deleting the legacy source is the actually destructive
-action, and already has its own explicit opt-in (`--delete-source`) that never
-fires by default, with or without `--dry-run`. `--dry-run` means "write nothing at
-all," including the ordinarily-safe new-format write -- it reports what would
-happen (migrate, skip, need `--map`) without touching the database.
+**The actual goal**, stated directly: the AI team built on top of the vibe-coded
+Displace prototype, will adopt this API once it ships, and the number of sites
+broken or needing a rebuild in that transition should be as close to zero as
+possible. Not "provide a compatibility layer" -- explicitly the opposite. We do not
+now and will never need one.
 
-So: no flags migrates everything into the new format and leaves every legacy
-option in place; `--delete-source` additionally deletes each source, but only
-after this run's own fingerprint verification passes, and never for a name the
-vendored-copy check has flagged without `--yes`; `--dry-run` writes nothing.
+**What that ruled out.** `Secrets_API_Compat_Shim` and its four global functions
+(`get_secret()`, `set_secret()`, `delete_secret()`, `secret_exists()`) were built,
+then deleted. They were a true compatibility layer: they let prototype-era code keep
+running unchanged, permanently, against a collapsed `string|null` contract that
+reintroduced the absent-versus-broken ambiguity the three-state return exists to
+eliminate -- and, as Checkpoint F found, made the standard create-if-missing idiom
+destroy a recoverable credential. Nothing in the plugin reimplements the prototype's
+API surface any more, and the legacy filters (`secrets_pre_get`, `secrets_pre_set`,
+`secrets_access`, `secrets_provider`) remain unimplemented under any flag.
 
-**Confirmed by the operator after Checkpoint F. Closed.** The alternative
-considered -- an explicit `--execute`/`--apply` flag gating every write -- was
-rejected for the same reason the rest of the compatibility surface is being kept
-deliberately thin: migration off the prototype format is a bridge, not a feature
-of the API, and adding a third flag to a command that already has four in order
-to re-guard an operation that is idempotent and non-destructive by construction
-buys safety that `--delete-source` already provides where it actually matters.
+**What replaced it.** `Secrets_API_Prototype_Fallback_Store`, a decorator around the
+default store. A read whose current-format record does not exist falls through to
+the prototype's option row, and the value is re-encrypted into a proper
+current-format record on the way back. The next read hits the new record and never
+returns here. So an AI-plugin site upgrades one secret at a time, on first use, with
+nobody running anything -- which is the outcome that actually minimises broken
+sites. It is one-way, one-time, and flagged `needs_rotation`.
 
----
+The mapping is namespace-agnostic: `wp_get_secret( 'ai/api_key' )` inherits the
+prototype's `api_key`. Requiring an exact namespace match would mean guessing which
+namespace the adopting plugin picks, and guessing wrong is the broken site we are
+trying to avoid. This is not a new exposure -- the prototype's keyspace is already
+global, so any plugin could read any prototype secret by bare key -- but it is worth
+knowing, and it is why the inherited copy is always a new row rather than a move.
 
-## 16. 🟢 Compat shim namespace and prototype-compatibility scope — CLOSED
+**Non-interference is the load-bearing promise.** The prototype's rows are never
+written to or deleted, by anything, ever. The two option namespaces do not overlap
+(`_secret_` vs `_wp_secret_`), so both systems run on one site indefinitely and the
+AI plugin keeps working throughout, reading its own copy until it moves over.
+Enforced statically by `test_never_writes_to_a_prototype_owned_option()`.
 
-`Secrets_API_Compat_Shim` (commit 20) reads and writes through a fixed `legacy/`
-namespace, since the brief's §9.6 gives the shim's four global functions no
-per-call configuration surface (a legacy caller's `get_secret( 'api_key' )` takes
-no namespace argument to pass one through, even if it wanted to).
+That is also why `wp secret migrate-legacy` lost `--delete-source` and `--yes`, and
+why the earlier flag-semantics debate is moot: the migrator is now strictly
+additive, and there is no destructive path left to guard. It survives as a bulk,
+proactive version of what the fallback store does lazily, plus a `--dry-run` report
+of what is still in the old format. An operator who genuinely wants the old rows
+gone can `wp option delete` them explicitly, knowing what they are doing.
 
-This matches `wp secret migrate-legacy`'s own default namespace exactly, so a site
-that migrated with no `--namespace` or `--map` override keeps every legacy caller
-working unmodified once the shim is enabled. A site that migrated with a custom
-`--namespace` or a `--map` entry will have shim calls silently miss: `get_secret()`
-will return `null` for a secret that does, in fact, exist under a different name --
-indistinguishable, from the shim's own collapsed return, from one that was never
-migrated at all.
-
-**Confirmed by the operator after Checkpoint F: the namespace stays fixed, with no
-way to configure it. Closed.** Adding a filter would reintroduce exactly the class
-of hook this build refuses to put on the retrieval path (see §9.6's refusal to
-reimplement `secrets_pre_get` et al.), and a constant is the only alternative --
-the same shape as `WP_SECRETS_LEGACY_SHIM` itself, and a second permanent flag in
-service of a bridge that is meant to be removed. A site with a non-default
-migration should not enable the shim, or should re-migrate the affected keys into
-`legacy/` before doing so.
-
-The broader call this follows from: prototype compatibility is retained, but given
-no configuration surface and kept off the default request path entirely. The
-reader and migrator load only under WP-CLI; the shim loads only when its constant
-is set; nothing under `src/` references any of it. See the deletion seam
-documented at `wp_secrets_api_maybe_load_compat_shim()` in `secrets-api.php` for
-the exact list of files that removes the whole surface in one commit.
-
-**Added at Checkpoint F — the state collapse can destroy a credential, not just an
-error message.** Confirmed empirically, and now pinned by
-`test_create_if_missing_idiom_destroys_a_broken_records_ciphertext`. The standard
-legacy idiom `if ( ! secret_exists( $k ) ) { set_secret( $k, regenerate() ); }`
-runs the overwrite branch when a record exists but is currently undecryptable --
-the state a site is in whenever `WP_SECRETS_KEY` is missing, mistyped, or carried
-over from another environment. `wp_set_secret()` cannot demote an undecryptable
-slot (the AAD binding cannot be re-formed without decrypting first), so it drops
-it, and the original ciphertext is destroyed even on a site whose correct key
-could still have been restored from backup.
-
-This is inherent to §9.6's mandated signature -- a legacy caller has no third
-state to return and no `WP_Error` to inspect -- so it is documented rather than
-fixed, at length in `Secrets_API_Compat_Shim`'s own docblock. **`docs/migrating-from-displace.md`
-(commit 21) must carry this warning prominently**, per §9.6's explicit instruction
-to document the collapse in both code and that file.
+**Deletion seam.** When the window closes, deleting
+`plugin/class-secrets-api-{legacy-reader,migrator,prototype-fallback-store}.php`,
+`WP_CLI_Secret_Command::migrate_legacy()`, the store installation in
+`secrets-api.php`, and the matching test files removes the entire surface. Nothing
+under `src/` references any of it.
 
 ---
 

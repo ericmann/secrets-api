@@ -143,7 +143,7 @@ class Tests_Secrets_SiteHealth extends WP_UnitTestCase {
 		$this->assertArrayHasKey( 'record_version', $fields );
 		$this->assertArrayHasKey( 'site_secret_count', $fields );
 
-		$this->assertSame( 'WP_Secrets_Option_Store', $fields['store_class']['value'] );
+		$this->assertSame( 'Secrets_API_Prototype_Fallback_Store', $fields['store_class']['value'] );
 		$this->assertSame( 'WP_Secrets_Config_Key_Provider', $fields['keyring_class']['value'] );
 		$this->assertSame( '1', $fields['record_version']['value'] );
 		$this->assertSame( '1', $fields['site_secret_count']['value'] );
