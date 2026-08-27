@@ -121,4 +121,89 @@ class Tests_Secrets_ApiLegacyReader extends WP_UnitTestCase {
 		$this->assertSame( 'value-one', $reader->get( 'api_key' ) );
 		$this->assertSame( 'value-two', $reader->get( 'other_key' ) );
 	}
+
+	// -- site key candidates (Checkpoint F) ---------------------------------
+
+	/**
+	 * The operator sequence that would otherwise strand a site: legacy records
+	 * were sealed under the salt fallback, then WP_SECRETS_KEY was defined (as
+	 * the new format's own documentation instructs) before migrate-legacy ran.
+	 * Deriving only from the now-defined constant fails every key with a generic
+	 * decryption error, even though the value is perfectly recoverable.
+	 *
+	 * @runInSeparateProcess
+	 * @preserveGlobalState disabled
+	 */
+	public function test_salt_fallback_records_still_read_after_wp_secrets_key_is_defined() {
+		( new Legacy_Fixture_Writer() )->write_secret( 'api_key', 'sk_legacy_value' );
+
+		define( 'WP_SECRETS_KEY', base64_encode( str_repeat( 'B', 32 ) ) );
+
+		$this->assertSame( 'sk_legacy_value', ( new Secrets_API_Legacy_Reader() )->get( 'api_key' ) );
+	}
+
+	/**
+	 * The mirror case, to prove the candidate list is not just always falling
+	 * through to the salt fallback: records sealed under the constant still read
+	 * when the constant is what is defined.
+	 *
+	 * @runInSeparateProcess
+	 * @preserveGlobalState disabled
+	 */
+	public function test_wp_secrets_key_records_still_read_when_the_constant_is_defined() {
+		define( 'WP_SECRETS_KEY', 'the-legacy-constant' );
+
+		( new Legacy_Fixture_Writer() )->write_secret( 'api_key', 'sk_legacy_value', WP_SECRETS_KEY );
+
+		$this->assertSame( 'sk_legacy_value', ( new Secrets_API_Legacy_Reader() )->get( 'api_key' ) );
+	}
+
+	/**
+	 * Trying several candidates must not turn into "eventually accepts anything":
+	 * when none of them opens the master key, that is still a hard failure.
+	 *
+	 * @runInSeparateProcess
+	 * @preserveGlobalState disabled
+	 */
+	public function test_all_candidates_failing_is_a_wp_error() {
+		// Sealed under a site key derived from material matching neither the
+		// salt fallback nor whatever WP_SECRETS_KEY is set to below.
+		( new Legacy_Fixture_Writer() )->write_secret( 'api_key', 'value', 'material-from-a-different-site' );
+
+		define( 'WP_SECRETS_KEY', 'not-the-material-it-was-sealed-under' );
+
+		$result = ( new Secrets_API_Legacy_Reader() )->get( 'api_key' );
+
+		$this->assertWPError( $result );
+		$this->assertSame( 'legacy_master_key_unwrap_failed', $result->get_error_code() );
+	}
+
+	// -- list_keys ----------------------------------------------------------
+
+	public function test_list_keys_returns_bare_key_names() {
+		$writer     = new Legacy_Fixture_Writer();
+		$master_key = $writer->write_secret( 'api_key', 'value-one' );
+		$writer->write_secret_under_master_key( 'other_key', 'value-two', $master_key );
+
+		$keys = ( new Secrets_API_Legacy_Reader() )->list_keys();
+
+		sort( $keys );
+		$this->assertSame( array( 'api_key', 'other_key' ), $keys );
+	}
+
+	/**
+	 * '_' is a single-character wildcard in SQL LIKE, so an unescaped '_secret_%'
+	 * pattern also matches '_secrets_master_key'. The migrator would then try to
+	 * migrate the master key itself as though it were a secret. The escaping in
+	 * list_keys() is what prevents that, and it is invisible enough to be worth
+	 * pinning.
+	 */
+	public function test_list_keys_does_not_return_the_master_key_option() {
+		( new Legacy_Fixture_Writer() )->write_secret( 'api_key', 'value' );
+
+		$keys = ( new Secrets_API_Legacy_Reader() )->list_keys();
+
+		$this->assertSame( array( 'api_key' ), $keys );
+		$this->assertNotContains( 's_master_key', $keys );
+	}
 }

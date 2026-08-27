@@ -28,6 +28,19 @@
  * between the two formats even when the constant happens to be valid base64-32; the
  * salt-fallback path is the one that is byte-identical between old and new, which
  * is deliberate and is what lets those sites migrate with zero credential re-entry.
+ *
+ * Because of that asymmetry, this reader does not assume the currently-defined
+ * constants describe how existing records were sealed. It tries every site key the
+ * legacy system could have used and keeps whichever one actually opens the master
+ * key record -- see unwrap_master_key() for why that is safe and why it matters.
+ *
+ * Deliberately does not reject the wp-config-sample.php placeholder the way
+ * WP_Secrets_Config_Key_Provider does: that check is a hardening this project added
+ * to the new format, not something the legacy system ever did. A site that
+ * legitimately encrypted a value under a placeholder-derived key on the old system
+ * must still be able to read it back here -- refusing it would break exactly the
+ * migration this class exists to support, not improve security for a record that
+ * already exists.
  */
 final class Secrets_API_Legacy_Reader {
 
@@ -98,15 +111,7 @@ final class Secrets_API_Legacy_Reader {
 			);
 		}
 
-		$site_key = $this->derive_site_key();
-
-		if ( is_wp_error( $site_key ) ) {
-			return $site_key;
-		}
-
-		$master_key = $this->open( $wrapped_master, $site_key );
-
-		wp_secrets_memzero( $site_key );
+		$master_key = $this->unwrap_master_key( $wrapped_master );
 
 		if ( is_wp_error( $master_key ) ) {
 			return $master_key;
@@ -117,6 +122,91 @@ final class Secrets_API_Legacy_Reader {
 		wp_secrets_memzero( $master_key );
 
 		return $plaintext;
+	}
+
+	/**
+	 * Unwraps the legacy master key, trying each site key the legacy system could
+	 * plausibly have used to wrap it.
+	 *
+	 * Trying more than one candidate is safe rather than sloppy: secretbox is
+	 * authenticated, so a wrong key returns false, never plausible-looking garbage.
+	 * A candidate that successfully opens the master key record is, to within the
+	 * strength of the Poly1305 tag, the key that sealed it.
+	 *
+	 * This exists because the two derivations are not interchangeable and an
+	 * operator can easily end up with records sealed under one while the other
+	 * looks current. The likely sequence: a site runs the legacy system with no
+	 * WP_SECRETS_KEY (so its records are sealed under the salt fallback), then
+	 * installs this plugin, follows the new format's own documentation and defines
+	 * WP_SECRETS_KEY, and only then runs `wp secret migrate-legacy`. Deriving from
+	 * the now-defined constant alone would fail every key with a generic
+	 * decryption error, and nothing in that message would suggest that the value
+	 * is perfectly recoverable under the other derivation.
+	 *
+	 * @param string $wrapped_master The stored, wrapped master key record.
+	 *
+	 * @return string|WP_Error Raw 32-byte master key, or WP_Error if no candidate
+	 *                          opened it.
+	 */
+	private function unwrap_master_key( $wrapped_master ) {
+		$candidates = $this->candidate_site_keys();
+
+		if ( is_wp_error( $candidates ) ) {
+			return $candidates;
+		}
+
+		foreach ( $candidates as $site_key ) {
+			$master_key = $this->open( $wrapped_master, $site_key );
+
+			wp_secrets_memzero( $site_key );
+
+			if ( ! is_wp_error( $master_key ) ) {
+				return $master_key;
+			}
+		}
+
+		return new WP_Error(
+			'legacy_master_key_unwrap_failed',
+			__( 'The legacy master key could not be unwrapped. Neither WP_SECRETS_KEY nor the LOGGED_IN_KEY/LOGGED_IN_SALT fallback produced the key it was sealed under -- check that this site still has the same wp-config.php values it had when the legacy secrets were written.', 'secrets-api' )
+		);
+	}
+
+	/**
+	 * Every site key the legacy system could have wrapped the master key under, in
+	 * the order they are worth trying.
+	 *
+	 * Legacy always hashed the *literal* WP_SECRETS_KEY string -- there is no
+	 * raw-base64-bytes candidate here, because the legacy system never produced
+	 * one. See this class's docblock.
+	 *
+	 * @return array|WP_Error List of raw 32-byte candidate keys.
+	 */
+	private function candidate_site_keys() {
+		$candidates = array();
+
+		if ( defined( 'WP_SECRETS_KEY' ) ) {
+			$material = constant( 'WP_SECRETS_KEY' );
+
+			if ( is_string( $material ) && '' !== $material ) {
+				$candidates[] = sodium_crypto_generichash( $material, '', SODIUM_CRYPTO_SECRETBOX_KEYBYTES );
+			}
+		}
+
+		if ( defined( 'LOGGED_IN_KEY' ) && defined( 'LOGGED_IN_SALT' )
+			&& is_string( LOGGED_IN_KEY ) && is_string( LOGGED_IN_SALT )
+			&& '' !== LOGGED_IN_KEY && '' !== LOGGED_IN_SALT
+		) {
+			$candidates[] = sodium_crypto_generichash( LOGGED_IN_KEY . LOGGED_IN_SALT, '', SODIUM_CRYPTO_SECRETBOX_KEYBYTES );
+		}
+
+		if ( empty( $candidates ) ) {
+			return new WP_Error(
+				'legacy_key_unavailable',
+				__( 'No legacy site key could be derived: WP_SECRETS_KEY is unusable or undefined, and LOGGED_IN_KEY/LOGGED_IN_SALT are not usable either.', 'secrets-api' )
+			);
+		}
+
+		return $candidates;
 	}
 
 	/**
@@ -150,46 +240,5 @@ final class Secrets_API_Legacy_Reader {
 		}
 
 		return $plaintext;
-	}
-
-	/**
-	 * Derives the legacy site key. Always hashes the literal material -- see this
-	 * class's docblock for why that differs from the new format's key provider.
-	 *
-	 * Deliberately does not reject the wp-config-sample.php placeholder the way
-	 * WP_Secrets_Config_Key_Provider does: that check is a hardening this project
-	 * added to the new format, not something the legacy system ever did. A site
-	 * that legitimately encrypted a value under a placeholder-derived key on the
-	 * old system must still be able to read it back here -- refusing it would
-	 * break exactly the migration this class exists to support, not improve
-	 * security for a record that already exists.
-	 *
-	 * @return string|WP_Error
-	 */
-	private function derive_site_key() {
-		if ( defined( 'WP_SECRETS_KEY' ) ) {
-			$material = constant( 'WP_SECRETS_KEY' );
-
-			if ( ! is_string( $material ) || '' === $material ) {
-				return new WP_Error(
-					'legacy_key_unavailable',
-					__( 'WP_SECRETS_KEY is defined but is not a usable string.', 'secrets-api' )
-				);
-			}
-
-			return sodium_crypto_generichash( $material, '', SODIUM_CRYPTO_SECRETBOX_KEYBYTES );
-		}
-
-		if ( ! defined( 'LOGGED_IN_KEY' ) || ! defined( 'LOGGED_IN_SALT' )
-			|| ! is_string( LOGGED_IN_KEY ) || ! is_string( LOGGED_IN_SALT )
-			|| '' === LOGGED_IN_KEY || '' === LOGGED_IN_SALT
-		) {
-			return new WP_Error(
-				'legacy_key_unavailable',
-				__( 'WP_SECRETS_KEY is not defined, and LOGGED_IN_KEY/LOGGED_IN_SALT are not usable.', 'secrets-api' )
-			);
-		}
-
-		return sodium_crypto_generichash( LOGGED_IN_KEY . LOGGED_IN_SALT, '', SODIUM_CRYPTO_SECRETBOX_KEYBYTES );
 	}
 }

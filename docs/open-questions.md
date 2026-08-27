@@ -309,6 +309,23 @@ Left as documented behavior. A site with a non-default migration should not enab
 the shim, or should re-migrate the affected keys into `legacy/` specifically before
 doing so.
 
+**Added at Checkpoint F — the state collapse can destroy a credential, not just an
+error message.** Confirmed empirically, and now pinned by
+`test_create_if_missing_idiom_destroys_a_broken_records_ciphertext`. The standard
+legacy idiom `if ( ! secret_exists( $k ) ) { set_secret( $k, regenerate() ); }`
+runs the overwrite branch when a record exists but is currently undecryptable --
+the state a site is in whenever `WP_SECRETS_KEY` is missing, mistyped, or carried
+over from another environment. `wp_set_secret()` cannot demote an undecryptable
+slot (the AAD binding cannot be re-formed without decrypting first), so it drops
+it, and the original ciphertext is destroyed even on a site whose correct key
+could still have been restored from backup.
+
+This is inherent to §9.6's mandated signature -- a legacy caller has no third
+state to return and no `WP_Error` to inspect -- so it is documented rather than
+fixed, at length in `Secrets_API_Compat_Shim`'s own docblock. **`docs/migrating-from-displace.md`
+(commit 21) must carry this warning prominently**, per §9.6's explicit instruction
+to document the collapse in both code and that file.
+
 ---
 
 ## Resolved

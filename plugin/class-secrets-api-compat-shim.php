@@ -18,6 +18,28 @@
  * from "store unreachable." Anything that can update to call wp_get_secret()
  * directly should.
  *
+ * That collapse has one consequence worth stating plainly, because it can cost
+ * someone a credential rather than merely an error message. The standard legacy
+ * idiom is:
+ *
+ *     if ( ! secret_exists( 'api_key' ) ) {
+ *         set_secret( 'api_key', regenerate() );
+ *     }
+ *
+ * secret_exists() reports false for a record that exists but cannot currently be
+ * decrypted -- the exact state a site is in when WP_SECRETS_KEY is missing,
+ * mistyped, or carried over from another environment. The idiom then overwrites
+ * it. wp_set_secret() cannot demote an undecryptable slot into the previous slot
+ * (the AAD binding cannot be re-formed without decrypting first), so it drops it:
+ * the original ciphertext is gone, including from any site whose correct key could
+ * still have been restored from a backup.
+ *
+ * Nothing here can fix that without breaking the compatibility this class exists
+ * for -- a legacy caller has no third state to return and no WP_Error to inspect.
+ * A caller that cannot tolerate this should call wp_get_secret() directly and
+ * branch on is_wp_error(), which is the whole reason the three-state contract
+ * exists. See docs/open-questions.md #16.
+ *
  * Reads and writes go through the 'legacy' namespace -- the same default the
  * migrator uses for an unmapped key -- so a key migrated with the migrator's own
  * defaults keeps working under its old bare name through this shim. A key migrated

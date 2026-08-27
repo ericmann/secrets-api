@@ -124,6 +124,45 @@ class Tests_Secrets_ApiCompatShim extends WP_UnitTestCase {
 		Secrets_API_Compat_Shim::secret_exists( 'anything' );
 	}
 
+	// -- the documented destructive consequence of the state collapse ---------
+
+	/**
+	 * Pins the hazard described at length in Secrets_API_Compat_Shim's docblock,
+	 * so it cannot change silently in either direction: the standard legacy
+	 * create-if-missing idiom, run against a record that exists but is currently
+	 * undecryptable, destroys the original ciphertext outright.
+	 *
+	 * This asserts current, deliberate behavior -- it is not an endorsement. It
+	 * exists so that if wp_set_secret() ever starts preserving undecryptable
+	 * slots, or secret_exists() ever starts distinguishing broken from absent,
+	 * this test fails and the docblock gets revisited with it.
+	 */
+	public function test_create_if_missing_idiom_destroys_a_broken_records_ciphertext() {
+		$this->setExpectedDeprecated( 'secret_exists' );
+		$this->setExpectedDeprecated( 'set_secret' );
+
+		wp_set_secret( 'legacy/api_key', 'original-value' );
+
+		$record                  = get_option( '_wp_secret_legacy/api_key' );
+		$original_ciphertext     = $record['current']['ct'];
+		$record['current']['ct'] = base64_encode( 'not decryptable' );
+		update_option( '_wp_secret_legacy/api_key', $record, false );
+
+		// The idiom, verbatim.
+		if ( ! Secrets_API_Compat_Shim::secret_exists( 'api_key' ) ) {
+			Secrets_API_Compat_Shim::set_secret( 'api_key', 'regenerated-value' );
+		}
+
+		$after = get_option( '_wp_secret_legacy/api_key' );
+
+		// The overwrite happened...
+		$this->assertSame( 'regenerated-value', wp_get_secret( 'legacy/api_key' )->reveal() );
+
+		// ...and the original ciphertext survives nowhere in the record.
+		$this->assertArrayNotHasKey( 'previous', $after );
+		$this->assertStringNotContainsString( $original_ciphertext, wp_json_encode( $after ) );
+	}
+
 	// -- the loader and its function_exists() guards -------------------------
 
 	/**
