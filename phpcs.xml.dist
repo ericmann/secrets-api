@@ -7,6 +7,12 @@
 	<exclude-pattern>/vendor/*</exclude-pattern>
 	<exclude-pattern>/node_modules/*</exclude-pattern>
 	<exclude-pattern>/coverage/*</exclude-pattern>
+	<!--
+		examples/ holds platform bindings that carry their own SDK dependencies and
+		are never loaded by the plugin. Linting them here would mean this project's
+		CI installing the AWS and Google SDKs to check code it does not ship.
+	-->
+	<exclude-pattern>/examples/*</exclude-pattern>
 
 	<arg name="extensions" value="php"/>
 	<arg name="basepath" value="."/>

@@ -8,3 +8,6 @@
 /phpunit-multisite.xml
 /phpstan.neon
 .DS_Store
+
+# Platform bindings vendor their own SDKs; never the plugin.
+examples/*/vendor/

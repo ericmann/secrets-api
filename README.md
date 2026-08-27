@@ -114,6 +114,15 @@ Two seams, each a small interface: `WP_Secrets_Store` (where a record lives) and
 replace either, or both. See [`docs/extending.md`](docs/extending.md) for the contracts and
 [`docs/drop-in-example.php`](docs/drop-in-example.php) for a runnable skeleton.
 
+## Platform bindings
+
+[`examples/`](examples/) holds reference implementations for wiring this API to a cloud provider.
+Nothing there is loaded by the plugin, and it is excluded from `make ci` so those SDK
+dependencies never become this project's. Read its README before writing one — a key-management
+service (AWS KMS, Google Cloud KMS) is a `WP_Secrets_Keyring` and takes three methods, while a
+secret store (Secrets Manager, Parameter Store) is a `WP_Secrets_Provider` and takes eight.
+Choosing the wrong one is the common mistake and it is an expensive one.
+
 ## Contributing
 
 Commits are small and logically scoped, and tests land in the same commit as the code they cover.
