@@ -184,6 +184,25 @@ written down here rather than skipped.
 
 ---
 
+## 12. 🟡 Throwing versus WP_Error for programming errors
+
+The public functions mix two error strategies. Values that vary legitimately at
+runtime -- a bad secret name, an unavailable key, a corrupt record -- return `WP_Error`.
+Values that can only be wrong because a *caller* got them wrong -- an unrecognized
+`$version` passed to `wp_get_secret()`, an invalid scope or slot inside
+`WP_Secrets_Cipher` -- throw `InvalidArgumentException`.
+
+The published contract for `wp_get_secret()` is `WP_Secret|null|WP_Error`, and throwing
+is arguably a fourth state outside it. Core's own convention in this situation leans
+toward `_doing_it_wrong()` plus a `WP_Error` return rather than an exception.
+
+**Current state:** throws, on the reasoning that a bad version constant is never
+recoverable at runtime and failing loudly beats returning something a caller may not
+check. Worth an explicit decision before the API freezes, since it changes what a
+plugin author has to defend against.
+
+---
+
 ## Resolved
 
 Decisions that were open and are now closed, kept so the reasoning is not lost.

@@ -25,11 +25,13 @@ class Tests_Secrets_Scaffolding extends WP_UnitTestCase {
 	}
 
 	/**
-	 * The plugin declares nothing yet. This test inverts at commit 8, and its job until
-	 * then is to catch a stray early declaration of the public surface.
+	 * The public API landed at commit 8. This test inverted from its original form
+	 * (asserting the symbol did NOT exist yet) at that point.
 	 */
-	public function test_public_api_is_not_declared_yet() {
-		$this->assertFalse( function_exists( 'wp_get_secret' ) );
+	public function test_public_api_is_declared() {
+		$this->assertTrue( function_exists( 'wp_get_secret' ) );
+		$this->assertTrue( function_exists( 'wp_set_secret' ) );
+		$this->assertTrue( function_exists( 'wp_delete_secret' ) );
 	}
 
 	public function test_running_wordpress_is_below_the_core_api_version() {
