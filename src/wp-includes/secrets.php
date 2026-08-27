@@ -395,17 +395,28 @@ function _wp_secrets_demote_slot( $cipher, $master_key, $scope, $site_id, $name,
 }
 
 /**
- * Shared implementation behind wp_set_secret() and wp_set_network_secret().
+ * Shared implementation behind wp_set_secret(), wp_set_network_secret(), and
+ * wp_import_option_as_secret() (via the last two parameters).
  *
  * @since 7.2.0
  *
- * @param string $name    The secret's namespaced name.
- * @param string $value   The plaintext value.
- * @param bool   $network Whether this is a network-scope secret.
+ * @param string      $name           The secret's namespaced name.
+ * @param string      $value          The plaintext value.
+ * @param bool        $network        Whether this is a network-scope secret.
+ * @param bool        $needs_rotation Value for the new current slot's
+ *                                    'needs_rotation' flag. False for an ordinary
+ *                                    write; wp_import_option_as_secret() passes true,
+ *                                    since a credential that sat in an option is
+ *                                    already in backups and re-encrypting does not
+ *                                    fix that.
+ * @param string|null $action_override When given, used as the $action reported to
+ *                                     the wp_secret_changed hook instead of the
+ *                                     usual 'created'/'updated' detection --
+ *                                     wp_import_option_as_secret() passes 'imported'.
  *
  * @return true|WP_Error
  */
-function _wp_secrets_set( $name, $value, $network ) {
+function _wp_secrets_set( $name, $value, $network, $needs_rotation = false, $action_override = null ) {
 	$name_check = wp_secrets_validate_name( $name );
 
 	if ( is_wp_error( $name_check ) ) {
@@ -453,7 +464,7 @@ function _wp_secrets_set( $name, $value, $network ) {
 	}
 
 	$new_slot['created']        = time();
-	$new_slot['needs_rotation'] = false;
+	$new_slot['needs_rotation'] = $needs_rotation;
 
 	$record = array(
 		'v'       => WP_SECRETS_RECORD_VERSION,
@@ -517,7 +528,7 @@ function _wp_secrets_set( $name, $value, $network ) {
 	do_action(
 		'wp_secret_changed',
 		$name,
-		$is_update ? 'updated' : 'created',
+		null !== $action_override ? $action_override : ( $is_update ? 'updated' : 'created' ),
 		get_current_user_id(),
 		$new_slot['created'],
 		$old_fingerprint,
@@ -763,6 +774,54 @@ function _wp_secrets_retire( $name, $network ) {
  */
 function wp_set_secret( $name, $value ) {
 	return _wp_secrets_set( $name, $value, false );
+}
+
+/**
+ * Imports an existing option's value as a secret.
+ *
+ * For a deliberate, explicit migration -- "on their own explicit upgrade schedule,"
+ * in the proposal's words, because "core cannot reliably tell which options are
+ * credentials, and guessing would break sites." The source option is left
+ * untouched: this reads it, it does not move or delete it.
+ *
+ * The imported secret is flagged needs_rotation, unconditionally. A credential that
+ * sat in a plain option has already been through however many backups and
+ * replication paths that option went through; re-encrypting it here does not undo
+ * that, and the flag exists so an operator (or a future admin screen) knows to
+ * actually rotate the value rather than considering the migration finished.
+ *
+ * @since 7.2.0
+ *
+ * @param string $option The existing option's name.
+ * @param string $name   The secret's namespaced name to store it under.
+ *
+ * @return true|WP_Error
+ */
+function wp_import_option_as_secret( $option, $name ) {
+	if ( ! is_string( $option ) || '' === $option ) {
+		return new WP_Error(
+			WP_SECRETS_ERROR_INVALID_VALUE,
+			__( 'Option name must be a non-empty string.', 'default' )
+		);
+	}
+
+	$value = get_option( $option, null );
+
+	if ( null === $value ) {
+		return new WP_Error(
+			WP_SECRETS_ERROR_INVALID_VALUE,
+			__( 'The option does not exist.', 'default' )
+		);
+	}
+
+	if ( ! is_string( $value ) ) {
+		return new WP_Error(
+			WP_SECRETS_ERROR_INVALID_VALUE,
+			__( 'The option value is not a string and cannot be imported as a secret.', 'default' )
+		);
+	}
+
+	return _wp_secrets_set( $name, $value, false, true, 'imported' );
 }
 
 /**
