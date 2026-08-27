@@ -106,9 +106,19 @@
 	-->
 	<rule ref="WordPress.Files.FileName.InvalidClassFileName">
 		<exclude-pattern>/tests/*</exclude-pattern>
+		<exclude-pattern>/docs/drop-in-example\.php$</exclude-pattern>
 	</rule>
+	<!--
+		docs/drop-in-example.php is a single reference file meant to be read and
+		copied whole into wp-content/secrets.php: it deliberately shows a store
+		and a keyring side by side, which is exactly the multi-class shape a real
+		drop-in has (see docs/extending.md: a drop-in can set either global, both,
+		or neither). Splitting it into two files would make it harder, not easier,
+		to use as a reference.
+	-->
 	<rule ref="Generic.Files.OneObjectStructurePerFile">
 		<exclude-pattern>/tests/includes/class-mock-wp-cli\.php$</exclude-pattern>
+		<exclude-pattern>/docs/drop-in-example\.php$</exclude-pattern>
 	</rule>
 	<!--
 		Bracketed namespace syntax (namespace X { ... }) is otherwise banned, but it

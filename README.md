@@ -90,12 +90,31 @@ future screen needs are in scope; the screen is not.
 - WordPress 6.6+
 - libsodium, via the extension or core's bundled `sodium_compat`
 
+## Coexisting with the Displace prototype
+
+Some plugins — including the WordPress AI plugin — were built against a vibe-coded prototype of
+this idea. This plugin does not implement that prototype's API; instead, a read for a secret that
+only exists in the prototype's format is transparently upgraded into the current format the first
+time it's read, and the prototype's own data is never touched. See
+[`docs/migrating-from-displace.md`](docs/migrating-from-displace.md).
+
+## Extending
+
+Two seams, each a small interface: `WP_Secrets_Store` (where a record lives) and
+`WP_Secrets_Keyring` (how the root key is wrapped). A `wp-content/secrets.php` drop-in can
+replace either, or both. See [`docs/extending.md`](docs/extending.md) for the contracts and
+[`docs/drop-in-example.php`](docs/drop-in-example.php) for a runnable skeleton.
+
 ## Contributing
 
 Commits are small and logically scoped, and tests land in the same commit as the code they cover.
 Before changing anything under `src/`, read the constraints above — several of them are enforced
 by architectural tests that read the source, and those tests are never weakened to make a build
 green.
+
+CI (`.github/workflows/ci.yml`) is a thin wrapper around the `make` targets above and targets both
+github.com and an internal GHES instance; see [`docs/ci.md`](docs/ci.md) for the parts of that
+instance a maintainer still needs to confirm before relying on it.
 
 ## License
 
