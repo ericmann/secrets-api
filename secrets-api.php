@@ -16,7 +16,7 @@
 /*
  * Plugin URI points at the current home, which is private for now. Availability of
  * the slug on WordPress.org is settled at submission, not here -- see
- * docs/open-questions.md #1.
+ * docs/open-questions.md.
  */
 
 defined( 'ABSPATH' ) || exit;
@@ -175,6 +175,24 @@ function wp_secrets_api_bootstrap() {
 		 * The reader itself is loaded unconditionally above, since the read-time
 		 * fallback store needs it on every request. Only the bulk migrator is
 		 * CLI-only.
+		 *
+		 * THE DELETION SEAM. When the compatibility window closes, the entire
+		 * prototype surface is these files and nothing else:
+		 *
+		 * - plugin/class-secrets-api-legacy-reader.php
+		 * - plugin/class-secrets-api-migrator.php
+		 * - plugin/class-secrets-api-prototype-fallback-store.php
+		 * - WP_CLI_Secret_Command::migrate_legacy(), one method
+		 * - the fallback store's installation a few lines above
+		 * - tests/includes/class-legacy-fixture-writer.php and the three
+		 *   test-secrets-api-{legacy-reader,migrator,prototype-fallback-store}.php
+		 *   files
+		 * - docs/migrating-from-displace.md
+		 *
+		 * Nothing under src/ references any of it, no core-bound file knows it
+		 * exists, and an architectural test enforces both. Deleting that list
+		 * removes prototype compatibility entirely, in one commit, with no
+		 * migration of its own and nothing left behind in the shipped API.
 		 */
 		require_once WP_SECRETS_API_PLUGIN_DIR . 'plugin/class-secrets-api-migrator.php';
 

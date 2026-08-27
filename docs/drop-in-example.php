@@ -19,8 +19,9 @@
  * Example read-only platform store.
  *
  * Modeled on real feedback from the proposal's comment thread (see
- * docs/open-questions.md #2, #3): some platforms are themselves the encryption
- * boundary and want to serve their own credentials to WordPress without ever
+ * docs/open-questions.md, "Host and platform providers"): some platforms are
+ * themselves the encryption boundary and want to serve their own credentials to
+ * WordPress without ever
  * accepting a write back. Declaring supports('write') === false is how that is
  * expressed -- wp_set_secret() then returns a WP_Error with code
  * 'secret_store_read_only' instead of silently no-opping or, worse, accepting a
@@ -31,7 +32,7 @@
  * one, set() (were it implemented) would accept one. A platform that wants to
  * serve its own plaintext to WordPress is a materially different feature than
  * this interface provides, and is tracked, unresolved, at
- * docs/open-questions.md #2.
+ * docs/open-questions.md, "Host and platform providers".
  */
 final class Example_Platform_Store implements WP_Secrets_Store {
 

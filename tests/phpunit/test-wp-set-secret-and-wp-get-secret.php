@@ -42,7 +42,7 @@ class Tests_Secrets_WpSetSecretAndWpGetSecret extends WP_UnitTestCase {
 	 * An unrecognised version is a caller mistake, and WordPress reports those as
 	 * WP_Error plus a _doing_it_wrong() notice rather than by throwing. The
 	 * WP_Error branch of the three-state contract already covers it, so this adds
-	 * no fourth state -- see docs/open-questions.md #12.
+	 * no fourth state.
 	 */
 	public function test_an_invalid_version_is_a_wp_error_not_an_exception() {
 		$this->setExpectedIncorrectUsage( '_wp_secrets_get' );

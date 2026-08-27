@@ -5,8 +5,9 @@
  *
  * This is the mechanism that keeps the feature plugin from fighting core once the
  * API ships in 7.2, and it is the one part of the bootstrap that IS reachable from
- * a test, unlike drop-in file loading (see docs/open-questions.md #13). By the time
- * any test body runs, the plugin has bootstrapped and wp_get_secret() exists --
+ * a test, unlike drop-in file loading (see docs/open-questions.md, "Drop-in file
+ * loading"). By the time any test body runs, the plugin has bootstrapped and
+ * wp_get_secret() exists --
  * which is precisely the condition the gate is looking for, so calling
  * wp_secrets_api_bootstrap() again exercises the real branches with no simulation.
  *

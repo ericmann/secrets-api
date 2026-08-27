@@ -38,7 +38,7 @@ class Tests_Secrets_WpSecretsValidateName extends WP_UnitTestCase {
 	 * An unnamespaced name is accepted, but reports through _doing_it_wrong().
 	 * It exists so code written against the Displace prototype -- whose keyspace
 	 * was flat -- can be ported one call site at a time rather than all at once.
-	 * See docs/open-questions.md #17.
+	 * See docs/open-questions.md, "Access control language", for the consequence.
 	 *
 	 * @dataProvider data_unnamespaced_names
 	 */

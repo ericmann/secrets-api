@@ -842,7 +842,7 @@ function _wp_secrets_delete( $name, $network ) {
  * Shared implementation behind wp_retire_secret_version() and
  * wp_retire_network_secret_version().
  *
- * Beyond the published API surface -- see docs/open-questions.md #4. The proposal
+ * Beyond the published API surface -- see docs/open-questions.md, "API surface that was never published". The proposal
  * states retirement is "an explicit operator action" but names no function; this is
  * this implementation's name for it, pending confirmation in the comments thread.
  *
@@ -982,7 +982,7 @@ function wp_import_option_as_secret( $option, $name ) {
 /**
  * Shared implementation behind wp_list_secrets() and wp_list_network_secrets().
  *
- * Beyond the published API surface -- see docs/open-questions.md #4. Justified by
+ * Beyond the published API surface -- see docs/open-questions.md, "API surface that was never published". Justified by
  * the proposal's statement that "the hooks and accessors an admin screen would need
  * are in scope now; the screen itself is not."
  *
@@ -1114,7 +1114,7 @@ function wp_delete_secret( $name ) {
  * that has never been rotated, or that does not exist, is a successful no-op:
  * the previous slot is already absent either way.
  *
- * Beyond the published API surface; see docs/open-questions.md #4.
+ * Beyond the published API surface; see docs/open-questions.md, "API surface that was never published".
  *
  * @since 7.2.0
  *
@@ -1129,7 +1129,7 @@ function wp_retire_secret_version( $name ) {
 /**
  * Lists secrets by name and metadata. Never a value.
  *
- * Beyond the published API surface; see docs/open-questions.md #4. Justified by the
+ * Beyond the published API surface; see docs/open-questions.md, "API surface that was never published". Justified by the
  * proposal's statement that the hooks and accessors a future admin screen needs are
  * in scope now, even though the screen itself is not.
  *
@@ -1152,7 +1152,7 @@ function wp_list_secrets( $namespace = '' ) { // phpcs:ignore Universal.NamingCo
  * Site secrets and network secrets are separate functions with separate
  * capabilities and separate storage prefixes, with no implicit fallback from one
  * scope to the other. The names, not published by the proposal, are tracked in
- * docs/open-questions.md #4.
+ * docs/open-questions.md, "API surface that was never published".
  *
  * @since 7.2.0
  *

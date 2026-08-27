@@ -22,7 +22,7 @@
  * that a good trade for a cleanup step an operator can perform explicitly with
  * `wp option delete` if they ever actually want it. Removing the capability
  * outright is a stronger guarantee than guarding it. See
- * docs/open-questions.md #15.
+ * the deletion seam documented in secrets-api.php.
  *
  * Re-running is safe: already-migrated keys are reported as skipped rather than
  * rewritten. Read failures (a record that will not decrypt) are reported per key

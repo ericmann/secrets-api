@@ -79,7 +79,7 @@ final class WP_Secret implements JsonSerializable {
 	 * return channel, so the only alternatives are throwing or building a
 	 * half-valid WP_Secret and letting it fail somewhere less obvious. Every
 	 * function that *can* return WP_Error does -- see
-	 * docs/open-questions.md #12. The same reasoning covers the serialization
+	 * this file's own reasoning below. The same rule covers the serialization
 	 * and clone refusals below, which are magic methods with the same problem
 	 * and an additional one: silently permitting them would leak a plaintext.
 	 *

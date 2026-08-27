@@ -94,7 +94,7 @@ class Tests_Secrets_Architecture extends WP_UnitTestCase {
 	 * does not forbid function_exists()/class_exists() outright: probing for a
 	 * third-party capability (sodium_crypto_*, sodium_memzero) is unrelated and
 	 * expected to keep appearing as the crypto layer grows. See
-	 * docs/open-questions.md, "No-op mechanism -- resolved".
+	 * the bootstrap docblock in secrets-api.php, which is where that decision lives.
 	 */
 	public function test_no_self_guarding_function_exists_in_src() {
 		foreach ( $this->src_files() as $file ) {
