@@ -116,6 +116,9 @@ function wp_secrets_api_bootstrap() {
 	// `migrate-legacy` CLI command (both landing in a later commit) actually use it.
 	require_once WP_SECRETS_API_PLUGIN_DIR . 'plugin/class-secrets-api-legacy-reader.php';
 	require_once WP_SECRETS_API_PLUGIN_DIR . 'plugin/class-secrets-api-migrator.php';
+	require_once WP_SECRETS_API_PLUGIN_DIR . 'plugin/class-secrets-api-compat-shim.php';
+
+	wp_secrets_api_maybe_load_compat_shim();
 
 	/*
 	 * Loaded only now, after every core-bound interface and class this plugin
@@ -181,6 +184,27 @@ function wp_secrets_api_notice_conflict() {
 		esc_html__( 'The Secrets API feature plugin did not load: another plugin or mu-plugin has already declared wp_get_secret(). Two implementations of a credential store cannot safely coexist. Deactivate one of them.', 'secrets-api' ),
 		array( 'type' => 'error' )
 	);
+}
+
+/**
+ * Registers the legacy compat shim's global functions, if enabled.
+ *
+ * Off by default: WP_SECRETS_LEGACY_SHIM must be defined true, which in practice
+ * means set in wp-config.php ahead of every plugin loading, exactly like
+ * WP_SECRETS_KEY. Broken out into its own function (rather than inlined in
+ * wp_secrets_api_bootstrap()) so a test can call it directly, in its own process,
+ * right after defining the constant -- the ordering constraint is real for a
+ * production site, but does not need to be relived by every test that exercises
+ * this path.
+ *
+ * @return void
+ */
+function wp_secrets_api_maybe_load_compat_shim() {
+	if ( ! defined( 'WP_SECRETS_LEGACY_SHIM' ) || ! WP_SECRETS_LEGACY_SHIM ) {
+		return;
+	}
+
+	require_once WP_SECRETS_API_PLUGIN_DIR . 'plugin/compat-shim-functions.php';
 }
 
 /**

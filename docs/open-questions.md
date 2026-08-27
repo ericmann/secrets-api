@@ -285,6 +285,32 @@ about the verification or vendor-detection behavior would need to change.
 
 ---
 
+## 16. 🟡 Compat shim assumes the migrator's default namespace
+
+`Secrets_API_Compat_Shim` (commit 20) reads and writes through a fixed `legacy/`
+namespace, since the brief's §9.6 gives the shim's four global functions no
+per-call configuration surface (a legacy caller's `get_secret( 'api_key' )` takes
+no namespace argument to pass one through, even if it wanted to).
+
+This matches `wp secret migrate-legacy`'s own default namespace exactly, so a site
+that migrated with no `--namespace` or `--map` override keeps every legacy caller
+working unmodified once the shim is enabled. A site that migrated with a custom
+`--namespace` or a `--map` entry will have shim calls silently miss: `get_secret()`
+will return `null` for a secret that does, in fact, exist under a different name --
+indistinguishable, from the shim's own collapsed return, from one that was never
+migrated at all.
+
+Not resolved further: adding a filter to reconfigure the shim's namespace would
+reintroduce exactly the class of hook this build refuses to put on the retrieval
+path (see §9.6's explicit refusal to reimplement `secrets_pre_get` et al.), and a
+constant is the only alternative, which is really the same shape as
+`WP_SECRETS_LEGACY_SHIM` itself and adds a second flag for a fairly narrow case.
+Left as documented behavior. A site with a non-default migration should not enable
+the shim, or should re-migrate the affected keys into `legacy/` specifically before
+doing so.
+
+---
+
 ## Resolved
 
 Decisions that were open and are now closed, kept so the reasoning is not lost.
