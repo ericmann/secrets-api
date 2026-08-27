@@ -111,6 +111,11 @@ function wp_secrets_api_bootstrap() {
 	 */
 	require_once WP_SECRETS_API_PLUGIN_DIR . 'src/wp-admin/includes/secrets-site-health.php';
 
+	// Plugin-only: never copied to core. Loaded unconditionally since it is a
+	// small, side-effect-free class definition; only the migrator and the
+	// `migrate-legacy` CLI command (both landing in a later commit) actually use it.
+	require_once WP_SECRETS_API_PLUGIN_DIR . 'plugin/class-secrets-api-legacy-reader.php';
+
 	/*
 	 * Loaded only now, after every core-bound interface and class this plugin
 	 * defines: a drop-in that declares `class My_Store implements

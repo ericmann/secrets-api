@@ -48,3 +48,4 @@ require $_tests_dir . '/includes/bootstrap.php';
 require_once __DIR__ . '/includes/trait-wp-secrets-assertions.php';
 require_once __DIR__ . '/includes/class-mock-store.php';
 require_once __DIR__ . '/includes/class-mock-keyring.php';
+require_once __DIR__ . '/includes/class-legacy-fixture-writer.php';
