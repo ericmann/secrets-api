@@ -203,6 +203,48 @@ plugin author has to defend against.
 
 ---
 
+## 13. 🟢 Drop-in file loading is not directly covered by an automated test
+
+`wp_secrets_api_load_dropin()` (in `secrets-api.php`) runs once, during
+`wp_secrets_api_bootstrap()`, which itself runs once per PHP process via
+`muplugins_loaded`. Both that function and `_wp_secrets_get_store()` /
+`_wp_secrets_get_key_manager()` (in `src/wp-includes/secrets.php`) cache their result
+in a function-local `static` on first call, with no reset hook. By the time any test
+method's body runs -- even in a `@runInSeparateProcess` test -- the process's one
+bootstrap pass has already completed, so a drop-in file placed on disk from within a
+test body arrives too late to affect that process's `wp_secrets_api_load_dropin()`
+call.
+
+**What is covered:** the consumption side -- `_wp_secrets_get_store()` and
+`_wp_secrets_get_key_manager()` correctly using `$GLOBALS['wp_secrets_store']` /
+`$GLOBALS['wp_secrets_keyring']`, and falling back to `WP_Secrets_Broken_Store` /
+`WP_Secrets_Broken_Keyring` when `$GLOBALS['wp_secrets_dropin_broken']` is set -- is
+tested directly in `tests/phpunit/test-secrets-extension-points.php` by setting those
+same globals in an isolated process, exactly as a real drop-in would, before the
+first call that would cache a default.
+
+**What is not covered by an automated test:** `wp_secrets_api_load_dropin()`'s own
+`require`-and-`try`/`catch` around an actual drop-in file. That behavior was verified
+empirically instead, once, directly against the PHP engine on both PHP 7.4.33 and
+8.5.7, before being relied on:
+
+- A syntax error in the required file *is* caught as a `ParseError` by
+  `catch ( \Throwable $e )` around the `require` -- confirmed on both versions.
+- A class that `implements` an interface but omits a required method is an
+  **uncatchable fatal error**, even inside that same `try`/`catch` -- also confirmed
+  on both versions. This is a genuine PHP-engine limitation, not a bug in the
+  catching code: there is no userland way to intercept it.
+
+So a malformed drop-in fails safely (`WP_Error` from every operation, per the design
+in issue resolved below) for syntax errors and thrown exceptions, but a drop-in whose
+class silently fails to fully implement `WP_Secrets_Store` or `WP_Secrets_Keyring`
+can still produce a fatal error page. Worth another look if a more thorough,
+process-spawning integration test (driving `wp_secrets_api_load_dropin()` in a true
+fresh process with a real file on disk, prepared before that process's bootstrap
+starts) is judged worth the complexity later.
+
+---
+
 ## Resolved
 
 Decisions that were open and are now closed, kept so the reasoning is not lost.

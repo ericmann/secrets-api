@@ -36,3 +36,5 @@ tests_add_filter( 'muplugins_loaded', '_secrets_api_manually_load_plugin' );
 require $_tests_dir . '/includes/bootstrap.php';
 
 require_once __DIR__ . '/includes/trait-wp-secrets-assertions.php';
+require_once __DIR__ . '/includes/class-mock-store.php';
+require_once __DIR__ . '/includes/class-mock-keyring.php';

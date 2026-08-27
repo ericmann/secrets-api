@@ -90,15 +90,28 @@ function wp_secrets_api_bootstrap() {
 		'class-wp-secret.php',
 		'interface-wp-secrets-keyring.php',
 		'class-wp-secrets-config-key-provider.php',
+		'class-wp-secrets-broken-keyring.php',
 		'class-wp-secrets-cipher.php',
 		'class-wp-secrets-key-manager.php',
 		'interface-wp-secrets-store.php',
 		'class-wp-secrets-option-store.php',
+		'class-wp-secrets-broken-store.php',
 	);
 
 	foreach ( $core_bound as $file ) {
 		require_once WP_SECRETS_API_PLUGIN_DIR . 'src/wp-includes/' . $file;
 	}
+
+	/*
+	 * Loaded only now, after every core-bound interface and class this plugin
+	 * defines: a drop-in that declares `class My_Store implements
+	 * WP_Secrets_Store` needs that interface to already exist to compile at all.
+	 * This is "as early as it can" for a plugin specifically because of that
+	 * ordering constraint; the core patch moves this into wp-settings.php, ahead
+	 * of plugins_loaded entirely, once the interfaces live in wp-includes from
+	 * the start of the request.
+	 */
+	wp_secrets_api_load_dropin();
 
 	register_activation_hook( __FILE__, 'wp_secrets_api_activate' );
 	register_uninstall_hook( __FILE__, 'wp_secrets_api_uninstall' );
@@ -142,6 +155,65 @@ function wp_secrets_api_notice_conflict() {
 		esc_html__( 'The Secrets API feature plugin did not load: another plugin or mu-plugin has already declared wp_get_secret(). Two implementations of a credential store cannot safely coexist. Deactivate one of them.', 'secrets-api' ),
 		array( 'type' => 'error' )
 	);
+}
+
+/**
+ * Loads the secrets.php drop-in, if one exists, and records whether it left the
+ * store and keyring overrides in a usable state.
+ *
+ * Idempotent: guarded by a static flag rather than relying on require_once alone,
+ * since the caching in _wp_secrets_get_store()/_wp_secrets_get_key_manager() means
+ * this only ever needs to run once regardless of how many times it is called.
+ *
+ * A malformed drop-in must not turn into a white screen for the rest of the site.
+ * A syntax error, a thrown exception, or most runtime errors in the drop-in are
+ * caught here and turned into WP_Secrets_Broken_Store / WP_Secrets_Broken_Keyring
+ * for every operation instead. This is not airtight: PHP treats some class
+ * declaration errors -- notably a class that `implements` an interface but omits
+ * a required method -- as an uncatchable fatal even inside a try/catch around the
+ * require, confirmed empirically on both PHP 7.4 and 8.5 before writing this
+ * comment. That gap is unavoidable from userland and is recorded in
+ * docs/open-questions.md rather than silently assumed away.
+ *
+ * @return void
+ */
+function wp_secrets_api_load_dropin() {
+	static $loaded = false;
+
+	if ( $loaded ) {
+		return;
+	}
+
+	$loaded = true;
+
+	$dropin_path = WP_CONTENT_DIR . '/secrets.php';
+
+	if ( ! file_exists( $dropin_path ) ) {
+		return;
+	}
+
+	$GLOBALS['wp_secrets_dropin_loaded'] = true;
+
+	try {
+		require $dropin_path;
+	} catch ( \Throwable $e ) {
+		$GLOBALS['wp_secrets_dropin_broken'] = true;
+
+		return;
+	}
+
+	/*
+	 * Not set at all is fine -- a drop-in overriding only the keyring, say,
+	 * legitimately leaves the store global untouched. Set to the wrong thing is
+	 * not: that is exactly the case _wp_secrets_get_store() fails closed for.
+	 */
+	if ( isset( $GLOBALS['wp_secrets_store'] ) && ! ( $GLOBALS['wp_secrets_store'] instanceof WP_Secrets_Store ) ) {
+		$GLOBALS['wp_secrets_dropin_broken'] = true;
+	}
+
+	if ( isset( $GLOBALS['wp_secrets_keyring'] ) && ! ( $GLOBALS['wp_secrets_keyring'] instanceof WP_Secrets_Keyring ) ) {
+		$GLOBALS['wp_secrets_dropin_broken'] = true;
+	}
 }
 
 /**

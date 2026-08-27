@@ -238,8 +238,15 @@ function wp_secrets_validate_name( $name ) {
  * Returns the active secret store.
  *
  * No filter is applied here, or anywhere on the retrieval path -- see
- * docs/extending.md. A drop-in overrides the store by defining its own class before
- * this is first called and is checked for here directly, not through a hook.
+ * docs/extending.md. A secrets.php drop-in overrides the store by setting
+ * $GLOBALS['wp_secrets_store'] to an instance before this is first called, and
+ * that global is checked here directly, not through a hook.
+ *
+ * If the global was set but is not a valid WP_Secrets_Store, or if the drop-in
+ * itself failed to load cleanly, this returns WP_Secrets_Broken_Store rather than
+ * silently using the default: the drop-in's presence signals the operator wants
+ * storage other than local options, and falling back to local options anyway would
+ * be the exact "fall back to local storage" failure §2.6 forbids.
  *
  * @since 7.2.0
  *
@@ -248,15 +255,34 @@ function wp_secrets_validate_name( $name ) {
 function _wp_secrets_get_store() {
 	static $store = null;
 
-	if ( null === $store ) {
-		$store = new WP_Secrets_Option_Store();
+	if ( null !== $store ) {
+		return $store;
 	}
+
+	if ( ! empty( $GLOBALS['wp_secrets_dropin_broken'] ) ) {
+		$store = new WP_Secrets_Broken_Store();
+
+		return $store;
+	}
+
+	if ( isset( $GLOBALS['wp_secrets_store'] ) && $GLOBALS['wp_secrets_store'] instanceof WP_Secrets_Store ) {
+		$store = $GLOBALS['wp_secrets_store'];
+
+		return $store;
+	}
+
+	$store = new WP_Secrets_Option_Store();
 
 	return $store;
 }
 
 /**
  * Returns the active key manager.
+ *
+ * A secrets.php drop-in overrides the keyring by setting
+ * $GLOBALS['wp_secrets_keyring'] to an instance before this is first called. See
+ * _wp_secrets_get_store() for why an invalid override or a failed drop-in load
+ * fails closed (WP_Secrets_Broken_Keyring) rather than falling back to the default.
  *
  * @since 7.2.0
  *
@@ -265,11 +291,57 @@ function _wp_secrets_get_store() {
 function _wp_secrets_get_key_manager() {
 	static $key_manager = null;
 
-	if ( null === $key_manager ) {
-		$key_manager = new WP_Secrets_Key_Manager();
+	if ( null !== $key_manager ) {
+		return $key_manager;
 	}
 
+	if ( ! empty( $GLOBALS['wp_secrets_dropin_broken'] ) ) {
+		$key_manager = new WP_Secrets_Key_Manager( new WP_Secrets_Broken_Keyring() );
+
+		return $key_manager;
+	}
+
+	$keyring = null;
+
+	if ( isset( $GLOBALS['wp_secrets_keyring'] ) && $GLOBALS['wp_secrets_keyring'] instanceof WP_Secrets_Keyring ) {
+		$keyring = $GLOBALS['wp_secrets_keyring'];
+	}
+
+	$key_manager = new WP_Secrets_Key_Manager( $keyring );
+
 	return $key_manager;
+}
+
+/**
+ * Whether a secrets.php drop-in is present and was loaded.
+ *
+ * True whether or not the drop-in successfully provided a store or keyring
+ * override -- this reports presence, not health. Site Health reports separately
+ * on whether a loaded drop-in is actually working.
+ *
+ * @since 7.2.0
+ *
+ * @return bool
+ */
+function wp_using_secrets_dropin() {
+	return ! empty( $GLOBALS['wp_secrets_dropin_loaded'] );
+}
+
+/**
+ * Whether the active store supports a given capability.
+ *
+ * Exists so a settings screen can disable its own save button before an operator
+ * types a credential into a store that will only reject it, rather than
+ * discovering that after the fact.
+ *
+ * @since 7.2.0
+ *
+ * @param string $capability One of 'write', 'list', 'delete'.
+ *
+ * @return bool
+ */
+function wp_secrets_store_supports( $capability ) {
+	return _wp_secrets_get_store()->supports( $capability );
 }
 
 /**
