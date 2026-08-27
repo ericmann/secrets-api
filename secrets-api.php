@@ -99,6 +99,17 @@ function wp_secrets_api_bootstrap() {
 	foreach ( $core_bound as $file ) {
 		require_once WP_SECRETS_API_PLUGIN_DIR . 'src/wp-includes/' . $file;
 	}
+
+	register_activation_hook( __FILE__, 'wp_secrets_api_activate' );
+	register_uninstall_hook( __FILE__, 'wp_secrets_api_uninstall' );
+
+	/*
+	 * Granting manage_network_secrets runs on every request rather than once at
+	 * activation: unlike the administrator role, there is no persistent "network
+	 * administrator" role object to add a capability to, so super admin status has
+	 * to be checked live, the same way core itself gates network-only screens.
+	 */
+	add_filter( 'user_has_cap', 'wp_secrets_api_grant_network_cap_to_super_admins', 10, 4 );
 }
 
 /**
@@ -131,6 +142,52 @@ function wp_secrets_api_notice_conflict() {
 		esc_html__( 'The Secrets API feature plugin did not load: another plugin or mu-plugin has already declared wp_get_secret(). Two implementations of a credential store cannot safely coexist. Deactivate one of them.', 'secrets-api' ),
 		array( 'type' => 'error' )
 	);
+}
+
+/**
+ * Grants the site-scope management capability to administrators.
+ *
+ * @return void
+ */
+function wp_secrets_api_activate() {
+	$administrator = get_role( 'administrator' );
+
+	if ( $administrator ) {
+		$administrator->add_cap( WP_SECRETS_CAP_MANAGE );
+	}
+}
+
+/**
+ * Removes the capability this plugin granted, on uninstall -- not on deactivation.
+ * Deactivating and reactivating the plugin must not silently strip a capability an
+ * administrator may have started relying on for something else in the meantime.
+ *
+ * @return void
+ */
+function wp_secrets_api_uninstall() {
+	$administrator = get_role( 'administrator' );
+
+	if ( $administrator ) {
+		$administrator->remove_cap( WP_SECRETS_CAP_MANAGE );
+	}
+}
+
+/**
+ * Grants manage_network_secrets to super admins.
+ *
+ * @param array   $allcaps All capabilities of the user.
+ * @param array   $caps    Required primitive capabilities for the requested capability.
+ * @param array   $args    Arguments passed to current_user_can().
+ * @param WP_User $user    The user object.
+ *
+ * @return array
+ */
+function wp_secrets_api_grant_network_cap_to_super_admins( $allcaps, $caps, $args, $user ) {
+	if ( is_multisite() && in_array( WP_SECRETS_CAP_MANAGE_NETWORK, $caps, true ) && is_super_admin( $user->ID ) ) {
+		$allcaps[ WP_SECRETS_CAP_MANAGE_NETWORK ] = true;
+	}
+
+	return $allcaps;
 }
 
 wp_secrets_api_bootstrap();

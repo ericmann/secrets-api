@@ -104,6 +104,22 @@ define( 'WP_SECRETS_RECORD_VERSION', 1 );
 define( 'WP_SECRETS_MAX_NAME_LENGTH', 172 );
 
 /**
+ * Capability required at the operator boundary (CLI, a future admin screen) to
+ * manage site-scope secrets. Never checked by the function-level API itself --
+ * see wp_set_secret()'s docblock.
+ *
+ * @since 7.2.0
+ */
+define( 'WP_SECRETS_CAP_MANAGE', 'manage_secrets' );
+
+/**
+ * Capability required at the operator boundary to manage network-scope secrets.
+ *
+ * @since 7.2.0
+ */
+define( 'WP_SECRETS_CAP_MANAGE_NETWORK', 'manage_network_secrets' );
+
+/**
  * Best-effort clearing of a plaintext value from memory.
  *
  * This is hygiene, not a guarantee. PHP strings are reference-counted and often
@@ -982,4 +998,77 @@ function wp_retire_secret_version( $name ) {
  */
 function wp_list_secrets( $namespace = '' ) { // phpcs:ignore Universal.NamingConventions.NoReservedKeywordParameterNames.namespaceFound -- matches the build brief's specified signature exactly.
 	return _wp_secrets_list( $namespace, false );
+}
+
+/**
+ * Encrypts and stores a network-scope secret.
+ *
+ * Site secrets and network secrets are separate functions with separate
+ * capabilities and separate storage prefixes, with no implicit fallback from one
+ * scope to the other. The names, not published by the proposal, are tracked in
+ * docs/open-questions.md #4.
+ *
+ * @since 7.2.0
+ *
+ * @param string $name  The secret's namespaced name.
+ * @param string $value The plaintext value to store.
+ *
+ * @return true|WP_Error
+ */
+function wp_set_network_secret( $name, $value ) {
+	return _wp_secrets_set( $name, $value, true );
+}
+
+/**
+ * Retrieves a network-scope secret.
+ *
+ * @since 7.2.0
+ *
+ * @param string $name    The secret's namespaced name.
+ * @param string $version A WP_Secret_Version constant. Default WP_Secret_Version::CURRENT.
+ *
+ * @return WP_Secret|null|WP_Error
+ */
+function wp_get_network_secret( $name, $version = WP_Secret_Version::CURRENT ) {
+	return _wp_secrets_get( $name, $version, true );
+}
+
+/**
+ * Deletes a network-scope secret.
+ *
+ * @since 7.2.0
+ *
+ * @param string $name The secret's namespaced name.
+ *
+ * @return true|WP_Error
+ */
+function wp_delete_network_secret( $name ) {
+	return _wp_secrets_delete( $name, true );
+}
+
+/**
+ * Clears a network-scope secret's previous version.
+ *
+ * @since 7.2.0
+ *
+ * @param string $name The secret's namespaced name.
+ *
+ * @return true|WP_Error
+ */
+function wp_retire_network_secret_version( $name ) {
+	return _wp_secrets_retire( $name, true );
+}
+
+/**
+ * Lists network-scope secrets by name and metadata. Never a value.
+ *
+ * @since 7.2.0
+ *
+ * @param string $namespace Only secrets whose name starts with "{$namespace}/" are
+ *                           returned. Default '' returns every network-scope secret.
+ *
+ * @return array|WP_Error
+ */
+function wp_list_network_secrets( $namespace = '' ) { // phpcs:ignore Universal.NamingConventions.NoReservedKeywordParameterNames.namespaceFound -- matches wp_list_secrets()'s own signature.
+	return _wp_secrets_list( $namespace, true );
 }
