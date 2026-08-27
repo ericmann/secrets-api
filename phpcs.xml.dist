@@ -56,6 +56,7 @@
 				<element value="WP_SECRETS"/>
 				<element value="secrets_api"/>
 				<element value="Secrets_API"/>
+				<element value="WP_CLI_Secret"/>
 			</property>
 		</properties>
 		<!--
@@ -95,5 +96,32 @@
 	</rule>
 	<rule ref="Generic.Commenting.DocComment.MissingShort">
 		<exclude-pattern>/tests/*</exclude-pattern>
+	</rule>
+
+	<!--
+		class-mock-wp-cli.php exists specifically to define classes and a namespaced
+		function under names an external library (WP-CLI) dictates: WP_CLI,
+		WP_CLI\Utils\format_items(). The usual one-object-per-file and
+		file-name-matches-class-name conventions do not apply to it.
+	-->
+	<rule ref="WordPress.Files.FileName.InvalidClassFileName">
+		<exclude-pattern>/tests/*</exclude-pattern>
+	</rule>
+	<rule ref="Generic.Files.OneObjectStructurePerFile">
+		<exclude-pattern>/tests/includes/class-mock-wp-cli\.php$</exclude-pattern>
+	</rule>
+	<!--
+		Bracketed namespace syntax (namespace X { ... }) is otherwise banned, but it
+		is the only way to mix global-namespace declarations with a WP_CLI\Utils-
+		namespaced function in one file, which is exactly this file's job.
+	-->
+	<rule ref="Universal.Namespaces.DisallowCurlyBraceSyntax">
+		<exclude-pattern>/tests/includes/class-mock-wp-cli\.php$</exclude-pattern>
+	</rule>
+	<rule ref="Universal.Namespaces.DisallowDeclarationWithoutName">
+		<exclude-pattern>/tests/includes/class-mock-wp-cli\.php$</exclude-pattern>
+	</rule>
+	<rule ref="Universal.Namespaces.OneDeclarationPerFile">
+		<exclude-pattern>/tests/includes/class-mock-wp-cli\.php$</exclude-pattern>
 	</rule>
 </ruleset>

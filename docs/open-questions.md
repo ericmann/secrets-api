@@ -245,6 +245,17 @@ starts) is judged worth the complexity later.
 
 ---
 
+## 14. 🟢 `wp secret set --stdin`'s own code path is not covered by an automated test
+
+`WP_CLI_Secret_Command::set()` reads `--stdin` via
+`file_get_contents( 'php://stdin' )`. Faking that stream meaningfully from inside a
+PHPUnit process would need a real pipe (`proc_open`), and getting it wrong risks
+hanging the whole test run waiting on a stream nothing is writing to -- not worth it
+for one branch. Every other branch of `set()` (positional value, missing value, the
+shell-history warning, success/porcelain/error reporting) is covered directly.
+
+---
+
 ## Resolved
 
 Decisions that were open and are now closed, kept so the reasoning is not lost.

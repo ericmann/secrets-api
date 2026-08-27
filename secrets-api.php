@@ -132,6 +132,17 @@ function wp_secrets_api_bootstrap() {
 	 * to be checked live, the same way core itself gates network-only screens.
 	 */
 	add_filter( 'user_has_cap', 'wp_secrets_api_grant_network_cap_to_super_admins', 10, 4 );
+
+	// cli/ is never copied to core and is registered only under real WP-CLI --
+	// or, in this plugin's own test suite, the mock WP_CLI test double that
+	// tests/bootstrap.php defines before the plugin ever loads.
+	if ( defined( 'WP_CLI' ) && WP_CLI ) {
+		require_once WP_SECRETS_API_PLUGIN_DIR . 'cli/class-wp-cli-secret-command.php';
+		require_once WP_SECRETS_API_PLUGIN_DIR . 'cli/class-wp-cli-secret-network-command.php';
+
+		WP_CLI::add_command( 'secret', 'WP_CLI_Secret_Command' );
+		WP_CLI::add_command( 'network-secret', 'WP_CLI_Secret_Network_Command' );
+	}
 }
 
 /**

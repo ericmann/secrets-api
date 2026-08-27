@@ -22,6 +22,16 @@ if ( ! file_exists( $_tests_dir . '/includes/functions.php' ) ) {
 
 require_once $_tests_dir . '/includes/functions.php';
 
+/*
+ * Loaded, and WP_CLI defined, before the plugin itself ever bootstraps below: the
+ * plugin's own bootstrap checks defined( 'WP_CLI' ) && WP_CLI to decide whether to
+ * load cli/, exactly as it will under real WP-CLI, so this has to be in place before
+ * that check runs -- not after, as tests/includes files are otherwise loaded.
+ */
+require_once __DIR__ . '/includes/class-mock-wp-cli.php';
+
+defined( 'WP_CLI' ) || define( 'WP_CLI', true );
+
 /**
  * Load the plugin under test.
  *
