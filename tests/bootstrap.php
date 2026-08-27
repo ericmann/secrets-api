@@ -38,7 +38,7 @@ defined( 'WP_CLI' ) || define( 'WP_CLI', true );
  * @return void
  */
 function _secrets_api_manually_load_plugin() {
-	require dirname( __DIR__ ) . '/secrets-manager.php';
+	require dirname( __DIR__ ) . '/secrets-api.php';
 }
 
 tests_add_filter( 'muplugins_loaded', '_secrets_api_manually_load_plugin' );

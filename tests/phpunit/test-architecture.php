@@ -88,7 +88,7 @@ class Tests_Secrets_Architecture extends WP_UnitTestCase {
 	/**
 	 * The src/ directory declares no function_exists()/class_exists() guard on one
 	 * of this API's own symbols (wp_* or WP_*). The entire no-op decision lives in
-	 * one place -- secrets-manager.php -- specifically because a guard here would double as an
+	 * one place -- secrets-api.php -- specifically because a guard here would double as an
 	 * overloading surface: an mu-plugin declaring wp_get_secret() first would
 	 * silently win, and every secret read on the site would flow through it. This
 	 * does not forbid function_exists()/class_exists() outright: probing for a
@@ -206,11 +206,11 @@ class Tests_Secrets_Architecture extends WP_UnitTestCase {
 	 * web request can reach.
 	 */
 	public function test_the_migrator_loads_only_under_wp_cli() {
-		$bootstrap = file_get_contents( WP_SECRETS_API_PLUGIN_DIR . 'secrets-manager.php' );
+		$bootstrap = file_get_contents( WP_SECRETS_API_PLUGIN_DIR . 'secrets-api.php' );
 
 		$cli_guard = strpos( $bootstrap, "if ( defined( 'WP_CLI' ) && WP_CLI ) {" );
 
-		$this->assertNotFalse( $cli_guard, 'The WP-CLI guard is no longer recognisable in secrets-manager.php.' );
+		$this->assertNotFalse( $cli_guard, 'The WP-CLI guard is no longer recognisable in secrets-api.php.' );
 
 		$matches = array();
 		preg_match_all(

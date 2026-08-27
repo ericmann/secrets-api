@@ -166,7 +166,7 @@ class Tests_Secrets_ExtensionPoints extends WP_UnitTestCase {
 	/**
 	 * Simulates the state a broken secrets.php drop-in leaves behind
 	 * ($GLOBALS['wp_secrets_dropin_broken'] set by wp_secrets_api_load_dropin() --
-	 * see that function's docblock in secrets-manager.php for why the drop-in's own file
+	 * see that function's docblock in secrets-api.php for why the drop-in's own file
 	 * loading cannot be driven the same way this simulates its aftermath) and
 	 * confirms every operation fails closed with WP_Error rather than a fatal error
 	 * or a silent fallback to local storage.

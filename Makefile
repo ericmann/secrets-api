@@ -34,7 +34,7 @@ lint-fix: ## Fix what can be fixed automatically.
 compat: ## Check PHP 7.4+ compatibility.
 	$(VENDOR_BIN)/phpcs --standard=PHPCompatibilityWP --runtime-set testVersion 7.4- \
 		--extensions=php --ignore=vendor/*,node_modules/* \
-		src plugin cli secrets-manager.php
+		src plugin cli secrets-api.php
 
 analyse: ## Run static analysis.
 	$(VENDOR_BIN)/phpstan analyse --memory-limit=1G --no-progress

@@ -66,7 +66,7 @@ final class Secrets_API_Legacy_Reader {
 		if ( ! is_array( $option_names ) ) {
 			return new WP_Error(
 				'legacy_store_unavailable',
-				__( 'Could not list legacy secrets.', 'secrets-manager' )
+				__( 'Could not list legacy secrets.', 'secrets-api' )
 			);
 		}
 
@@ -94,7 +94,7 @@ final class Secrets_API_Legacy_Reader {
 		if ( ! is_string( $wrapped_master ) || '' === $wrapped_master ) {
 			return new WP_Error(
 				'legacy_master_key_missing',
-				__( 'The legacy master key option does not exist.', 'secrets-manager' )
+				__( 'The legacy master key option does not exist.', 'secrets-api' )
 			);
 		}
 
@@ -105,7 +105,7 @@ final class Secrets_API_Legacy_Reader {
 				'legacy_secret_missing',
 				sprintf(
 					/* translators: %s: Legacy secret key name. */
-					__( 'No legacy secret found for key "%s".', 'secrets-manager' ),
+					__( 'No legacy secret found for key "%s".', 'secrets-api' ),
 					$key
 				)
 			);
@@ -167,7 +167,7 @@ final class Secrets_API_Legacy_Reader {
 
 		return new WP_Error(
 			'legacy_master_key_unwrap_failed',
-			__( 'The legacy master key could not be unwrapped. Neither WP_SECRETS_KEY nor the LOGGED_IN_KEY/LOGGED_IN_SALT fallback produced the key it was sealed under -- check that this site still has the same wp-config.php values it had when the legacy secrets were written.', 'secrets-manager' )
+			__( 'The legacy master key could not be unwrapped. Neither WP_SECRETS_KEY nor the LOGGED_IN_KEY/LOGGED_IN_SALT fallback produced the key it was sealed under -- check that this site still has the same wp-config.php values it had when the legacy secrets were written.', 'secrets-api' )
 		);
 	}
 
@@ -202,7 +202,7 @@ final class Secrets_API_Legacy_Reader {
 		if ( empty( $candidates ) ) {
 			return new WP_Error(
 				'legacy_key_unavailable',
-				__( 'No legacy site key could be derived: WP_SECRETS_KEY is unusable or undefined, and LOGGED_IN_KEY/LOGGED_IN_SALT are not usable either.', 'secrets-manager' )
+				__( 'No legacy site key could be derived: WP_SECRETS_KEY is unusable or undefined, and LOGGED_IN_KEY/LOGGED_IN_SALT are not usable either.', 'secrets-api' )
 			);
 		}
 
@@ -223,7 +223,7 @@ final class Secrets_API_Legacy_Reader {
 		if ( false === $raw || strlen( $raw ) <= SODIUM_CRYPTO_SECRETBOX_NONCEBYTES ) {
 			return new WP_Error(
 				'legacy_record_malformed',
-				__( 'The legacy record is not valid base64, or is too short to contain a nonce.', 'secrets-manager' )
+				__( 'The legacy record is not valid base64, or is too short to contain a nonce.', 'secrets-api' )
 			);
 		}
 
@@ -235,7 +235,7 @@ final class Secrets_API_Legacy_Reader {
 		if ( false === $plaintext ) {
 			return new WP_Error(
 				'legacy_decryption_failed',
-				__( 'The legacy record could not be decrypted with the derived key.', 'secrets-manager' )
+				__( 'The legacy record could not be decrypted with the derived key.', 'secrets-api' )
 			);
 		}
 

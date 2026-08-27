@@ -136,7 +136,7 @@ final class Secrets_API_Migrator {
 			$entry['status']  = 'needs_mapping';
 			$entry['message'] = sprintf(
 				/* translators: 1: Derived name. 2: Validation error message. 3: Legacy key. */
-				__( 'Derived name "%1$s" is invalid (%2$s). Use --map=%3$s:<new-name> to specify one explicitly.', 'secrets-manager' ),
+				__( 'Derived name "%1$s" is invalid (%2$s). Use --map=%3$s:<new-name> to specify one explicitly.', 'secrets-api' ),
 				$new_name,
 				$name_check->get_error_message(),
 				$key
@@ -264,14 +264,14 @@ final class Secrets_API_Migrator {
 		if ( ! ( $new_secret instanceof WP_Secret ) ) {
 			return new WP_Error(
 				'legacy_migration_verify_failed',
-				__( 'The migrated secret could not be read back for verification.', 'secrets-manager' )
+				__( 'The migrated secret could not be read back for verification.', 'secrets-api' )
 			);
 		}
 
 		if ( $expected_fingerprint !== $new_secret->fingerprint() ) {
 			return new WP_Error(
 				'legacy_migration_verify_failed',
-				__( 'The migrated value does not match the legacy source.', 'secrets-manager' )
+				__( 'The migrated value does not match the legacy source.', 'secrets-api' )
 			);
 		}
 

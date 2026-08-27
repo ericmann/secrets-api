@@ -21,7 +21,7 @@ class Tests_Secrets_Scaffolding extends WP_UnitTestCase {
 	}
 
 	public function test_plugin_dir_points_at_the_plugin_root() {
-		$this->assertFileExists( WP_SECRETS_API_PLUGIN_DIR . 'secrets-manager.php' );
+		$this->assertFileExists( WP_SECRETS_API_PLUGIN_DIR . 'secrets-api.php' );
 	}
 
 	/**
