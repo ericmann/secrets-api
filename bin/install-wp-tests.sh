@@ -212,8 +212,16 @@ install_db() {
 		fi
 	fi
 
+	# CREATE DATABASE IF NOT EXISTS, rather than `mysqladmin create`, so that an
+	# already-present database is not a failure. Two ordinary situations hit this:
+	# a CI service container that pre-creates the database itself (ours does), and
+	# a contributor running `make install` a second time. Neither should require
+	# dropping the database first, and neither is what this script is guarding
+	# against -- a genuine connection or permission problem still fails loudly,
+	# because only the "already exists" case is being tolerated, not every error.
 	# shellcheck disable=SC2086
-	mysqladmin create "$DB_NAME" --user="$DB_USER" --password="$DB_PASS"$EXTRA
+	mysql --user="$DB_USER" --password="$DB_PASS"$EXTRA \
+		--execute="CREATE DATABASE IF NOT EXISTS \`${DB_NAME}\`;"
 }
 
 install_wp
