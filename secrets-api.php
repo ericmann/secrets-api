@@ -91,6 +91,7 @@ function wp_secrets_api_bootstrap() {
 		'interface-wp-secrets-keyring.php',
 		'class-wp-secrets-config-key-provider.php',
 		'class-wp-secrets-cipher.php',
+		'class-wp-secrets-key-manager.php',
 	);
 
 	foreach ( $core_bound as $file ) {
