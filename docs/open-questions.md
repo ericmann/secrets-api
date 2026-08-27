@@ -197,9 +197,16 @@ at build time. Fingerprints (§4.4) and all multisite key derivation depend on
 `sodium_crypto_kdf_derive_from_key()`, which is a later addition to `sodium_compat` than the AEAD
 primitives.
 
-**Must be verified against the version core actually bundles.** If it is absent, the options are
-a documented HKDF-over-`generichash` fallback or a hard `secret_crypto_unavailable` — and the
-choice affects whether the plugin works at all on the hosts the fallback exists to serve.
+**Verified against the version core actually bundles (2026-08-27): it is present, and it is a
+real implementation.** WordPress trunk ships `sodium_compat` `polyfill-1.0.8`, which declares
+`sodium_crypto_kdf_derive_from_key()` in `lib/php72compat.php` behind an `is_callable()` guard
+and implements it in `ParagonIE_Sodium_Compat::crypto_kdf_derive_from_key()` — bounds-checking
+the subkey length rather than throwing "not implemented".
+
+So no HKDF-over-`generichash` fallback is needed, and hosts without the libsodium extension —
+exactly the population the polyfill exists for — get working key derivation. Re-check if core ever
+downgrades the bundled polyfill, since every master key, every per-secret data key, and every
+fingerprint in this API depends on that one function.
 
 Related: `sodium_memzero()` is a no-op under `sodium_compat`, because PHP strings cannot actually
 be zeroed from userland. Documentation must not overclaim memory hygiene.
