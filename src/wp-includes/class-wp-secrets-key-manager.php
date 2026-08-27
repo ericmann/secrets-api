@@ -86,6 +86,19 @@ final class WP_Secrets_Key_Manager {
 	}
 
 	/**
+	 * Returns the keyring in use, for Site Health and WP-CLI's `wp secret dropin` /
+	 * `wp secret health` -- both need to describe the active keyring without
+	 * duplicating the logic that resolves it.
+	 *
+	 * @since 7.2.0
+	 *
+	 * @return WP_Secrets_Keyring
+	 */
+	public function get_keyring() {
+		return $this->keyring;
+	}
+
+	/**
 	 * Derives a scope's master key from the root key.
 	 *
 	 * @since 7.2.0

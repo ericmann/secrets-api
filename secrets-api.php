@@ -103,6 +103,15 @@ function wp_secrets_api_bootstrap() {
 	}
 
 	/*
+	 * Site Health's own hooks ('site_status_tests', 'debug_information') only ever
+	 * fire in wp-admin, but this is loaded unconditionally rather than gated on
+	 * is_admin(): registering two filters is negligible overhead, and is_admin()
+	 * is false during some of the same contexts Site Health's own async REST checks
+	 * run in, which would make the gate unreliable in exactly the cases it matters.
+	 */
+	require_once WP_SECRETS_API_PLUGIN_DIR . 'src/wp-admin/includes/secrets-site-health.php';
+
+	/*
 	 * Loaded only now, after every core-bound interface and class this plugin
 	 * defines: a drop-in that declares `class My_Store implements
 	 * WP_Secrets_Store` needs that interface to already exist to compile at all.
