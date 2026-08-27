@@ -50,9 +50,26 @@ decision the implementation gets to make.
 
 **Do not** implement a plaintext passthrough without that decision.
 
-**Status: deferred by the operator (2026-08-27), who has a position forming.** Not blocked on
-implementation input. Nothing here should be built, and the seam should not be widened
-speculatively, until that position lands.
+**Status (2026-08-27): worked through, not implemented.** See
+[`host-provider-model.md`](host-provider-model.md) for the full analysis.
+
+The short version: the same objection came from Altis (Rafael Meneses, comment 49247) as from
+Pantheon, and Altis supplied the reframe that resolves it — *"a provider can be stronger than the
+default, never weaker."* The published sentence does two jobs, and only one is load-bearing:
+"encryption cannot be turned off" is the actual property, while "the store never sees plaintext"
+is one implementation of it. Every platform arrangement asked for (Pantheon's authenticated
+channel, Altis's KMS-backed store, VIP's dashboard/HSM model) is *stronger* at rest than the
+default, and all three are banned by the mechanism rather than by the property.
+
+Also unresolved and time-sensitive: Altis proposes `WP_Secret::reveal()` return `string|WP_Error`
+for broker-held or use-only secrets where the value never enters PHP. `reveal(): string` is
+published, and a return type cannot be widened after adoption. Today it genuinely cannot fail —
+one construction site, eager decryption — so this is purely a forward-compatibility call, and it
+is the one item here that cannot be deferred without effectively deciding it.
+
+**Still do not** implement a plaintext passthrough. What the design document proposes is a
+distinct `WP_Secrets_Provider` interface rather than widening `WP_Secrets_Store`, precisely so a
+store cannot become a plaintext sink by flag.
 
 ---
 

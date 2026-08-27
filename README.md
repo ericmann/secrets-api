@@ -98,6 +98,14 @@ only exists in the prototype's format is transparently upgraded into the current
 time it's read, and the prototype's own data is never touched. See
 [`docs/migrating-from-displace.md`](docs/migrating-from-displace.md).
 
+## Host and platform support
+
+Platforms that manage credentials themselves — a KMS-backed store, an HSM, a control panel that
+is the system of record — are not expressible under the current contract, which bans them by
+mechanism rather than by property. [`docs/host-provider-model.md`](docs/host-provider-model.md)
+works through what changes, what must not, and which decisions are proposal-level rather than
+implementation-level. Nothing there is built yet.
+
 ## Extending
 
 Two seams, each a small interface: `WP_Secrets_Store` (where a record lives) and
