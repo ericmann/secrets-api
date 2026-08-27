@@ -89,6 +89,64 @@ class Tests_Secrets_ApiMigrator extends WP_UnitTestCase {
 		$this->assertFalse( get_option( '_wp_secret_legacy/other_key' ) );
 	}
 
+	// -- fingerprint round-trip, both key-derivation paths --------------------
+
+	/**
+	 * Computes what the fingerprint of a plaintext must be under this site's
+	 * current master key, independently of anything the migrator reports.
+	 *
+	 * @param string $plaintext Value to fingerprint.
+	 *
+	 * @return string
+	 */
+	private function expected_fingerprint( $plaintext ) {
+		return ( new WP_Secrets_Cipher() )->fingerprint(
+			_wp_secrets_get_key_manager()->get_master_key( 'site' ),
+			$plaintext
+		);
+	}
+
+	/**
+	 * The build brief's definition of done names this specifically: a record
+	 * written by the fixture writer under each key-derivation path migrates and
+	 * reads back with matching fingerprints. Asserting the revealed value alone
+	 * would not cover it -- the fingerprint is what the migrator's own
+	 * verification, wp_list_secrets(), and the CLI's porcelain output all key on,
+	 * so a value that round-tripped while its fingerprint did not would be a
+	 * silent inconsistency across three surfaces.
+	 */
+	public function test_salt_fallback_record_migrates_with_a_matching_fingerprint() {
+		( new Legacy_Fixture_Writer() )->write_secret( 'api_key', 'sk_legacy_value' );
+
+		$report   = $this->migrator()->migrate();
+		$entry    = $this->entry_for( $report, 'api_key' );
+		$expected = $this->expected_fingerprint( 'sk_legacy_value' );
+
+		$this->assertSame( 'migrated', $entry['status'] );
+		$this->assertSame( $expected, $entry['fingerprint'] );
+		$this->assertSame( $expected, wp_get_secret( 'legacy/api_key' )->fingerprint() );
+	}
+
+	/**
+	 * The other derivation path -- legacy hashes WP_SECRETS_KEY's literal string.
+	 *
+	 * @runInSeparateProcess
+	 * @preserveGlobalState disabled
+	 */
+	public function test_wp_secrets_key_record_migrates_with_a_matching_fingerprint() {
+		define( 'WP_SECRETS_KEY', 'some-legacy-shaped-constant' );
+
+		( new Legacy_Fixture_Writer() )->write_secret( 'api_key', 'sk_legacy_value', WP_SECRETS_KEY );
+
+		$report   = $this->migrator()->migrate();
+		$entry    = $this->entry_for( $report, 'api_key' );
+		$expected = $this->expected_fingerprint( 'sk_legacy_value' );
+
+		$this->assertSame( 'migrated', $entry['status'] );
+		$this->assertSame( $expected, $entry['fingerprint'] );
+		$this->assertSame( $expected, wp_get_secret( 'legacy/api_key' )->fingerprint() );
+	}
+
 	// -- the prototype's own rows are never touched ---------------------------
 
 	public function test_migrating_never_modifies_or_removes_the_prototype_rows() {

@@ -68,6 +68,55 @@ class Tests_Secrets_ApiPrototypeFallbackStore extends WP_UnitTestCase {
 		$this->assertSame( 'authoritative-value', wp_get_secret( 'ai/api_key' )->reveal() );
 	}
 
+	// -- fingerprint round-trip, both key-derivation paths --------------------
+
+	/**
+	 * Computes what the fingerprint of a plaintext must be under this site's
+	 * current master key, independently of the upgrade path.
+	 *
+	 * @param string $plaintext Value to fingerprint.
+	 *
+	 * @return string
+	 */
+	private function expected_fingerprint( $plaintext ) {
+		return ( new WP_Secrets_Cipher() )->fingerprint(
+			_wp_secrets_get_key_manager()->get_master_key( 'site' ),
+			$plaintext
+		);
+	}
+
+	/**
+	 * The same definition-of-done property the migrator is held to, applied to
+	 * the path that actually runs on an adopting site. This one matters more:
+	 * the migrator is an operator running a command and reading a report, while
+	 * this happens silently on a front-end request, so a fingerprint that did not
+	 * survive the upgrade would surface only later, as a value whose
+	 * wp_list_secrets() entry disagrees with itself.
+	 */
+	public function test_salt_fallback_record_upgrades_with_a_matching_fingerprint() {
+		( new Legacy_Fixture_Writer() )->write_secret( 'api_key', 'sk_prototype_value' );
+
+		$secret = wp_get_secret( 'ai/api_key' );
+
+		$this->assertInstanceOf( 'WP_Secret', $secret );
+		$this->assertSame( $this->expected_fingerprint( 'sk_prototype_value' ), $secret->fingerprint() );
+	}
+
+	/**
+	 * @runInSeparateProcess
+	 * @preserveGlobalState disabled
+	 */
+	public function test_wp_secrets_key_record_upgrades_with_a_matching_fingerprint() {
+		define( 'WP_SECRETS_KEY', 'some-legacy-shaped-constant' );
+
+		( new Legacy_Fixture_Writer() )->write_secret( 'api_key', 'sk_prototype_value', WP_SECRETS_KEY );
+
+		$secret = wp_get_secret( 'ai/api_key' );
+
+		$this->assertInstanceOf( 'WP_Secret', $secret );
+		$this->assertSame( $this->expected_fingerprint( 'sk_prototype_value' ), $secret->fingerprint() );
+	}
+
 	// -- non-interference: the prototype's own data is never touched -----------
 
 	public function test_reading_never_modifies_or_removes_the_prototype_row() {
