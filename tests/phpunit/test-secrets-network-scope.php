@@ -6,6 +6,8 @@
  */
 class Tests_Secrets_NetworkScope extends WP_UnitTestCase {
 
+	use WP_Secrets_Assertions;
+
 	public function test_set_then_get_round_trips() {
 		$this->assertTrue( wp_set_network_secret( 'myplugin/api-key', 'value' ) );
 
@@ -47,10 +49,8 @@ class Tests_Secrets_NetworkScope extends WP_UnitTestCase {
 		wp_set_network_secret( 'myplugin/api-key', 'first-value' );
 		wp_set_network_secret( 'myplugin/api-key', 'second-value' );
 
-		$this->assertSame(
-			'first-value',
-			wp_get_network_secret( 'myplugin/api-key', WP_Secret_Version::PREVIOUS )->reveal()
-		);
+		$this->assertRecordSlotDecryptsTo( 'myplugin/api-key', WP_Secret_Version::PREVIOUS, 'first-value', true );
+		$this->assertRecordSlotDecryptsTo( 'myplugin/api-key', WP_Secret_Version::CURRENT, 'second-value', true );
 	}
 
 	public function test_retire_clears_the_previous_slot() {
@@ -99,8 +99,7 @@ class Tests_Secrets_NetworkScope extends WP_UnitTestCase {
 		$secret = wp_get_network_secret( 'myplugin/api-key' );
 		restore_current_blog();
 
-		$this->assertInstanceOf( WP_Secret::class, $secret );
-		$this->assertSame( 'cross-blog-value', $secret->reveal() );
+		$this->assertIsSecret( $secret, 'cross-blog-value', 'Read from a second blog:' );
 	}
 
 	/**

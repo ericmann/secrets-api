@@ -6,6 +6,8 @@
  */
 class Tests_Secrets_WpSetSecretAndWpGetSecret extends WP_UnitTestCase {
 
+	use WP_Secrets_Assertions;
+
 	public function test_set_then_get_round_trips() {
 		$this->assertTrue( wp_set_secret( 'myplugin/api-key', 'sk_live_secret' ) );
 
@@ -89,9 +91,11 @@ class Tests_Secrets_WpSetSecretAndWpGetSecret extends WP_UnitTestCase {
 
 		wp_set_secret( 'myplugin/api-key', 'UNIQUE-PLAINTEXT-CANARY-9f3a' );
 
-		$dump = wp_json_encode( $wpdb->get_results( "SELECT option_name, option_value FROM {$wpdb->options}", ARRAY_A ) );
-
-		$this->assertStringNotContainsString( 'UNIQUE-PLAINTEXT-CANARY-9f3a', $dump );
+		$this->assertNeverContainsPlaintext(
+			'UNIQUE-PLAINTEXT-CANARY-9f3a',
+			$wpdb->get_results( "SELECT option_name, option_value FROM {$wpdb->options}", ARRAY_A ),
+			'The options table must never contain a plaintext secret.'
+		);
 	}
 
 	/**

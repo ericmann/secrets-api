@@ -12,6 +12,8 @@
  */
 class Tests_Secrets_WPSecret extends WP_UnitTestCase {
 
+	use WP_Secrets_Assertions;
+
 	const PLAINTEXT   = 'sk_live_super_secret_value';
 	const NAME        = 'myplugin/api-key';
 	const FINGERPRINT = 'abc123def456';
@@ -204,6 +206,48 @@ class Tests_Secrets_WPSecret extends WP_UnitTestCase {
 		unset( $secret );
 
 		$this->assertArrayNotHasKey( $id, $vault_property->getValue() );
+	}
+
+	/**
+	 * Nothing plaintext enters the object cache (§7).
+	 *
+	 * The mechanism differs by backend and this asserts the outcome rather than the
+	 * route: core's non-persistent cache clones on set, which __clone() refuses,
+	 * while a persistent backend (Redis, Memcached) serializes instead, which
+	 * __serialize() refuses. Both are LogicException, so both are covered here
+	 * without the test having to know which cache is installed.
+	 */
+	public function test_wp_cache_set_of_a_secret_is_refused() {
+		$secret = $this->make_secret();
+
+		$this->expectException( LogicException::class );
+
+		wp_cache_set( 'secret', $secret, 'secrets-test' );
+	}
+
+	/**
+	 * The independent second layer, not a restatement of the test above.
+	 *
+	 * Verified by neutering __clone() and __serialize() and re-running: the test
+	 * above fails, this one still passes. That is the point -- this holds because
+	 * the plaintext is not a property of the object, so even a clone or a
+	 * serialization that somehow got through would carry nothing to leak. It is a
+	 * regression guard against a future change that moves the plaintext back into a
+	 * declared property, which would defeat the masking design without breaking any
+	 * of the magic-method tests.
+	 */
+	public function test_nothing_plaintext_survives_a_refused_cache_write() {
+		$secret = $this->make_secret();
+
+		try {
+			wp_cache_set( 'secret', $secret, 'secrets-test' );
+		} catch ( LogicException $e ) {
+			unset( $e );
+		}
+
+		$cached = wp_cache_get( 'secret', 'secrets-test' );
+
+		$this->assertNeverContainsPlaintext( self::PLAINTEXT, $cached );
 	}
 
 	public function test_two_instances_do_not_share_a_vault_slot() {

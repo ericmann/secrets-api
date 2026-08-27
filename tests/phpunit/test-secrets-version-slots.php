@@ -9,6 +9,8 @@
  */
 class Tests_Secrets_VersionSlots extends WP_UnitTestCase {
 
+	use WP_Secrets_Assertions;
+
 	public function test_first_write_leaves_no_previous_slot() {
 		wp_set_secret( 'myplugin/api-key', 'first-value' );
 
@@ -22,12 +24,8 @@ class Tests_Secrets_VersionSlots extends WP_UnitTestCase {
 		wp_set_secret( 'myplugin/api-key', 'first-value' );
 		wp_set_secret( 'myplugin/api-key', 'second-value' );
 
-		$previous = wp_get_secret( 'myplugin/api-key', WP_Secret_Version::PREVIOUS );
-		$current  = wp_get_secret( 'myplugin/api-key', WP_Secret_Version::CURRENT );
-
-		$this->assertInstanceOf( WP_Secret::class, $previous );
-		$this->assertSame( 'first-value', $previous->reveal() );
-		$this->assertSame( 'second-value', $current->reveal() );
+		$this->assertRecordSlotDecryptsTo( 'myplugin/api-key', WP_Secret_Version::PREVIOUS, 'first-value' );
+		$this->assertRecordSlotDecryptsTo( 'myplugin/api-key', WP_Secret_Version::CURRENT, 'second-value' );
 	}
 
 	public function test_third_write_discards_the_oldest_value() {
@@ -35,10 +33,11 @@ class Tests_Secrets_VersionSlots extends WP_UnitTestCase {
 		wp_set_secret( 'myplugin/api-key', 'value-b' );
 		wp_set_secret( 'myplugin/api-key', 'value-c' );
 
-		$previous = wp_get_secret( 'myplugin/api-key', WP_Secret_Version::PREVIOUS );
+		$this->assertRecordSlotDecryptsTo( 'myplugin/api-key', WP_Secret_Version::PREVIOUS, 'value-b' );
 
-		$this->assertSame( 'value-b', $previous->reveal() );
-		// value-a is not recoverable through this API in any form.
+		// value-a is gone from the stored record entirely, not merely unreachable
+		// through the two named slots.
+		$this->assertNeverContainsPlaintext( 'value-a', get_option( '_wp_secret_myplugin/api-key' ) );
 	}
 
 	public function test_previous_preserves_its_original_fingerprint() {

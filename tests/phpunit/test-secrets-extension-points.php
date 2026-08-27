@@ -22,6 +22,8 @@
  */
 class Tests_Secrets_ExtensionPoints extends WP_UnitTestCase {
 
+	use WP_Secrets_Assertions;
+
 	/**
 	 * @runInSeparateProcess
 	 * @preserveGlobalState disabled
@@ -154,9 +156,11 @@ class Tests_Secrets_ExtensionPoints extends WP_UnitTestCase {
 
 		wp_set_secret( 'myplugin/api-key', 'UNIQUE-PLAINTEXT-CANARY-9f3a' );
 
-		$dump = wp_json_encode( $store->get_received_records() );
-
-		$this->assertStringNotContainsString( 'UNIQUE-PLAINTEXT-CANARY-9f3a', $dump );
+		$this->assertNeverContainsPlaintext(
+			'UNIQUE-PLAINTEXT-CANARY-9f3a',
+			$store->get_received_records(),
+			'The store was handed a plaintext.'
+		);
 	}
 
 	/**
