@@ -21,6 +21,33 @@ what is protecting a site's credentials: `get_label()`, `get_protection_boundary
 enforcement** — a drop-in is fully trusted code that could already read every secret. Their value
 is visibility, and the interface says so rather than implying a boundary that is not there.
 
+### Prove it conforms before you ship it
+
+`implements WP_Secrets_Provider` is a claim PHP can check about method names and
+nothing else. It cannot tell you that absence is reported as `null` rather than an error, or that
+an unreachable backend fails closed instead of looking empty — and those are the properties that
+actually matter to a caller holding a credential.
+
+So extend the conformance suite and point it at your provider:
+
+```php
+class Tests_My_Platform_Provider extends WP_Secrets_Provider_Conformance {
+    protected function provider() {
+        return new My_Platform_Provider( /* ... */ );
+    }
+}
+```
+
+It checks what every provider owes a caller: a name that was never set reads as `null`; `PREVIOUS`
+with no previous value is absence rather than an error; deleting something absent succeeds;
+fingerprints are stable for the same value; listings never contain a plaintext; and a provider
+that declares itself read-only actually refuses writes with `secret_provider_read_only`. Where the
+contract legitimately varies it adapts — a read-only provider is not asked to round-trip a value —
+and it says in the report what it skipped rather than passing silently.
+
+The suite lives in `tests/includes/class-wp-secrets-provider-conformance.php` and runs against the
+shipped provider, so there is a known-good subject to compare failures against.
+
 ---
 
 The two interfaces below are the *internals of the shipped provider*, and remain replaceable
