@@ -58,29 +58,24 @@ reliable egress to Packagist.
 `make ci` is the source of truth and depends on none of the below. What follows is only about the
 hosted pipeline.
 
-**Currently unresolved — see [`open-questions.md`](open-questions.md) #8.** The workflow in
-`.github/workflows/ci.yml` is written for a self-hosted runner, which was the right assumption for
-`github.a8c.com` and is the wrong one for github.com. Two facts settled since it was written:
+**github.com, hosted runners.** An earlier revision of `.github/workflows/ci.yml` targeted an
+internal GitHub Enterprise Server instance; see [`open-questions.md`](open-questions.md) #8 for
+the two findings that changed that (GHES provides no hosted runners in any edition and the
+instance had none configured, so no job could execute at all). Moving to github.com also removed
+the reason the workflow was hand-rolling things a Marketplace action does better:
 
-- The GHES instance has **no runners configured**, and GHES provides no GitHub-hosted runners in
-  any edition — every job would need a machine someone owns and patches, carrying three PHP
-  versions and a reachable MySQL.
-- "Allow local actions only" does **not** block `actions/checkout`: official GitHub actions are
-  bundled into GHES instances with no GitHub Connect required. The workflow's defensive
-  "only `actions/checkout`, everything else hand-rolled" shape was guarding against a constraint
-  that turned out not to bind.
+| Was, for GHES | Is, on github.com |
+|---|---|
+| `runs-on: self-hosted` against a runner nobody had provisioned | `runs-on: ubuntu-latest` |
+| `update-alternatives` to switch PHP, assuming a preinstalled multi-PHP image | `shivammathur/setup-php`, which also guarantees the `sodium` extension this API cannot run without |
+| No dependency caching, since `actions/cache` was assumed unavailable | `actions/cache` on Composer's cache directory |
+| A `container:`-based fallback job for the no-Docker / no-egress case | Removed. It existed only for a constraint that no longer applies |
 
-**If this moves to github.com** (the recommendation in #8, since this is a feature plugin for a
-public proposal and `src/` is a `wordpress-develop` patch candidate), the workflow simplifies
-considerably: `runs-on: ubuntu-latest`, and `shivammathur/setup-php` replaces the hand-rolled
-`update-alternatives` PHP switching that only exists because Marketplace actions were assumed
-unavailable.
+The workflow declares `permissions: contents: read`. Nothing in it writes to the repository,
+publishes anything, or needs a token beyond reading the code under test.
 
-**If it stays on GHES**, two changes are required before it will run at all: provision at least
-one self-hosted runner, and replace the full-SHA action pin with a tag the instance's bundled
-`actions` org actually contains — bundled actions are captured at a point in time, so a SHA from
-github.com may simply not exist there. See "Pinning" below for why that is a real tradeoff and
-not a free change.
+`WP_MIRROR_BASE` and the air-gapped path above still work and are still supported by
+`bin/install-wp-tests.sh` — they are just no longer load-bearing for CI.
 
 ## Pinning
 
@@ -88,10 +83,13 @@ Every action is pinned by **full commit SHA**, not by tag. A tag is mutable; a S
 this repository implements a credential store — an action that silently changes under a moved tag
 is exactly the supply-chain shape worth refusing here.
 
-The one place that rule has to bend is a GHES instance whose bundled `actions` org does not
-contain the pinned commit (see above). Loosening to a tag there is a real reduction in guarantee,
-not a formatting change, and is one more argument for running this on github.com where SHA pins
-always resolve.
+Each SHA in the workflow was resolved from the GitHub API at the version noted beside it, not
+copied out of documentation or a README — a pin nobody verified is a pin to whatever the last
+person pasted.
+
+This is one of the things that got simpler by moving off GHES: bundled GHES actions are captured
+at a point in time, so a SHA valid on github.com may not exist on a given instance, and the
+workaround would have been loosening to a mutable tag.
 
 ## Matrix
 

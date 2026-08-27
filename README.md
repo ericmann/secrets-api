@@ -112,9 +112,9 @@ Before changing anything under `src/`, read the constraints above — several of
 by architectural tests that read the source, and those tests are never weakened to make a build
 green.
 
-CI (`.github/workflows/ci.yml`) is a thin wrapper around the `make` targets above and targets both
-github.com and an internal GHES instance; see [`docs/ci.md`](docs/ci.md) for the parts of that
-instance a maintainer still needs to confirm before relying on it.
+CI (`.github/workflows/ci.yml`) is a thin wrapper around the `make` targets above, running on
+github.com's hosted runners: static analysis gates a PHP 7.4/8.0/8.3 × WordPress latest/trunk
+matrix plus a multisite job. See [`docs/ci.md`](docs/ci.md).
 
 ## License
 

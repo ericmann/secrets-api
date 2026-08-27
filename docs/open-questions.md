@@ -159,56 +159,34 @@ inventing constraints for a format nobody has specified.
 
 ---
 
-## 8. 🟡 Where CI actually runs — GHES is likely the wrong host
+## 8. 🟢 Where CI actually runs — CLOSED
 
-Originally: a list of things nobody had checked on `github.a8c.com`. The operator has now checked,
-and the answers change the question from "how do we configure this?" to "should it run here at
-all?"
+**Resolved: github.com, private for now.** `.github/workflows/ci.yml` rewritten accordingly.
 
-**What the instance reports:** no custom runners configured, and the "allow local actions only"
-policy is enabled.
+The original entry was a list of unknowns about `github.a8c.com`. Two of them, once checked,
+settled the question:
 
-**What that means, verified against GitHub's own GHES documentation rather than assumed:**
+1. **GHES provides no GitHub-hosted runners in any edition** — "to enable GitHub Actions for your
+   GitHub Enterprise Server instance, you must host at least one machine to execute jobs" — and
+   the instance had none configured. No job could have executed there. Fixing that meant owning
+   and patching a VM carrying three PHP versions and a reachable MySQL, indefinitely.
+2. **"Allow local actions only" was never the blocker it looked like.** Official GitHub-authored
+   actions are bundled into GHES instances with no GitHub Connect required. The workflow had been
+   written defensively around a constraint that did not bind — which is worth remembering as a
+   general lesson: the defensive shape cost real complexity (hand-rolled PHP switching, no
+   dependency caching, a whole fallback job) to avoid a problem nobody had confirmed existed.
 
-1. **No runners means Actions cannot run there at all.** GHES provides no GitHub-hosted runners
-   in any edition — "to enable GitHub Actions for your GitHub Enterprise Server instance, you
-   must host at least one machine to execute jobs." Every job in `.github/workflows/ci.yml` is
-   currently `runs-on: self-hosted`, which resolves to nothing. Standing one up is not a
-   config tweak: it is a VM someone owns and patches, plus a PHP toolchain (three versions, for
-   the matrix), plus either Docker for the MySQL service container or a database reachable from
-   it.
-2. **"Allow local actions only" does *not* block `actions/checkout`.** Official GitHub-authored
-   actions are bundled into GHES instances by default, with "no connection required between your
-   GitHub Enterprise Server instance and GitHub.com to use these actions." So the workflow's one
-   action is fine — this was the risk the workflow was written defensively around, and it turns
-   out not to be the binding constraint.
-3. **But SHA pinning is a live hazard on GHES specifically.** The bundled actions are "captured at
-   a point in time from GitHub Marketplace," so the instance holds whichever commits existed when
-   it was bundled. The full-SHA pin in the workflow (`actions/checkout@11bd719…`, v4.2.2) will
-   only resolve if that instance's bundled copy contains that commit. On github.com it always
-   will; on GHES it depends on the instance's version.
+The deciding argument was not CI convenience. This is a feature plugin for a proposal published
+on make.wordpress.org that asks the community five questions and invites hosts to build drop-ins
+against it, and `src/` is a `wordpress-develop` patch candidate. None of those people can see an
+internal instance.
 
-**Recommendation: host this on github.com instead, private to start.** Reasons in the order they
-matter:
-
-- It is where this is *going*. This is a feature plugin for a proposal published on
-  make.wordpress.org that explicitly asks the community five questions and invites hosts to
-  build drop-ins against it. `src/` is a file-copy candidate for a `wordpress-develop` patch.
-  None of those people can see a repository on `github.a8c.com`. Private-then-public on
-  github.com reaches the destination; GHES is a detour that has to be undone.
-- Hosted runners exist, so there is no machine to own.
-- Marketplace actions resolve, which collapses most of the workflow's complexity — the
-  hand-rolled `update-alternatives` PHP switching exists purely because
-  `shivammathur/setup-php` was assumed unavailable.
-- Nothing in this repository is sensitive. It implements a published design and stores no
-  credentials; the threat model that usually argues for an internal instance does not apply.
-
-**The one thing that is not mine to decide:** whether Automattic policy requires this code to
-live on the internal instance regardless. If it does, the GHES path stays viable — it needs a
-runner provisioned, and the action pin loosened from a SHA to a tag the instance actually has.
-
-**Until that is settled**, `make ci` locally remains the source of truth and depends on none of
-this.
+**Still open, but not blocking and not a CI question:** the repository is private, and at some
+point before Beta 1 the people the proposal is addressed to need to be able to see it. Whether
+that means making this repository public or moving it under a WordPress-owned org is a project
+decision. Related: the `Plugin URI` header still points at `https://github.com/WordPress/secrets-api`,
+which does not exist yet — aspirational rather than accurate, and worth correcting whenever the
+final home is settled rather than pointing it at a private URL that 404s for everyone.
 
 ---
 

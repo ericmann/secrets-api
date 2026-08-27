@@ -2,18 +2,20 @@
 # CI for the Secrets API feature plugin.
 #
 # `make ci` is the single source of truth (see docs/ci.md and README.md) — every
-# job here is a thin wrapper around Makefile targets, so a green `make ci` locally
-# means a green pipeline. If the two ever disagree, the Makefile is right.
+# job here is a thin wrapper around Makefile targets, so a green `make ci`
+# locally means a green pipeline. If the two ever disagree, the Makefile is
+# right and this file is wrong.
 #
-# Written for both github.com and an internal GitHub Enterprise Server instance
-# (github.a8c.com). GHES is not github.com, and several assumptions below are
-# placeholders that a maintainer MUST confirm on that instance before this is
-# relied on — each is cross-referenced to docs/open-questions.md #8. This file
-# intentionally uses no Marketplace Action beyond actions/checkout, since GHES
-# only has them if the instance enables GitHub Connect or action bundling, and
-# that has not been confirmed. Every action reference is pinned by full commit
-# SHA, not by tag, because a tag is mutable and this repository handles
-# credentials.
+# Runs on github.com with hosted runners. An earlier revision targeted an
+# internal GitHub Enterprise Server instance and hand-rolled everything that
+# needed a Marketplace action; that is no longer necessary. See
+# docs/open-questions.md #8 for why the host changed.
+#
+# Every action is pinned by full commit SHA rather than by tag. A tag is
+# mutable and this repository implements a credential store, so an action that
+# silently changes under a moved tag is exactly the supply-chain shape worth
+# refusing here. Each SHA below was resolved from the GitHub API at the version
+# noted beside it, not copied from documentation.
 name: CI
 
 on:
@@ -22,82 +24,73 @@ on:
   pull_request:
   workflow_dispatch:
 
-# Only the latest run per ref needs to finish; superseded pushes cancel cleanly.
+# Nothing here writes to the repository, publishes a package, or needs a token
+# beyond reading the code under test.
+permissions:
+  contents: read
+
+# Only the newest run per ref needs to finish; superseded pushes cancel.
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
-env:
-  # CONFIRM on github.a8c.com: replace with a real internal mirror if runners lack
-  # egress to wordpress.org / packagist.org. Left unset (empty) is a no-op — the
-  # scripts fall back to the public hosts. See docs/ci.md, "Air-gapped and
-  # mirrored environments".
-  WP_MIRROR_BASE: ${{ vars.WP_MIRROR_BASE }}
-
 jobs:
-  # Gates everything else: cheap, fast, and catches the most common mistakes
-  # (coding standard, PHP 7.4 syntax, static analysis) before any database spins
-  # up. A single fixed PHP version is enough here — these tools analyse source
-  # text, they do not need to run it.
+  # Gates everything else. Cheap, needs no database, and catches the most
+  # common mistakes (coding standard, PHP 7.4 syntax, static analysis) before
+  # any matrix leg spins up MySQL. One PHP version is enough: these tools
+  # analyse source text rather than running it.
   static:
-    name: Static analysis (lint, compat, phpstan)
-    # CONFIRM on github.a8c.com: this label is a placeholder, not a known-good
-    # value. See docs/ci.md, "GitHub Enterprise", #2.
-    runs-on: self-hosted
+    name: Static analysis
+    runs-on: ubuntu-latest
     steps:
       - name: Check out
-        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
-      # No shivammathur/setup-php: not assumed available on GHES. This assumes
-      # the runner image already has PHP 8.3 and Composer on PATH, which is true
-      # of GitHub-hosted Ubuntu runners but is exactly the kind of thing a
-      # self-hosted image needs to be confirmed to provide. If it does not,
-      # install via the distribution's package manager here instead
-      # (e.g. `apt-get install -y php8.3-cli php8.3-mbstring php8.3-xml`).
-      - name: Verify toolchain
-        run: |
-          php -v
-          composer --version
+      - name: Set up PHP
+        uses: shivammathur/setup-php@f3e473d116dcccaddc5834248c87452386958240 # 2.37.2
+        with:
+          php-version: '8.3'
+          # sodium is not optional for this project: the whole API is built on
+          # it, and phpstan resolves sodium_* signatures from the loaded
+          # extension rather than from stubs.
+          extensions: sodium
+          coverage: none
+          tools: composer
 
-      # No actions/cache: the "only actions/checkout" constraint (see the header
-      # comment) applies to every action, not only third-party ones, until a
-      # maintainer confirms otherwise on this instance. Composer's own cache
-      # directory can still be restored by a runner-level mechanism outside this
-      # workflow file (e.g. a persistent volume on the self-hosted runner) —
-      # that is an infrastructure concern, not something to hack around here
-      # with an action this file has not confirmed is available.
-      - name: composer install
+      - name: Cache Composer packages
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ~/.cache/composer
+          key: composer-${{ runner.os }}-php8.3-${{ hashFiles('composer.lock') }}
+          restore-keys: composer-${{ runner.os }}-php8.3-
+
+      - name: Install dependencies
         run: composer install --no-interaction --prefer-dist
 
       - run: make lint
       - run: make compat
       - run: make analyse
 
-  # The 7.4 leg is not optional: core's floor is 7.4 and src/ must run there.
-  # PHPCompatibilityWP (above) catches syntax statically; only an actually
-  # running 7.4 interpreter catches a runtime behaviour difference, which is why
-  # this matrix exists instead of testing on 8.3 alone. WP trunk is included so a
-  # core change lands here before it lands on every site running this plugin.
+  # The 7.4 leg is not optional. Core's floor is 7.4 and src/ has to run there;
+  # `make compat` catches syntax statically, but only a running 7.4 catches a
+  # runtime behaviour difference. WP trunk is included so a core change that
+  # breaks this API surfaces here rather than on someone's site — a red trunk
+  # leg is worth investigating every time rather than being marked
+  # continue-on-error and quietly ignored.
   test:
     name: "PHP ${{ matrix.php }} / WP ${{ matrix.wp }}"
     needs: static
-    # CONFIRM on github.a8c.com: see docs/ci.md, "GitHub Enterprise", #2 and #3.
-    # If self-hosted runners have no Docker and no persistent multi-PHP
-    # toolchain, use the container-fallback job below instead of this one.
-    runs-on: self-hosted
+    runs-on: ubuntu-latest
     strategy:
       fail-fast: false
       matrix:
-        php: ["7.4", "8.0", "8.3"]
-        wp: ["latest", "trunk"]
+        php: ['7.4', '8.0', '8.3']
+        wp: ['latest', 'trunk']
     services:
-      # Requires the runner to support Docker service containers. If it does
-      # not (see docs/ci.md #3), use the container-fallback job instead, which
-      # needs nothing beyond actions/checkout and its own services: block.
       mysql:
         image: mysql:8.0
         env:
-          MYSQL_ALLOW_EMPTY_PASSWORD: "yes"
+          MYSQL_ALLOW_EMPTY_PASSWORD: 'yes'
           MYSQL_DATABASE: wordpress_test
         ports:
           - 3306:3306
@@ -108,38 +101,44 @@ jobs:
           --health-retries=5
     steps:
       - name: Check out
-        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
-      # CONFIRM: switching the active PHP version with no setup-php action is
-      # runner-image-specific. update-alternatives is the common case for a
-      # Debian/Ubuntu image with multiple php-cli packages preinstalled; adjust
-      # to match whatever the actual GHES runner image provides.
-      - name: Select PHP ${{ matrix.php }}
-        run: |
-          sudo update-alternatives --set php /usr/bin/php${{ matrix.php }}
-          php -v
+      - name: Set up PHP ${{ matrix.php }}
+        uses: shivammathur/setup-php@f3e473d116dcccaddc5834248c87452386958240 # 2.37.2
+        with:
+          php-version: ${{ matrix.php }}
+          extensions: sodium, mysqli
+          coverage: none
+          tools: composer
 
-      # See the "No actions/cache" note in the static job above. `make install`
-      # runs composer install and bin/install-wp-tests.sh together (see
-      # docs/ci.md) — no separate composer step needed here.
+      - name: Cache Composer packages
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ~/.cache/composer
+          key: composer-${{ runner.os }}-php${{ matrix.php }}-${{ hashFiles('composer.lock') }}
+          restore-keys: composer-${{ runner.os }}-php${{ matrix.php }}-
+
+      # `make install` runs composer install and bin/install-wp-tests.sh
+      # together, so there is no separate composer step here.
       - name: Install dependencies and the WordPress test suite
         run: make install WP_VERSION=${{ matrix.wp }} DB_HOST=127.0.0.1
 
       - run: make test
 
-  # A separate job rather than folded into the matrix above: multisite only
-  # needs to be proven once, on the newest supported PHP, not crossed with
-  # every PHP/WP combination — that would multiply runtime for no signal this
-  # plugin's multisite-specific code doesn't already need PHP 7.4 coverage for.
+  # Separate from the matrix above rather than crossed into it: multisite
+  # exercises scope selection and capability wiring, not PHP-version-specific
+  # behaviour, so proving it once on the newest supported PHP is the useful
+  # signal. Crossing it into the full matrix would double the runtime for
+  # repetition rather than coverage.
   test-multisite:
-    name: Multisite (PHP 8.3, WP latest)
+    name: Multisite
     needs: static
-    runs-on: self-hosted # CONFIRM — see the `test` job above.
+    runs-on: ubuntu-latest
     services:
       mysql:
         image: mysql:8.0
         env:
-          MYSQL_ALLOW_EMPTY_PASSWORD: "yes"
+          MYSQL_ALLOW_EMPTY_PASSWORD: 'yes'
           MYSQL_DATABASE: wordpress_test
         ports:
           - 3306:3306
@@ -150,57 +149,24 @@ jobs:
           --health-retries=5
     steps:
       - name: Check out
-        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
-      - name: Select PHP 8.3
-        run: |
-          sudo update-alternatives --set php /usr/bin/php8.3
-          php -v
+      - name: Set up PHP
+        uses: shivammathur/setup-php@f3e473d116dcccaddc5834248c87452386958240 # 2.37.2
+        with:
+          php-version: '8.3'
+          extensions: sodium, mysqli
+          coverage: none
+          tools: composer
 
-      # See the "No actions/cache" note in the static job above.
+      - name: Cache Composer packages
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ~/.cache/composer
+          key: composer-${{ runner.os }}-php8.3-${{ hashFiles('composer.lock') }}
+          restore-keys: composer-${{ runner.os }}-php8.3-
+
       - name: Install dependencies and the WordPress test suite
         run: make install WP_VERSION=latest DB_HOST=127.0.0.1
 
       - run: make test-ms
-
-  # Enabled only when the runner-based jobs above cannot be used at all — no
-  # Docker service-container support, no persistent PHP toolchain, and/or no
-  # egress. Needs nothing beyond actions/checkout: PHP itself is the official
-  # Docker Hub image, run as the job's own container rather than installed onto
-  # the runner. Turn on by setting the "CI_USE_CONTAINER_FALLBACK" repository
-  # variable to "true" — see docs/ci.md, "GitHub Enterprise", #1 and #3.
-  container-fallback:
-    name: "Container fallback: PHP ${{ matrix.php }}"
-    if: ${{ vars.CI_USE_CONTAINER_FALLBACK == 'true' }}
-    runs-on: self-hosted # CONFIRM — must still be a runner capable of running containers.
-    strategy:
-      fail-fast: false
-      matrix:
-        php: ["7.4", "8.3"]
-    container:
-      image: php:${{ matrix.php }}-cli
-    services:
-      mysql:
-        image: mysql:8.0
-        env:
-          MYSQL_ALLOW_EMPTY_PASSWORD: "yes"
-          MYSQL_DATABASE: wordpress_test
-    steps:
-      - name: Check out
-        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
-
-      - name: Install PHP extensions and Composer
-        run: |
-          apt-get update
-          apt-get install -y --no-install-recommends git unzip libzip-dev libsodium-dev
-          docker-php-ext-install mysqli sodium zip
-          php -r "copy('https://getcomposer.org/installer', 'composer-setup.php');"
-          php composer-setup.php --install-dir=/usr/local/bin --filename=composer
-          rm composer-setup.php
-
-      - name: Install dependencies and the WordPress test suite
-        env:
-          WP_TESTS_ZIP_URL: ${{ vars.WP_TESTS_ZIP_URL }}
-        run: make install WP_VERSION=latest DB_HOST=mysql
-
-      - run: make ci
