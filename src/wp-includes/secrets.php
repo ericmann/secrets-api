@@ -348,6 +348,52 @@ function _wp_secrets_stored_fingerprint( $record ) {
 }
 
 /**
+ * Re-encrypts an outgoing current slot so it can be stored as the previous slot.
+ *
+ * A slot's ciphertext is bound, via AAD, to the exact position it was written to.
+ * Copying its stored bytes as-is into the other slot would leave it permanently
+ * undecryptable there: the authentication tag was computed for the slot it came
+ * from, and every future read asks for it under the other one. Demoting a slot
+ * means decrypting it under its old binding and re-encrypting the same plaintext
+ * under the new one.
+ *
+ * @since 7.2.0
+ *
+ * @param WP_Secrets_Cipher $cipher       A cipher instance.
+ * @param string            $master_key   32-byte master key.
+ * @param string            $scope        'site' or 'network'.
+ * @param int               $site_id      Blog id for site scope, 0 for network scope.
+ * @param string            $name         The secret's namespaced name.
+ * @param array             $current_slot The outgoing current slot, as stored.
+ *
+ * @return array|WP_Error The same value, re-encrypted and bound to
+ *                        WP_Secret_Version::PREVIOUS. 'created' and
+ *                        'needs_rotation' carry over unchanged; 'fingerprint' is
+ *                        recomputed but identical, since the plaintext and master
+ *                        key are unchanged.
+ */
+function _wp_secrets_demote_slot( $cipher, $master_key, $scope, $site_id, $name, $current_slot ) {
+	$plaintext = $cipher->decrypt_value( $master_key, $scope, $site_id, $name, WP_Secret_Version::CURRENT, $current_slot );
+
+	if ( is_wp_error( $plaintext ) ) {
+		return $plaintext;
+	}
+
+	$demoted = $cipher->encrypt_value( $master_key, $scope, $site_id, $name, WP_Secret_Version::PREVIOUS, $plaintext );
+
+	wp_secrets_memzero( $plaintext );
+
+	if ( is_wp_error( $demoted ) ) {
+		return $demoted;
+	}
+
+	$demoted['created']        = isset( $current_slot['created'] ) ? $current_slot['created'] : time();
+	$demoted['needs_rotation'] = isset( $current_slot['needs_rotation'] ) ? $current_slot['needs_rotation'] : false;
+
+	return $demoted;
+}
+
+/**
  * Shared implementation behind wp_set_secret() and wp_set_network_secret().
  *
  * @since 7.2.0
@@ -384,17 +430,24 @@ function _wp_secrets_set( $name, $value, $network ) {
 	$scope   = $network ? 'network' : 'site';
 	$site_id = $network ? 0 : get_current_blog_id();
 
+	$existing = _wp_secrets_read_prior_record( $store, $name, $network );
+
+	if ( is_wp_error( $existing ) ) {
+		return $existing;
+	}
+
 	$master_key = _wp_secrets_get_key_manager()->get_master_key( $scope, $network ? null : $site_id );
 
 	if ( is_wp_error( $master_key ) ) {
 		return $master_key;
 	}
 
-	$new_slot = ( new WP_Secrets_Cipher() )->encrypt_value( $master_key, $scope, $site_id, $name, WP_Secret_Version::CURRENT, $value );
-
-	wp_secrets_memzero( $master_key );
+	$cipher   = new WP_Secrets_Cipher();
+	$new_slot = $cipher->encrypt_value( $master_key, $scope, $site_id, $name, WP_Secret_Version::CURRENT, $value );
 
 	if ( is_wp_error( $new_slot ) ) {
+		wp_secrets_memzero( $master_key );
+
 		return $new_slot;
 	}
 
@@ -406,11 +459,34 @@ function _wp_secrets_set( $name, $value, $network ) {
 		'current' => $new_slot,
 	);
 
-	$existing = _wp_secrets_read_prior_record( $store, $name, $network );
+	/*
+	 * Demotion: the outgoing current slot becomes the new previous slot. Only
+	 * one previous slot is ever kept -- whatever was already in
+	 * $existing['previous'] is never carried forward, which is what makes a
+	 * third write discard the oldest value rather than accumulating history.
+	 *
+	 * This cannot be a plain array copy. A slot's AAD binds its ciphertext to
+	 * the exact position it occupies -- current or previous -- so a slot moved
+	 * verbatim would still carry an authentication tag computed for 'current'
+	 * while every future read asks for it under 'previous', and would fail to
+	 * decrypt forever. Demoting requires decrypting under the outgoing binding
+	 * and re-encrypting under the incoming one.
+	 *
+	 * If the outgoing current slot cannot be decrypted at all -- already
+	 * corrupted, or orphaned by a botched key rotation -- it is dropped rather
+	 * than failing this write. The value was already unreadable before this
+	 * call; refusing to let an operator set a new one over it would repeat the
+	 * corrupted-record-blocks-everything failure this API is built to avoid.
+	 */
+	if ( is_array( $existing ) && isset( $existing['current'] ) && is_array( $existing['current'] ) ) {
+		$demoted = _wp_secrets_demote_slot( $cipher, $master_key, $scope, $site_id, $name, $existing['current'] );
 
-	if ( is_wp_error( $existing ) ) {
-		return $existing;
+		if ( ! is_wp_error( $demoted ) ) {
+			$record['previous'] = $demoted;
+		}
 	}
+
+	wp_secrets_memzero( $master_key );
 
 	$result = $store->set( $name, $record, $network );
 
@@ -596,6 +672,80 @@ function _wp_secrets_delete( $name, $network ) {
 }
 
 /**
+ * Shared implementation behind wp_retire_secret_version() and
+ * wp_retire_network_secret_version().
+ *
+ * Beyond the published API surface -- see docs/open-questions.md #4. The proposal
+ * states retirement is "an explicit operator action" but names no function; this is
+ * this implementation's name for it, pending confirmation in the comments thread.
+ *
+ * @since 7.2.0
+ *
+ * @param string $name    The secret's namespaced name.
+ * @param bool   $network Whether this is a network-scope secret.
+ *
+ * @return true|WP_Error
+ */
+function _wp_secrets_retire( $name, $network ) {
+	$name_check = wp_secrets_validate_name( $name );
+
+	if ( is_wp_error( $name_check ) ) {
+		return $name_check;
+	}
+
+	$store  = _wp_secrets_get_store();
+	$record = $store->get( $name, $network );
+
+	if ( is_wp_error( $record ) ) {
+		return $record;
+	}
+
+	if ( null === $record || ! isset( $record['previous'] ) ) {
+		/*
+		 * The goal of retirement -- "there is no previous slot" -- is already
+		 * true, whether because the secret doesn't exist or because it was
+		 * never rotated. A successful no-op, not an error, and deliberately
+		 * checked before the write-support check below: a store that can't
+		 * accept writes can still report a correct "nothing to do" without
+		 * that being mistaken for the store refusing the operation.
+		 */
+		return true;
+	}
+
+	if ( ! $store->supports( 'write' ) ) {
+		return new WP_Error(
+			WP_SECRETS_ERROR_STORE_READ_ONLY,
+			__( 'The active secret store does not accept writes.', 'default' )
+		);
+	}
+
+	$retired_fingerprint = isset( $record['previous']['fingerprint'] ) && is_string( $record['previous']['fingerprint'] )
+		? $record['previous']['fingerprint']
+		: '';
+
+	unset( $record['previous'] );
+
+	$result = $store->set( $name, $record, $network );
+
+	if ( is_wp_error( $result ) ) {
+		return $result;
+	}
+
+	/** This action is documented in src/wp-includes/secrets.php */
+	do_action(
+		'wp_secret_changed',
+		$name,
+		'retired',
+		get_current_user_id(),
+		time(),
+		$retired_fingerprint,
+		''
+	);
+
+	return true;
+}
+
+/**
  * Encrypts and stores a secret.
  *
  * Encryption is unconditional: there is no plaintext mode and no constant to
@@ -643,4 +793,23 @@ function wp_get_secret( $name, $version = WP_Secret_Version::CURRENT ) {
  */
 function wp_delete_secret( $name ) {
 	return _wp_secrets_delete( $name, false );
+}
+
+/**
+ * Clears a secret's previous version, retiring it for good.
+ *
+ * An explicit operator action -- no timers, no cron. Calling this on a secret
+ * that has never been rotated, or that does not exist, is a successful no-op:
+ * the previous slot is already absent either way.
+ *
+ * Beyond the published API surface; see docs/open-questions.md #4.
+ *
+ * @since 7.2.0
+ *
+ * @param string $name The secret's namespaced name.
+ *
+ * @return true|WP_Error
+ */
+function wp_retire_secret_version( $name ) {
+	return _wp_secrets_retire( $name, false );
 }
