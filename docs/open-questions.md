@@ -10,13 +10,29 @@ Status legend: 🔴 blocks a release · 🟡 needs an answer before the core pat
 
 ---
 
-## 1. 🔴 Plugin slug and display name
+## 1. 🟢 Plugin slug and display name — CLOSED
 
-The plugin is currently `secrets-api`, with the display name "Secrets API". This must not be a
-Displace-branded slug. Needs a human decision before any WordPress.org submission, and the
-decision changes the text domain in every plugin-only file.
+**Resolved by the operator: the slug is `secrets-manager`, display name "Secrets Manager".**
 
-**Current state:** `secrets-api` used throughout as a placeholder, flagged in `secrets-api.php`.
+The plugin is named for what it is; `src/` stays named for what it implements. "Secrets Manager"
+is the plugin a site installs; the Secrets API is the thing that plugin ships early and that core
+eventually absorbs. That split is why the `WP_SECRETS_API_*` bootstrap constants keep their
+prefix rather than being renamed to match the slug: they describe the API and every one of them
+disappears when `src/` is copied into core, whereas the slug describes only the wrapper.
+
+Applied: main file renamed to `secrets-manager.php`, text domain changed to `secrets-manager`
+across every plugin-only file (`src/` continues to use `default`, as core requires), and the
+`Plugin URI` updated.
+
+Deliberately *not* renamed: `$info['secrets-api']`, the Site Health debug-info section key in
+`src/wp-admin/includes/secrets-site-health.php`. That file is core-bound, and core would name the
+section after the feature, not after a feature plugin that will no longer exist by then.
+
+Not verified, and worth a maintainer checking before submission: `wordpress.org/plugins/secrets-manager/`
+currently 404s, which suggests the slug is free, but a .org search for "secrets manager" returns
+plenty of adjacent plugins and slug availability is only really settled by the submission itself.
+The repository directory is still `secrets-management`, which does not have to match the slug for
+local development but will for a .org checkout.
 
 ---
 
@@ -215,7 +231,7 @@ plugin author has to defend against.
 
 ## 13. 🟢 Drop-in file loading is not directly covered by an automated test
 
-`wp_secrets_api_load_dropin()` (in `secrets-api.php`) runs once, during
+`wp_secrets_api_load_dropin()` (in `secrets-manager.php`) runs once, during
 `wp_secrets_api_bootstrap()`, which itself runs once per PHP process via
 `muplugins_loaded`. Both that function and `_wp_secrets_get_store()` /
 `_wp_secrets_get_key_manager()` (in `src/wp-includes/secrets.php`) cache their result
@@ -318,7 +334,7 @@ gone can `wp option delete` them explicitly, knowing what they are doing.
 **Deletion seam.** When the window closes, deleting
 `plugin/class-secrets-api-{legacy-reader,migrator,prototype-fallback-store}.php`,
 `WP_CLI_Secret_Command::migrate_legacy()`, the store installation in
-`secrets-api.php`, and the matching test files removes the entire surface. Nothing
+`secrets-manager.php`, and the matching test files removes the entire surface. Nothing
 under `src/` references any of it.
 
 ---
@@ -386,7 +402,7 @@ such guards) and, more seriously, a per-function guard on a credential retrieval
 overloading surface: an mu-plugin declaring `wp_get_secret()` first would silently intercept
 every secret read on the site.
 
-**Resolved:** the entire decision lives in `secrets-api.php`. Two `function_exists()` calls in
+**Resolved:** the entire decision lives in `secrets-manager.php`. Two `function_exists()` calls in
 the whole codebase, both in the bootstrap, all-or-nothing. `src/` contains none. The version gate
 is ANDed with a positive probe rather than used alone, because the proposal's timeline allows the
 API to be deferred to 7.3 and a bare `>= 7.2` check would strand sites on a 7.2 that shipped

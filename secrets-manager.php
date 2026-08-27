@@ -1,21 +1,23 @@
 <?php
 /**
- * Plugin Name:       Secrets API
- * Plugin URI:        https://github.com/WordPress/secrets-api
+ * Plugin Name:       Secrets Manager
+ * Plugin URI:        https://github.com/WordPress/secrets-manager
  * Description:       Feature plugin for the WordPress Secrets API proposed for 7.2. Encrypted, versioned credential storage with pluggable storage and keyring back ends.
  * Version:           0.1.0
  * Requires at least: 6.6
  * Requires PHP:      7.4
  * License:           GPL-2.0-or-later
  * License URI:       https://www.gnu.org/licenses/gpl-2.0.html
- * Text Domain:       secrets-api
+ * Text Domain:       secrets-manager
  *
  * @package SecretsAPI
  */
 
 /*
- * The slug and display name above are provisional. See docs/open-questions.md #2 -- a
- * neutral, non-Displace-branded slug needs a human decision before any .org submission.
+ * "Secrets Manager" names the plugin; "Secrets API" names the thing it implements. That
+ * split is deliberate and is why the WP_SECRETS_API_* constants below keep their prefix:
+ * they describe the API, not the plugin wrapping it, and every one of them becomes
+ * irrelevant the moment src/ is copied into core. See docs/open-questions.md #1.
  */
 
 defined( 'ABSPATH' ) || exit;
@@ -195,7 +197,7 @@ function wp_secrets_api_notice_superseded() {
 	}
 
 	wp_admin_notice(
-		esc_html__( 'This version of WordPress provides the Secrets API natively. The Secrets API feature plugin is no longer doing anything and can be deactivated.', 'secrets-api' ),
+		esc_html__( 'This version of WordPress provides the Secrets API natively. The Secrets API feature plugin is no longer doing anything and can be deactivated.', 'secrets-manager' ),
 		array( 'type' => 'info' )
 	);
 }
@@ -211,7 +213,7 @@ function wp_secrets_api_notice_conflict() {
 	}
 
 	wp_admin_notice(
-		esc_html__( 'The Secrets API feature plugin did not load: another plugin or mu-plugin has already declared wp_get_secret(). Two implementations of a credential store cannot safely coexist. Deactivate one of them.', 'secrets-api' ),
+		esc_html__( 'The Secrets API feature plugin did not load: another plugin or mu-plugin has already declared wp_get_secret(). Two implementations of a credential store cannot safely coexist. Deactivate one of them.', 'secrets-manager' ),
 		array( 'type' => 'error' )
 	);
 }
