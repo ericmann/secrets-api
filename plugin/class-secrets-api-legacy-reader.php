@@ -36,6 +36,37 @@ final class Secrets_API_Legacy_Reader {
 	const MASTER_KEY_OPTION = '_secrets_master_key';
 
 	/**
+	 * Lists every legacy secret's bare key name. Still read-only: a listing, not a
+	 * value.
+	 *
+	 * @return array|WP_Error List of bare key names on success. WP_Error on failure.
+	 */
+	public function list_keys() {
+		global $wpdb;
+
+		$pattern = $wpdb->esc_like( self::SECRET_OPTION_PREFIX ) . '%';
+
+		$option_names = $wpdb->get_col(
+			$wpdb->prepare( "SELECT option_name FROM {$wpdb->options} WHERE option_name LIKE %s", $pattern )
+		);
+
+		if ( ! is_array( $option_names ) ) {
+			return new WP_Error(
+				'legacy_store_unavailable',
+				__( 'Could not list legacy secrets.', 'secrets-api' )
+			);
+		}
+
+		$keys = array();
+
+		foreach ( $option_names as $option_name ) {
+			$keys[] = substr( $option_name, strlen( self::SECRET_OPTION_PREFIX ) );
+		}
+
+		return $keys;
+	}
+
+	/**
 	 * Reads and decrypts a legacy secret.
 	 *
 	 * @param string $key The legacy secret's bare key name (e.g. 'api_key' for the

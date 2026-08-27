@@ -256,6 +256,35 @@ shell-history warning, success/porcelain/error reporting) is covered directly.
 
 ---
 
+## 15. 🟡 `wp secret migrate-legacy` flag semantics resolved without an operator round-trip
+
+Flagged at Checkpoint A: the brief's §9.5 says the default is "`--dry-run`-like
+safety: report what would move, move nothing destructive," immediately followed by
+a `--dry-run` flag in the command's own signature -- taken literally, there is no
+way to make the command write anything, ever.
+
+**Resolved during commit 19, on Sonnet:** the two statements describe different
+kinds of "destructive." Writing a new-format secret is never destructive (nothing is
+touched or removed, and the whole migrator must be idempotent), so it happens by
+default with no flag needed. Deleting the legacy source is the actually destructive
+action, and already has its own explicit opt-in (`--delete-source`) that never
+fires by default, with or without `--dry-run`. `--dry-run` means "write nothing at
+all," including the ordinarily-safe new-format write -- it reports what would
+happen (migrate, skip, need `--map`) without touching the database.
+
+So: no flags migrates everything into the new format and leaves every legacy
+option in place; `--delete-source` additionally deletes each source, but only
+after this run's own fingerprint verification passes, and never for a name the
+vendored-copy check has flagged without `--yes`; `--dry-run` writes nothing.
+
+**Needs Checkpoint F (or the operator) to confirm or override.** The alternative
+the brief itself half-suggests -- an explicit `--execute`/`--apply` flag gating
+every write, dry-run or not, as the default -- is a straightforward change to make
+on top of the same underlying migrate-verify-delete logic if preferred; nothing
+about the verification or vendor-detection behavior would need to change.
+
+---
+
 ## Resolved
 
 Decisions that were open and are now closed, kept so the reasoning is not lost.

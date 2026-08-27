@@ -311,4 +311,95 @@ class Tests_Secrets_WPCLISecretCommand extends WP_UnitTestCase {
 
 		$this->command()->rotate( array(), array( 'yes' => true ) );
 	}
+
+	// -- migrate-legacy -----------------------------------------------------
+
+	public function test_migrate_legacy_is_refused_for_network_scope() {
+		$this->expectException( Mock_WP_CLI_Exit_Exception::class );
+
+		( new WP_CLI_Secret_Network_Command() )->migrate_legacy( array(), array() );
+	}
+
+	public function test_migrate_legacy_reports_migrated_status() {
+		( new Legacy_Fixture_Writer() )->write_secret( 'api_key', 'value' );
+
+		$this->command()->migrate_legacy( array(), array() );
+
+		$items = WP_CLI::$formatted_items[0]['items'];
+		$this->assertSame( 'migrated', $items[0]['status'] );
+		$this->assertSame( 'legacy/api_key', $items[0]['new_name'] );
+	}
+
+	public function test_migrate_legacy_map_overrides_the_derived_name() {
+		( new Legacy_Fixture_Writer() )->write_secret( 'API_Key', 'value' );
+
+		$this->command()->migrate_legacy( array(), array( 'map' => 'API_Key:myplugin/api-key' ) );
+
+		$items = WP_CLI::$formatted_items[0]['items'];
+		$this->assertSame( 'migrated', $items[0]['status'] );
+		$this->assertSame( 'myplugin/api-key', $items[0]['new_name'] );
+	}
+
+	public function test_migrate_legacy_warns_when_vendor_class_detected() {
+		( new Legacy_Fixture_Writer() )->write_secret( 'api_key', 'value' );
+
+		$this->command()->migrate_legacy( array(), array() );
+
+		// No vendored class defined in this test: no warning.
+		$this->assertEmpty( WP_CLI::$warning );
+	}
+
+	/**
+	 * @runInSeparateProcess
+	 * @preserveGlobalState disabled
+	 */
+	public function test_migrate_legacy_warns_and_still_migrates_when_vendor_class_is_present() {
+		eval( 'namespace WordPress\AI\Vendor\Secrets; class Secrets_Manager {}' ); // phpcs:ignore Squiz.PHP.Eval.Discouraged -- only way to define a class under a namespace conditionally, for this one test.
+
+		( new Legacy_Fixture_Writer() )->write_secret( 'api_key', 'value' );
+
+		$this->command()->migrate_legacy( array(), array() );
+
+		$this->assertNotEmpty( WP_CLI::$warning );
+		$this->assertStringContainsString( 'vendored', WP_CLI::$warning[0] );
+
+		$items = WP_CLI::$formatted_items[0]['items'];
+		$this->assertSame( 'migrated', $items[0]['status'] );
+	}
+
+	/**
+	 * @runInSeparateProcess
+	 * @preserveGlobalState disabled
+	 */
+	public function test_migrate_legacy_delete_source_refused_without_yes_when_vendor_present() {
+		eval( 'namespace WordPress\AI\Vendor\Secrets; class Secrets_Manager {}' ); // phpcs:ignore Squiz.PHP.Eval.Discouraged
+
+		( new Legacy_Fixture_Writer() )->write_secret( 'api_key', 'value' );
+
+		$this->command()->migrate_legacy( array(), array( 'delete-source' => true ) );
+
+		$this->assertNotFalse( get_option( '_secret_api_key' ) );
+	}
+
+	public function test_migrate_legacy_halts_with_exit_code_1_on_any_error_entry() {
+		$writer = new Legacy_Fixture_Writer();
+		$writer->write_secret( 'api_key', 'value' );
+		$writer->corrupt_secret( 'api_key' ); // undecryptable -> a genuine 'error' entry, not 'needs_mapping'.
+
+		try {
+			$this->command()->migrate_legacy( array(), array() );
+			$this->fail( 'Expected a halt.' );
+		} catch ( Mock_WP_CLI_Exit_Exception $e ) {
+			$this->assertSame( 1, $e->get_exit_code() );
+		}
+	}
+
+	public function test_migrate_legacy_never_logs_a_plaintext() {
+		( new Legacy_Fixture_Writer() )->write_secret( 'api_key', 'UNIQUE-CLI-PLAINTEXT-CANARY-7c2e' );
+
+		$this->command()->migrate_legacy( array(), array() );
+
+		$this->assertStringNotContainsString( 'UNIQUE-CLI-PLAINTEXT-CANARY-7c2e', wp_json_encode( WP_CLI::$formatted_items ) );
+		$this->assertStringNotContainsString( 'UNIQUE-CLI-PLAINTEXT-CANARY-7c2e', implode( "\n", WP_CLI::$log ) );
+	}
 }

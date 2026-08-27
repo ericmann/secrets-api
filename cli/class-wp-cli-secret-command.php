@@ -346,6 +346,112 @@ class WP_CLI_Secret_Command {
 	}
 
 	/**
+	 * Migrates secrets from displace-secrets-manager's legacy format.
+	 *
+	 * With no flags, migrates every legacy secret into the new format and leaves
+	 * every legacy option in place -- writing the new-format secret is never
+	 * destructive, and the migration is idempotent (re-running is safe; an
+	 * already-migrated key is reported "skipped"). Deleting the legacy source is
+	 * the actually destructive step and always requires --delete-source, which is
+	 * only ever honoured after this run's own fingerprint verification passes.
+	 *
+	 * ## OPTIONS
+	 *
+	 * [--dry-run]
+	 * : Write nothing at all; report what would happen.
+	 *
+	 * [--name=<key>]
+	 * : Migrate only this legacy key.
+	 *
+	 * [--delete-source]
+	 * : Delete each legacy option once its migrated value is verified to match.
+	 *
+	 * [--map=<mapping>]
+	 * : Comma-separated old:new pairs for keys whose derived name would not
+	 * validate, e.g. --map=api_key:myplugin/api-key,other:myplugin/other-key.
+	 *
+	 * [--namespace=<namespace>]
+	 * : Namespace prefixed onto a legacy key with no --map entry.
+	 * ---
+	 * default: legacy
+	 * ---
+	 *
+	 * [--yes]
+	 * : Also delete a source option even though the AI plugin's vendored copy of
+	 * the legacy code was detected.
+	 *
+	 * [--format=<format>]
+	 * ---
+	 * default: table
+	 * options:
+	 *   - table
+	 *   - csv
+	 *   - json
+	 * ---
+	 *
+	 * @when after_wp_load
+	 *
+	 * @param array $args       Positional arguments.
+	 * @param array $assoc_args Associative arguments.
+	 */
+	public function migrate_legacy( $args, $assoc_args ) {
+		if ( $this->network ) {
+			WP_CLI::error( 'The legacy format has no network-scope equivalent.' );
+
+			return;
+		}
+
+		$map = array();
+
+		if ( isset( $assoc_args['map'] ) ) {
+			foreach ( explode( ',', $assoc_args['map'] ) as $pair ) {
+				$parts = explode( ':', $pair, 2 );
+
+				if ( 2 === count( $parts ) ) {
+					$map[ $parts[0] ] = $parts[1];
+				}
+			}
+		}
+
+		$report = ( new Secrets_API_Migrator() )->migrate(
+			array(
+				'dry_run'                       => isset( $assoc_args['dry-run'] ),
+				'name'                          => isset( $assoc_args['name'] ) ? $assoc_args['name'] : null,
+				'delete_source'                 => isset( $assoc_args['delete-source'] ),
+				'map'                           => $map,
+				'namespace'                     => isset( $assoc_args['namespace'] ) ? $assoc_args['namespace'] : 'legacy',
+				'confirm_delete_despite_vendor' => isset( $assoc_args['yes'] ),
+			)
+		);
+
+		if ( $report['vendor_detected'] ) {
+			WP_CLI::warning( "The AI plugin's vendored Secrets_Manager class was detected. It writes to the same legacy option rows this reads from. --delete-source is refused for every key unless --yes is also passed." );
+		}
+
+		$items = array();
+
+		foreach ( $report['entries'] as $entry ) {
+			$items[] = array(
+				'legacy_key'     => $entry['legacy_key'],
+				'new_name'       => $entry['new_name'],
+				'status'         => $entry['status'],
+				'source_deleted' => isset( $entry['source_deleted'] ) ? ( $entry['source_deleted'] ? 'yes' : 'no' ) : '',
+				'message'        => $entry['message'],
+			);
+		}
+
+		$format = isset( $assoc_args['format'] ) ? $assoc_args['format'] : 'table';
+
+		\WP_CLI\Utils\format_items( $format, $items, array( 'legacy_key', 'new_name', 'status', 'source_deleted', 'message' ) );
+
+		foreach ( $report['entries'] as $entry ) {
+			if ( 'error' === $entry['status'] ) {
+				WP_CLI::halt( 1 );
+			}
+		}
+	}
+
+	/**
 	 * Re-wraps the root key under a new WP_SECRETS_KEY after a site-key change.
 	 *
 	 * No secret is re-encrypted: rotation only changes what the root key is

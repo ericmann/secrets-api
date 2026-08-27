@@ -115,6 +115,7 @@ function wp_secrets_api_bootstrap() {
 	// small, side-effect-free class definition; only the migrator and the
 	// `migrate-legacy` CLI command (both landing in a later commit) actually use it.
 	require_once WP_SECRETS_API_PLUGIN_DIR . 'plugin/class-secrets-api-legacy-reader.php';
+	require_once WP_SECRETS_API_PLUGIN_DIR . 'plugin/class-secrets-api-migrator.php';
 
 	/*
 	 * Loaded only now, after every core-bound interface and class this plugin
