@@ -120,6 +120,17 @@ install_wp() {
 	download "${MIRROR_BASE}/wp-content/db.php" "$WP_CORE_DIR/wp-content/db.php" 2>/dev/null || true
 }
 
+generate_salt() {
+	# base64 of 48 random bytes: no quote characters, so it is always safe to
+	# drop into the single-quoted PHP string these replace.
+	#
+	# Note that /dev/urandom is passed to `head` as an argument rather than piped
+	# into it. Under `set -o pipefail`, `cat /dev/urandom | head -c 48` leaves the
+	# writer killed by SIGPIPE and takes the whole script down -- the same trap
+	# that made the version lookup above fail silently for months.
+	head -c 48 /dev/urandom | base64 | tr -d '\n'
+}
+
 install_test_suite() {
 	if [[ $(uname -s) == 'Darwin' ]]; then
 		local ioption='-i.bak'
@@ -182,6 +193,33 @@ install_test_suite() {
 		sed $ioption "s/yourusernamehere/$DB_USER/" "$WP_TESTS_DIR/wp-tests-config.php"
 		sed $ioption "s/yourpasswordhere/$DB_PASS/" "$WP_TESTS_DIR/wp-tests-config.php"
 		sed $ioption "s|localhost|${DB_HOST}|" "$WP_TESTS_DIR/wp-tests-config.php"
+
+		# Replace the sample config's placeholder salts with real random ones.
+		#
+		# Not cosmetic, and not optional for this project specifically:
+		# WP_Secrets_Config_Key_Provider deliberately refuses to derive a key from
+		# the wp-config-sample.php placeholder, on the grounds that a site which
+		# never changed it has effectively no key at all. wp-tests-config-sample.php
+		# ships those same placeholders, so without this every secret operation in
+		# the suite fails with secret_key_unavailable -- correct behaviour from the
+		# plugin, and a completely unusable test environment.
+		#
+		# wp-env generates real salts of its own, which is why this only ever
+		# showed up on the no-Docker path.
+		while IFS= read -r config_line; do
+			while [[ $config_line == *"put your unique phrase here"* ]]; do
+				# One fresh salt per placeholder rather than one reused for the
+				# whole file: they are meant to be independent, and LOGGED_IN_KEY
+				# being identical to LOGGED_IN_SALT is exactly the degenerate case
+				# this API's key derivation should never be handed.
+				config_line=${config_line/put your unique phrase here/$(generate_salt)}
+			done
+
+			printf '%s\n' "$config_line"
+		done < "$WP_TESTS_DIR/wp-tests-config.php" > "$WP_TESTS_DIR/wp-tests-config.salted"
+
+		mv "$WP_TESTS_DIR/wp-tests-config.salted" "$WP_TESTS_DIR/wp-tests-config.php"
+		rm -f "$WP_TESTS_DIR/wp-tests-config.php.bak"
 
 		# Marker rather than re-testing the config file's contents: the rewrites
 		# above are not idempotent (the second run has no 'yourusernamehere' left
