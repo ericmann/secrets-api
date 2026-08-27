@@ -37,13 +37,6 @@ class Tests_Secrets_BrokenDropinFallbacks extends WP_UnitTestCase {
 		$this->assertWPError( $result );
 	}
 
-	public function test_broken_store_supports_nothing() {
-		$store = new WP_Secrets_Broken_Store();
-
-		$this->assertFalse( $store->supports( 'write' ) );
-		$this->assertFalse( $store->supports( 'list' ) );
-		$this->assertFalse( $store->supports( 'delete' ) );
-	}
 
 	public function test_broken_keyring_implements_the_interface() {
 		$this->assertInstanceOf( WP_Secrets_Keyring::class, new WP_Secrets_Broken_Keyring() );
@@ -81,12 +74,5 @@ class Tests_Secrets_BrokenDropinFallbacks extends WP_UnitTestCase {
 		$GLOBALS['wp_secrets_dropin_loaded'] = true;
 
 		$this->assertTrue( wp_using_secrets_dropin() );
-	}
-
-	public function test_wp_secrets_store_supports_matches_the_active_store() {
-		$this->assertTrue( wp_secrets_store_supports( 'write' ) );
-		$this->assertTrue( wp_secrets_store_supports( 'list' ) );
-		$this->assertTrue( wp_secrets_store_supports( 'delete' ) );
-		$this->assertFalse( wp_secrets_store_supports( 'levitate' ) );
 	}
 }

@@ -249,15 +249,4 @@ final class Secrets_API_Prototype_Fallback_Store implements WP_Secrets_Store {
 	public function list_names( $network = false ) {
 		return $this->inner->list_names( $network );
 	}
-
-	/**
-	 * Reports the inner store's capabilities. Wrapping adds none of its own.
-	 *
-	 * @param string $capability One of 'write', 'list', 'delete'.
-	 *
-	 * @return bool
-	 */
-	public function supports( $capability ) {
-		return $this->inner->supports( $capability );
-	}
 }

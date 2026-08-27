@@ -137,13 +137,13 @@ class Tests_Secrets_SiteHealth extends WP_UnitTestCase {
 		$fields = $info['secrets-api']['fields'];
 
 		$this->assertArrayHasKey( 'dropin_active', $fields );
-		$this->assertArrayHasKey( 'store_class', $fields );
+		$this->assertArrayHasKey( 'provider_class', $fields );
 		$this->assertArrayHasKey( 'keyring_class', $fields );
 		$this->assertArrayHasKey( 'key_source', $fields );
 		$this->assertArrayHasKey( 'record_version', $fields );
 		$this->assertArrayHasKey( 'site_secret_count', $fields );
 
-		$this->assertSame( 'Secrets_API_Prototype_Fallback_Store', $fields['store_class']['value'] );
+		$this->assertSame( 'WP_Secrets_Libsodium_Provider', $fields['provider_class']['value'] );
 		$this->assertSame( 'WP_Secrets_Config_Key_Provider', $fields['keyring_class']['value'] );
 		$this->assertSame( '1', $fields['record_version']['value'] );
 		$this->assertSame( '1', $fields['site_secret_count']['value'] );

@@ -76,10 +76,11 @@ Some things are load-bearing and will not change:
 
 ### What it is not
 
-There is **no per-plugin isolation**. Namespacing (`plugin-slug/secret-name`) is for grouping and
-for a future access check to have something to check against. Masking is hygiene against
-shoulder-surfing and accidental logging — it is not a privilege boundary. Any plugin that can run
-PHP can read any secret. See [`docs/open-questions.md`](docs/open-questions.md) #6.
+There is **no per-plugin isolation**. Namespacing (`plugin-slug/secret-name`) is organisational:
+it groups secrets by owner so that listings, and a future admin screen, can be sensible. It is not
+an access-control or visibility boundary and was never intended as one. Masking is hygiene against
+shoulder-surfing and accidental logging, not a privilege boundary either. **Any plugin that can
+run PHP can read any secret.**
 
 There is **no admin settings screen**. The proposal defers it to 7.3. The hooks and accessors a
 future screen needs are in scope; the screen is not.

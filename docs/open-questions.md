@@ -13,111 +13,74 @@ Status legend: 🔴 blocks a release · 🟡 needs an answer before the core pat
 
 ---
 
-## 🟡 Host and platform providers
+## 🟢 Host and platform providers — implemented, awaiting real implementations
 
-Three platforms independently reported that the published extension contract cannot express what
-they need: Chris Reynolds (Pantheon), Ryan McCue and Rafael Meneses (Altis), and the VIP
-dashboard/HSM model this project wants to support directly.
-
-> For a platform store that's inverted — the store *is* the encryption boundary, and it *needs*
-> the plaintext over an authenticated channel so the same secret is usable from other environments
-> on the same account. If the drop-in only ever sees WP's ciphertext, we'd be double-encrypting
-> and the value would be opaque outside WordPress.
-> — Chris Reynolds
-
-> A storage drop-in for us would need to serve `wp_get_secret()` and reject `wp_set_secret()` —
-> but the API has no way to express "readable, but not writable here," and every plugin settings
-> screen assumes `set()` works.
-> — Chris Reynolds
+Three platforms independently reported that the published extension contract could not express
+what they need: Chris Reynolds (Pantheon), Ryan McCue and Rafael Meneses (Altis), and the VIP
+dashboard/HSM model this project wants to support directly. Rafael Meneses supplied the reframe
+that resolved it:
 
 > A provider can be stronger than the default, never weaker. Plaintext storage stays banned… and
 > the setups Ryan and Chris describe stop being banned with it.
-> — Rafael Meneses
 
-**Where this stands.** The reframe is accepted and [`host-provider-model.md`](host-provider-model.md)
-works it through. `WP_Secrets_Provider` is written (`src/wp-includes/interface-wp-secrets-provider.php`),
-`WP_Secret::withheld()` exists, and `reveal()` returns `string|WP_Error`.
+**Done.** `WP_Secrets_Provider` is the outermost extension point and the public functions route
+through it. `WP_Secrets_Libsodium_Provider` — the shipped default — is one implementation of that
+interface rather than a privileged case, composed from a `WP_Secrets_Store` and a
+`WP_Secrets_Keyring` so that a host wanting only their own key custody still swaps only the
+keyring. A drop-in installs a platform provider by setting `$GLOBALS['wp_secrets_provider']`.
+`supports()` is gone, replaced by `get_label()`, `get_protection_boundary()`, and `is_writable()`.
+`reveal()` returns `string|WP_Error` and `WP_Secret::withheld()` exists for credentials a provider
+will not release to PHP. Site Health and `wp secret dropin` report all of it.
 
-**What is left:** routing the public functions through a provider, composing the shipped one out
-of the existing store/cipher/keyring, and removing `supports()` from the store contract. Until
-that lands, the store is still the seam and platform providers cannot actually be installed.
+**What has not happened:** nobody has written a real platform provider against this yet. The
+interface is shaped by three descriptions of what hosts need, not by three working
+implementations, and the first real one will find something. That is the useful next feedback to
+seek in the comments thread — not "does this look right" but "build against it and tell us what
+broke."
 
-Still true regardless: **do not** implement a plaintext passthrough on `WP_Secrets_Store`. The
-whole point of a separate interface is that a store cannot become a plaintext sink by flag.
-
----
-
-## 🟡 API surface that was never published
-
-The proposal published exactly four functions and two `WP_Secret` methods. Everything below is
-this implementation's invention and should be confirmed in the comments thread **before it
-hardens**, because names are the hardest thing to change after adoption.
-
-| Added | Justification | Risk |
-|---|---|---|
-| `wp_list_secrets()` / `wp_list_network_secrets()` | "The hooks and accessors an admin screen would need are in scope now" | Name and return shape unpublished |
-| `wp_retire_secret_version()` / `wp_retire_network_secret_version()` | "Retiring the previous slot is an explicit operator action — no timers, no cron" | Function implied but never named |
-| `wp_set_network_secret()`, `wp_get_network_secret()`, `wp_delete_network_secret()` | "Site secrets and network secrets are separate functions with separate capabilities" | **Names never published.** Highest-risk group — easy to assume these were committed to |
-| `WP_Secret::get_name()` | Needed for the `[secret:{name}]` mask | Only `reveal()` and `fingerprint()` were published |
-| `WP_Secret::withheld()`, and `reveal()` returning `string\|WP_Error` | Broker-held and use-only credentials, per Rafael Meneses | A *widened published return type*. Cannot be done after adoption, which is why it was done now |
-| `WP_Secrets_Provider`, `WP_Secrets_Store`, `WP_Secrets_Keyring` and every method on them | The proposal describes extension points and names none of them | Hosts will build against these. Largest unpublished surface in the project |
-| `wp_secrets_memzero()`, `wp_secrets_validate_name()`, `wp_secrets_store_supports()`, `wp_using_secrets_dropin()` | Implementation necessities | New globals in core-bound code |
-| `wp_secret_changed` hook name and argument order | Post commits to "actor, timestamp, and old and new fingerprints"; `$action` is an addition | Unpublished |
-| `WP_Secrets_Cipher`, `WP_Secrets_Key_Manager`, `WP_Secrets_Option_Store`, `WP_Secrets_Config_Key_Provider`, `WP_Secrets_Broken_Store`, `WP_Secrets_Broken_Keyring` | The envelope described in the proposal has to be built out of *something* | Six permanent class names in `wp-includes`. The proposal names none of them, and the `Broken_*` pair in particular encodes a fail-closed design decision in a class name |
-| `WP_SECRETS_ERROR_*` constants | The proposal publishes error *strings* (`secret_decryption_failed` et al.) but no constant names | Callers will `use` whichever spelling ships first |
-| `secret_invalid_argument`, `secret_provider_read_only` | Added for caller-error reporting and read-only providers; the proposal's error list predates both | Genuinely new error *strings*, not just new constant names over published ones |
-| `WP_SECRETS_CAP_MANAGE` / `WP_SECRETS_CAP_MANAGE_NETWORK` | Wrappers over the two published capability strings | Strings match the proposal exactly (`manage_secrets`, `manage_network_secrets`); only the constant names are new |
-| `WP_SECRETS_MAX_NAME_LENGTH` (172), `WP_SECRETS_RECORD_VERSION` (1) | A cap and a format version both have to exist | 172 is derived, not published — 191 minus the longest option prefix |
-| Accepting unnamespaced names at all | Adoption path for prototype-era code | The one place the implementation deliberately *loosened* a stated rule rather than adding to one. See "Access control language" below for the consequence |
-| The `wp-content/secrets.php` drop-in filename, and `$GLOBALS['wp_secrets_store']` / `$GLOBALS['wp_secrets_keyring']` | The proposal describes drop-in-style replacement without naming the file or the mechanism | A drop-in filename is effectively permanent once hosts ship against it, in the same way `object-cache.php` is |
-
-Not on this list, deliberately: `Secrets_API_Legacy_Reader`, `Secrets_API_Migrator`, and
-`Secrets_API_Prototype_Fallback_Store` live in `plugin/`, are never copied into core, and are not
-proposed for it. They need no comments-thread note, only deletion when the compatibility window
-closes — see the deletion seam documented in `secrets-api.php`.
+See [`host-provider-model.md`](host-provider-model.md) for the reasoning, including why a provider
+declaration is documentation rather than enforcement.
 
 ---
 
-## 🟡 Access control language
+## 🟢 Access control language — decided, keep the docs honest
 
-The proposal says namespacing exists "so a future admin screen can group by owner and
-cross-namespace access has something to check against" — which leaves the door open to a future
-check without specifying one.
+**Namespacing is organisational, not access control, and was never intended as
+anything else.** It groups secrets by owner so listings and a future admin screen can be sensible.
+It is not a visibility or privilege boundary.
 
-The prior proof-of-concept's README described namespace-based access control in a way that led
-people to believe one plugin's secret was inaccessible to another. Darin Kotter raised this in the
-comments. It was not true then and is not true now.
+This matters because the prior proof-of-concept's README described namespace-based access control
+in a way that led people to believe one plugin's secret was inaccessible to another. Darin Kotter
+raised it in the comments. It was not true then, it is not true now, and the docs must not drift
+back toward implying it.
 
-**Documentation must state plainly:** there is no per-plugin isolation in 7.2. Masking is hygiene
-against shoulder-surfing and accidental logging, not a privilege boundary. Any plugin that can run
-PHP can read any secret.
+**The phrasing to keep using:** there is no per-plugin isolation. Any plugin that can run PHP can
+read any secret. Masking is hygiene against shoulder-surfing and accidental logging, not a
+privilege boundary.
 
-Phrase this as "no isolation *in 7.2*" rather than "cannot be" — the proposal deliberately left
-room for a future check, and the docs should not close a door the proposal held open.
-
-**Sharpened by unnamespaced names.** Accepting `wp_get_secret( 'api_key' )` means a secret can now
-exist with no namespace at all, which gives a future cross-namespace check nothing whatsoever to
-check against, and lets two plugins that both pick `api-key` collide silently. That is the cost of
-the adoption path and it is worth stating in the same breath as the isolation language, because
-anyone designing that future check needs to know unnamespaced names are in the corpus.
+Tracking-only now: applied in `README.md`, in `wp_secrets_validate_name()`'s docblock, and in the
+`_doing_it_wrong()` message an unnamespaced name produces. Anything new that describes namespaces
+should match.
 
 ---
 
 ## 🟡 Record format version bump policy
 
 `'v' => 1` exists so a future format change is detectable rather than presenting as a decryption
-failure. The upgrade path for `v2` is **not designed**. Open sub-questions:
+failure.
 
-- Is `v2` read-only-compatible with `v1`, or is there a migration pass?
-- `v` sits outside the AAD, so it is unauthenticated metadata. It must be treated as a routing
-  hint validated *before* decryption, and an unknown `v` must be rejected outright rather than
-  attempted.
+**Decided: v2 will not be read-compatible with v1.** The upgrade path is therefore either a
+migration pass over existing records, or a version-switched read path that keeps v1 handling
+alongside v2. Which of the two is a decision for when v2 actually exists — they differ mainly in
+whether sites take a one-time cost or the code carries two decoders indefinitely.
 
-**Deliberately deferred by the operator — a future problem, not an oversight.** What matters is
-that the seam exists and fails safe today: `'v' => 1` is written on every record, an unrecognised
-value returns `secret_record_unsupported_version` rather than being guessed at, and that behaviour
-is tested. Designing the v1→v2 path before there is a v2 would be inventing constraints for a
-format nobody has specified.
+What that rules out, usefully: nobody should design v2 assuming a v1 reader can make sense of it,
+and no future change should quietly widen v1's shape rather than bumping the version.
+
+Still true and worth keeping in view when that day comes: `v` sits outside the AAD, so it is
+unauthenticated metadata. It must be treated as a routing hint validated *before* decryption, and
+an unknown `v` must be rejected outright rather than attempted. Today it is:
+`secret_record_unsupported_version` is returned rather than guessed at, and that is tested.
 
 ---
 

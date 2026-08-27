@@ -104,15 +104,31 @@ interface WP_Secrets_Provider {
 	 * WP_SECRETS_ERROR_PROVIDER_READ_ONLY, and reports false from is_writable() so
 	 * that callers can find that out without attempting the write first.
 	 *
+	 * **Implementations are responsible for firing `wp_secret_changed`.** It is not
+	 * fired for you, because only the provider knows the prior fingerprint without
+	 * paying for an extra read, and an audit hook that silently stops firing when a
+	 * host installs a provider would be worse than one that never existed.
+	 *
 	 * @since 7.2.0
 	 *
-	 * @param string $name    The secret's name.
-	 * @param string $value   The plaintext value.
-	 * @param bool   $network Whether this is a network-scope secret.
+	 * @param string      $name           The secret's name.
+	 * @param string      $value          The plaintext value.
+	 * @param bool        $network        Whether this is a network-scope secret.
+	 * @param bool        $needs_rotation Mark the stored secret as needing rotation.
+	 *                                    Set for values that arrived from somewhere
+	 *                                    less protected than this provider -- an
+	 *                                    imported option, a prototype-format record.
+	 *                                    A provider with nowhere to record this may
+	 *                                    ignore it, but should not pretend to honour
+	 *                                    it.
+	 * @param string|null $action         Overrides the action reported to
+	 *                                    `wp_secret_changed`; null means the
+	 *                                    provider decides between 'created' and
+	 *                                    'updated'.
 	 *
 	 * @return true|WP_Error
 	 */
-	public function set( $name, $value, $network = false );
+	public function set( $name, $value, $network = false, $needs_rotation = false, $action = null );
 
 	/**
 	 * Deletes a secret.

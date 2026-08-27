@@ -297,16 +297,30 @@ function wp_secrets_site_health_count_needing_rotation( $network ) {
  */
 function wp_secrets_site_health_debug_info( $info ) {
 	$key_manager = _wp_secrets_get_key_manager();
-	$store       = _wp_secrets_get_store();
+	$provider    = _wp_secrets_get_provider();
 
 	$fields = array(
 		'dropin_active'  => array(
 			'label' => __( 'Drop-in active', 'default' ),
 			'value' => wp_using_secrets_dropin() ? __( 'Yes', 'default' ) : __( 'No', 'default' ),
 		),
-		'store_class'    => array(
-			'label' => __( 'Store class', 'default' ),
-			'value' => get_class( $store ),
+		'provider_class' => array(
+			'label' => __( 'Provider class', 'default' ),
+			'value' => get_class( $provider ),
+		),
+		'protected_by'   => array(
+			'label' => __( 'Secrets protected by', 'default' ),
+			'value' => $provider->get_label(),
+		),
+		'protection_at'  => array(
+			'label' => __( 'Encryption boundary', 'default' ),
+			'value' => WP_Secrets_Provider::BOUNDARY_WORDPRESS === $provider->get_protection_boundary()
+				? __( 'WordPress', 'default' )
+				: __( 'The provider (outside WordPress)', 'default' ),
+		),
+		'writable'       => array(
+			'label' => __( 'Accepts writes', 'default' ),
+			'value' => $provider->is_writable() ? __( 'Yes', 'default' ) : __( 'No', 'default' ),
 		),
 		'keyring_class'  => array(
 			'label' => __( 'Keyring class', 'default' ),

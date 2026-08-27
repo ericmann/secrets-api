@@ -1,6 +1,31 @@
-# Extending: stores and keyrings
+# Extending: providers, stores, and keyrings
 
-Two extension points, each a narrow interface with one job. Both live in `src/wp-includes/`,
+**Start here: `WP_Secrets_Provider` is the outermost seam.** It answers for a secret — holding it,
+protecting it, and producing it. WordPress ships `WP_Secrets_Libsodium_Provider`, which encrypts
+with libsodium and keeps ciphertext in the options tables, and that is the *default*, not the
+privileged case. A platform that protects credentials in a KMS, an HSM, or its own control panel
+implements the same interface and is a peer.
+
+The rule a provider must satisfy is **stronger than the default, never weaker**. Storing a
+plaintext where the default would have stored ciphertext stays impossible. Receiving a value over
+an authenticated channel and protecting it in an HSM is not that.
+
+```php
+// wp-content/secrets.php
+$GLOBALS['wp_secrets_provider'] = new My_Platform_Provider();
+```
+
+A provider declares three things, so Site Health and a future settings screen can be honest about
+what is protecting a site's credentials: `get_label()`, `get_protection_boundary()` (
+`BOUNDARY_WORDPRESS` or `BOUNDARY_PROVIDER`), and `is_writable()`. **These are declarations, not
+enforcement** — a drop-in is fully trusted code that could already read every secret. Their value
+is visibility, and the interface says so rather than implying a boundary that is not there.
+
+---
+
+The two interfaces below are the *internals of the shipped provider*, and remain replaceable
+independently. A host who wants their own key custody but is happy with WordPress's storage swaps
+only the keyring and writes no provider at all. Both live in `src/wp-includes/`,
 both are part of the API surface intended for core, and both are documented in the proposal only
 at the level of "a host needs to be able to substitute its own backing store" — the interfaces
 themselves are this implementation's invention. See

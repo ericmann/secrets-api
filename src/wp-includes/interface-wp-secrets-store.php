@@ -73,15 +73,4 @@ interface WP_Secrets_Store {
 	 * @return array|WP_Error Array of secret names on success. WP_Error on failure.
 	 */
 	public function list_names( $network = false );
-
-	/**
-	 * Declares whether this store supports an operation.
-	 *
-	 * @since 7.2.0
-	 *
-	 * @param string $capability One of 'write', 'list', 'delete'.
-	 *
-	 * @return bool
-	 */
-	public function supports( $capability );
 }

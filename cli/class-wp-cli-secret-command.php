@@ -556,6 +556,19 @@ class WP_CLI_Secret_Command {
 		$key_manager = _wp_secrets_get_key_manager();
 
 		WP_CLI::log( sprintf( 'Drop-in active: %s', wp_using_secrets_dropin() ? 'yes' : 'no' ) );
+		$provider = _wp_secrets_get_provider();
+
+		WP_CLI::log( sprintf( 'Provider: %s', get_class( $provider ) ) );
+		WP_CLI::log( sprintf( 'Protected by: %s', $provider->get_label() ) );
+		WP_CLI::log(
+			sprintf(
+				'Encryption boundary: %s',
+				WP_Secrets_Provider::BOUNDARY_WORDPRESS === $provider->get_protection_boundary()
+					? 'WordPress'
+					: 'the provider (outside WordPress)'
+			)
+		);
+		WP_CLI::log( sprintf( 'Accepts writes: %s', $provider->is_writable() ? 'yes' : 'no' ) );
 		WP_CLI::log( sprintf( 'Store: %s', get_class( _wp_secrets_get_store() ) ) );
 		WP_CLI::log( sprintf( 'Keyring: %s', get_class( $key_manager->get_keyring() ) ) );
 		WP_CLI::log( sprintf( 'Key source: %s', $key_manager->get_keyring()->get_key_source() ) );

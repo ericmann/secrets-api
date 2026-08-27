@@ -76,18 +76,6 @@ final class WP_Secrets_Broken_Store implements WP_Secrets_Store {
 		return $this->error();
 	}
 
-	/**
-	 * Always false: a broken store supports nothing.
-	 *
-	 * @since 7.2.0
-	 *
-	 * @param string $capability Ignored.
-	 *
-	 * @return bool Always false: a broken store supports nothing.
-	 */
-	public function supports( $capability ) {
-		return false;
-	}
 
 	/**
 	 * Builds the error every method returns.

@@ -98,6 +98,8 @@ function wp_secrets_api_bootstrap() {
 		'interface-wp-secrets-store.php',
 		'class-wp-secrets-option-store.php',
 		'class-wp-secrets-broken-store.php',
+		'class-wp-secrets-libsodium-provider.php',
+		'class-wp-secrets-broken-provider.php',
 	);
 
 	foreach ( $core_bound as $file ) {

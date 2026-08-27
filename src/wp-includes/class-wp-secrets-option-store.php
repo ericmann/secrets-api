@@ -194,18 +194,6 @@ final class WP_Secrets_Option_Store implements WP_Secrets_Store {
 		return $names;
 	}
 
-	/**
-	 * Declares whether this store supports an operation.
-	 *
-	 * @since 7.2.0
-	 *
-	 * @param string $capability One of 'write', 'list', 'delete'.
-	 *
-	 * @return bool
-	 */
-	public function supports( $capability ) {
-		return in_array( $capability, array( 'write', 'list', 'delete' ), true );
-	}
 
 	/**
 	 * Builds the option name a secret is stored under.

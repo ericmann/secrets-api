@@ -256,8 +256,4 @@ class Tests_Secrets_ApiPrototypeFallbackStore extends WP_UnitTestCase {
 		$this->assertContains( 'known', $names );
 		$this->assertNotContains( 'unread_key', $names );
 	}
-
-	public function test_supports_delegates_to_the_inner_store() {
-		$this->assertTrue( $this->store()->supports( 'write' ) );
-	}
 }

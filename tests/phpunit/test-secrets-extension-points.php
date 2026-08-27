@@ -81,20 +81,6 @@ class Tests_Secrets_ExtensionPoints extends WP_UnitTestCase {
 		$this->assertSame( 'seeded-before-write-broke', $read_result->reveal() );
 	}
 
-	/**
-	 * @runInSeparateProcess
-	 * @preserveGlobalState disabled
-	 */
-	public function test_read_only_store_rejects_writes_with_the_documented_code() {
-		$store                       = new Mock_Store();
-		$GLOBALS['wp_secrets_store'] = $store->configure_supports( 'write', false );
-
-		$result = wp_set_secret( 'myplugin/api-key', 'value' );
-
-		$this->assertWPError( $result );
-		$this->assertSame( WP_SECRETS_ERROR_STORE_READ_ONLY, $result->get_error_code() );
-		$this->assertFalse( wp_secrets_store_supports( 'write' ) );
-	}
 
 	/**
 	 * @runInSeparateProcess
@@ -182,6 +168,6 @@ class Tests_Secrets_ExtensionPoints extends WP_UnitTestCase {
 		$this->assertWPError( wp_delete_secret( 'myplugin/api-key' ) );
 		$this->assertWPError( wp_list_secrets() );
 		$this->assertWPError( wp_retire_secret_version( 'myplugin/api-key' ) );
-		$this->assertFalse( wp_secrets_store_supports( 'write' ) );
+		$this->assertFalse( wp_secrets_provider_is_writable() );
 	}
 }

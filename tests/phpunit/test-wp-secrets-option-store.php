@@ -157,18 +157,4 @@ class Tests_Secrets_WPSecretsOptionStore extends WP_UnitTestCase {
 		$this->assertContains( 'myplugin/real', $names );
 		$this->assertNotContains( 'decoy/name', $names );
 	}
-
-	public function test_supports_declares_known_capabilities() {
-		$store = new WP_Secrets_Option_Store();
-
-		$this->assertTrue( $store->supports( 'write' ) );
-		$this->assertTrue( $store->supports( 'list' ) );
-		$this->assertTrue( $store->supports( 'delete' ) );
-	}
-
-	public function test_supports_rejects_an_unknown_capability() {
-		$store = new WP_Secrets_Option_Store();
-
-		$this->assertFalse( $store->supports( 'levitate' ) );
-	}
 }
