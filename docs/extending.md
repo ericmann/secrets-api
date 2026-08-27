@@ -25,11 +25,8 @@ is visibility, and the interface says so rather than implying a boundary that is
 
 The two interfaces below are the *internals of the shipped provider*, and remain replaceable
 independently. A host who wants their own key custody but is happy with WordPress's storage swaps
-only the keyring and writes no provider at all. Both live in `src/wp-includes/`,
-both are part of the API surface intended for core, and both are documented in the proposal only
-at the level of "a host needs to be able to substitute its own backing store" — the interfaces
-themselves are this implementation's invention. See
-[`open-questions.md`](open-questions.md) #4.
+only the keyring and writes no provider at all. Both live in `src/wp-includes/` and both are part
+of the API surface intended for core.
 
 ## `WP_Secrets_Store`: where records live
 
@@ -39,7 +36,6 @@ interface WP_Secrets_Store {
     public function set( $name, $record, $network = false );
     public function delete( $name, $network = false );
     public function list_names( $network = false );
-    public function supports( $capability );
 }
 ```
 
@@ -53,11 +49,11 @@ or `WP_Error` if the store cannot currently tell you which. Collapsing the last 
 "unreachable" as "absent" — is exactly the bug this interface exists to make impossible. A
 network outage must never look like a deleted credential.
 
-`supports( $capability )` covers `'write'`, `'list'`, `'delete'`. A platform store fed by a
-separate CLI or dashboard is legitimately read-only from inside WordPress; it declares that
-rather than implementing a `set()` that lies about succeeding. `wp_secrets_store_supports()` is
-the public wrapper, meant for a settings screen to disable its own save button before an operator
-types a credential into a store that will only reject it.
+There is no capability flag. A store that cannot perform an operation says so from that
+operation, by returning `WP_Error` — one source of truth rather than a parallel oracle that can
+disagree with the method it describes. "Read-only" as a deployment shape belongs a layer up: it is
+a property of a *provider*, declared by `is_writable()`, because a platform whose credentials are
+managed in a control panel is not really describing its record storage at all.
 
 ### Registering one
 
@@ -95,19 +91,21 @@ up themselves — not sensitive, never the key material itself.
 $GLOBALS['wp_secrets_keyring'] = new My_KMS_Keyring();
 ```
 
-A drop-in can set either global, both, or neither. Setting only the keyring and leaving the
-store on the default `WP_Secrets_Option_Store` is a normal, supported combination — most hosts
-want their own key management long before they want their own row storage.
+A drop-in can set any of the three globals, or none. Setting only the keyring and leaving storage
+on the default is a normal, supported combination — most hosts want their own key management long
+before they want their own row storage. Setting `$GLOBALS['wp_secrets_provider']` replaces both at
+once, and is what a platform that is itself the encryption boundary should do.
 
 ## What happens if you get it wrong
 
 `wp_secrets_api_load_dropin()` requires `secrets.php`, if one exists, and checks the type of
-whatever ends up in `$GLOBALS['wp_secrets_store']` / `$GLOBALS['wp_secrets_keyring']` afterward.
+whatever ends up in `$GLOBALS['wp_secrets_provider']` / `$GLOBALS['wp_secrets_store']` /
+`$GLOBALS['wp_secrets_keyring']` afterward.
 A missing global is fine — a drop-in that only sets one of them is a legitimate, common case. A
 global set to something that isn't an instance of the matching interface is not fine, and neither
 is a drop-in that throws or has a syntax error: both fail the *entire* store or keyring closed,
-via `WP_Secrets_Broken_Store` / `WP_Secrets_Broken_Keyring`, which turn every operation into a
-`WP_Error` rather than silently falling back to the default. A broken credential backend must
+via `WP_Secrets_Broken_Provider` / `WP_Secrets_Broken_Store` / `WP_Secrets_Broken_Keyring`, which
+turn every operation into a `WP_Error` rather than silently falling back to the default. A broken credential backend must
 never look like a working one that happens to have no secrets in it yet.
 
 One gap, load-bearing enough to call out here rather than leave buried: PHP treats certain class
@@ -115,7 +113,7 @@ declaration errors in the drop-in — most notably a class that `implements` an 
 omits a required method — as an uncatchable fatal, even inside the `try`/`catch` around the
 `require`. There is no userland way to close this; a fatal there is a fatal for the whole
 request, not a scoped, contained failure. Test your drop-in with `-l` and a real request before
-trusting it in production. See [`open-questions.md`](open-questions.md) #13.
+trusting it in production. See [`open-questions.md`](open-questions.md), "Drop-in file loading".
 
 ## Error codes
 
@@ -128,7 +126,8 @@ Every `WP_Error` this API returns uses one of a fixed set of codes, defined in `
 | `WP_SECRETS_ERROR_KEY_UNAVAILABLE` | `secret_key_unavailable` | Keyring could not produce a usable key |
 | `WP_SECRETS_ERROR_CRYPTO_UNAVAILABLE` | `secret_crypto_unavailable` | No libsodium implementation present |
 | `WP_SECRETS_ERROR_STORE_UNAVAILABLE` | `secret_store_unavailable` | Store could not determine an answer |
-| `WP_SECRETS_ERROR_STORE_READ_ONLY` | `secret_store_read_only` | Write attempted on a store where `supports('write')` is false |
+| `WP_SECRETS_ERROR_PROVIDER_READ_ONLY` | `secret_provider_read_only` | Write attempted against a provider whose credentials are managed elsewhere |
+| `WP_SECRETS_ERROR_INVALID_ARGUMENT` | `secret_invalid_argument` | A caller passed an unusable argument; always accompanied by `_doing_it_wrong()` |
 | `WP_SECRETS_ERROR_DECRYPTION_FAILED` | `secret_decryption_failed` | Record present but would not decrypt (wrong key, corruption, tampering) |
 | `WP_SECRETS_ERROR_RECORD_MALFORMED` | `secret_record_malformed` | Record does not have the expected shape |
 | `WP_SECRETS_ERROR_RECORD_UNSUPPORTED_VERSION` | `secret_record_unsupported_version` | Record's `v` field is not one this code understands |

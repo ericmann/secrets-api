@@ -22,10 +22,16 @@
  * docs/open-questions.md, "Host and platform providers"): some platforms are
  * themselves the encryption boundary and want to serve their own credentials to
  * WordPress without ever
- * accepting a write back. Declaring supports('write') === false is how that is
- * expressed -- wp_set_secret() then returns a WP_Error with code
- * 'secret_store_read_only' instead of silently no-opping or, worse, accepting a
- * write it cannot actually honor.
+ * accepting a write back. Refusing from set() is how that is expressed --
+ * wp_set_secret() surfaces the WP_Error rather than silently no-opping or, worse,
+ * accepting a write it cannot actually honour.
+ *
+ * NOTE: for that deployment you almost certainly want a WP_Secrets_Provider
+ * rather than a store. A provider declares is_writable() false, so a settings
+ * screen never offers a save control in the first place, and it can be the
+ * encryption boundary itself. This store example remains because swapping only
+ * where ciphertext lives, while keeping WordPress's envelope, is a legitimate and
+ * simpler thing to want.
  *
  * A store CANNOT use this to hand WordPress a plaintext value. Every method here
  * traffics only in the record array WP_Secrets_Cipher produces -- get() returns
@@ -67,7 +73,7 @@ final class Example_Platform_Store implements WP_Secrets_Store {
 	}
 
 	/**
-	 * Refused outright -- see supports().
+	 * Refused outright: this platform's credentials are managed by its own tooling.
 	 *
 	 * @param string $name    The secret's namespaced name.
 	 * @param array  $record  The record to store.
@@ -83,7 +89,7 @@ final class Example_Platform_Store implements WP_Secrets_Store {
 	}
 
 	/**
-	 * Refused outright -- see supports().
+	 * Refused outright: deletion happens in the platform's own tooling.
 	 *
 	 * @param string $name    The secret's namespaced name.
 	 * @param bool   $network Whether this is a network-scope secret.
@@ -109,17 +115,6 @@ final class Example_Platform_Store implements WP_Secrets_Store {
 		// valid if your platform has no way to enumerate names cheaply --
 		// wp_list_secrets() will simply show nothing rather than erroring.
 		return array();
-	}
-
-	/**
-	 * Declares this store read-only, plus listable.
-	 *
-	 * @param string $capability One of 'write', 'list', 'delete'.
-	 *
-	 * @return bool
-	 */
-	public function supports( $capability ) {
-		return 'list' === $capability; // Read-only: no write, no delete.
 	}
 }
 
