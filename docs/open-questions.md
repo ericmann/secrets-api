@@ -50,6 +50,10 @@ decision the implementation gets to make.
 
 **Do not** implement a plaintext passthrough without that decision.
 
+**Status: deferred by the operator (2026-08-27), who has a position forming.** Not blocked on
+implementation input. Nothing here should be built, and the seam should not be widened
+speculatively, until that position lands.
+
 ---
 
 ## 3. 🟡 Read-only stores — `supports()` is beyond the published surface
@@ -147,21 +151,64 @@ failure. The upgrade path for `v2` is **not designed**. Open sub-questions:
   hint validated *before* decryption, and an unknown `v` must be rejected outright rather than
   attempted.
 
+**Status: deliberately deferred by the operator (2026-08-27) — a future problem, not an
+oversight.** What matters is that the seam exists and fails safe today: `'v' => 1` is written on
+every record, an unrecognised value returns `secret_record_unsupported_version` rather than being
+guessed at, and that behaviour is tested. Designing the v1→v2 path before there is a v2 would be
+inventing constraints for a format nobody has specified.
+
 ---
 
-## 8. 🟡 GitHub Enterprise specifics
+## 8. 🟡 Where CI actually runs — GHES is likely the wrong host
 
-Unknown until a maintainer confirms them on `github.a8c.com`. See `docs/ci.md`.
+Originally: a list of things nobody had checked on `github.a8c.com`. The operator has now checked,
+and the answers change the question from "how do we configure this?" to "should it run here at
+all?"
 
-- Which runner labels exist. The workflow parameterises `runs-on` and defaults to `self-hosted`;
-  this is a guess.
-- Whether Marketplace Actions are available (requires GitHub Connect / action bundling). The
-  workflow assumes only `actions/checkout` and otherwise plain `run:` steps.
-- Whether runners have egress to wordpress.org and packagist. `install-wp-tests.sh` honours
-  `WP_MIRROR_BASE` and `WP_TESTS_ZIP_URL` so an internal mirror can be substituted.
-- Whether an internal WordPress tarball mirror exists.
+**What the instance reports:** no custom runners configured, and the "allow local actions only"
+policy is enabled.
 
-`make ci` locally is the always-works fallback and does not depend on any of this.
+**What that means, verified against GitHub's own GHES documentation rather than assumed:**
+
+1. **No runners means Actions cannot run there at all.** GHES provides no GitHub-hosted runners
+   in any edition — "to enable GitHub Actions for your GitHub Enterprise Server instance, you
+   must host at least one machine to execute jobs." Every job in `.github/workflows/ci.yml` is
+   currently `runs-on: self-hosted`, which resolves to nothing. Standing one up is not a
+   config tweak: it is a VM someone owns and patches, plus a PHP toolchain (three versions, for
+   the matrix), plus either Docker for the MySQL service container or a database reachable from
+   it.
+2. **"Allow local actions only" does *not* block `actions/checkout`.** Official GitHub-authored
+   actions are bundled into GHES instances by default, with "no connection required between your
+   GitHub Enterprise Server instance and GitHub.com to use these actions." So the workflow's one
+   action is fine — this was the risk the workflow was written defensively around, and it turns
+   out not to be the binding constraint.
+3. **But SHA pinning is a live hazard on GHES specifically.** The bundled actions are "captured at
+   a point in time from GitHub Marketplace," so the instance holds whichever commits existed when
+   it was bundled. The full-SHA pin in the workflow (`actions/checkout@11bd719…`, v4.2.2) will
+   only resolve if that instance's bundled copy contains that commit. On github.com it always
+   will; on GHES it depends on the instance's version.
+
+**Recommendation: host this on github.com instead, private to start.** Reasons in the order they
+matter:
+
+- It is where this is *going*. This is a feature plugin for a proposal published on
+  make.wordpress.org that explicitly asks the community five questions and invites hosts to
+  build drop-ins against it. `src/` is a file-copy candidate for a `wordpress-develop` patch.
+  None of those people can see a repository on `github.a8c.com`. Private-then-public on
+  github.com reaches the destination; GHES is a detour that has to be undone.
+- Hosted runners exist, so there is no machine to own.
+- Marketplace actions resolve, which collapses most of the workflow's complexity — the
+  hand-rolled `update-alternatives` PHP switching exists purely because
+  `shivammathur/setup-php` was assumed unavailable.
+- Nothing in this repository is sensitive. It implements a published design and stores no
+  credentials; the threat model that usually argues for an internal instance does not apply.
+
+**The one thing that is not mine to decide:** whether Automattic policy requires this code to
+live on the internal instance regardless. If it does, the GHES path stays viable — it needs a
+runner provisioned, and the action pin loosened from a SHA to a tag the instance actually has.
+
+**Until that is settled**, `make ci` locally remains the source of truth and depends on none of
+this.
 
 ---
 

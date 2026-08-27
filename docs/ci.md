@@ -53,48 +53,45 @@ wordpress.org:
 Composer's cache (`~/.composer/cache`) should be restored between runs on any runner without
 reliable egress to Packagist.
 
-## GitHub Enterprise (`github.a8c.com`)
+## Where this runs
 
-GHES is not github.com, and the differences are load-bearing. **A maintainer must confirm the
-following on the instance before the workflow will run.** Each is tracked in
-[`open-questions.md`](open-questions.md) #8.
+`make ci` is the source of truth and depends on none of the below. What follows is only about the
+hosted pipeline.
 
-### 1. Are Marketplace Actions available?
+**Currently unresolved — see [`open-questions.md`](open-questions.md) #8.** The workflow in
+`.github/workflows/ci.yml` is written for a self-hosted runner, which was the right assumption for
+`github.a8c.com` and is the wrong one for github.com. Two facts settled since it was written:
 
-GHES only has them if the instance enables GitHub Connect or action bundling. The workflow
-therefore assumes **only `actions/checkout`** and uses plain `run:` steps for everything else —
-no `shivammathur/setup-php`, no `ramsey/composer-install`. A container-based fallback job that
-needs no actions beyond checkout is provided for the case where even that is unavailable.
+- The GHES instance has **no runners configured**, and GHES provides no GitHub-hosted runners in
+  any edition — every job would need a machine someone owns and patches, carrying three PHP
+  versions and a reachable MySQL.
+- "Allow local actions only" does **not** block `actions/checkout`: official GitHub actions are
+  bundled into GHES instances with no GitHub Connect required. The workflow's defensive
+  "only `actions/checkout`, everything else hand-rolled" shape was guarding against a constraint
+  that turned out not to bind.
 
-Do not add a third-party action without confirming it resolves on the instance first.
+**If this moves to github.com** (the recommendation in #8, since this is a feature plugin for a
+public proposal and `src/` is a `wordpress-develop` patch candidate), the workflow simplifies
+considerably: `runs-on: ubuntu-latest`, and `shivammathur/setup-php` replaces the hand-rolled
+`update-alternatives` PHP switching that only exists because Marketplace actions were assumed
+unavailable.
 
-### 2. What are the runner labels?
-
-Instance-specific and not guessable. The workflow parameterises them:
-
-```yaml
-strategy:
-  matrix:
-    runner: [ self-hosted ]   # CONFIRM: replace with this instance's actual label
-runs-on: ${{ matrix.runner }}
-```
-
-`self-hosted` is a placeholder, not a known-good value.
-
-### 3. Do runners have egress?
-
-If not, use the `container:` job with a MySQL service, cache `~/.composer/cache`, and point
-`WP_MIRROR_BASE` at an internal mirror. See above.
-
-### 4. Is there an internal WordPress tarball mirror?
-
-If one exists, set `WP_MIRROR_BASE` as a repository variable and the installer needs no other
-changes.
+**If it stays on GHES**, two changes are required before it will run at all: provision at least
+one self-hosted runner, and replace the full-SHA action pin with a tag the instance's bundled
+`actions` org actually contains — bundled actions are captured at a point in time, so a SHA from
+github.com may simply not exist there. See "Pinning" below for why that is a real tradeoff and
+not a free change.
 
 ## Pinning
 
 Every action is pinned by **full commit SHA**, not by tag. A tag is mutable; a SHA is not, and
-this repository handles credentials.
+this repository implements a credential store — an action that silently changes under a moved tag
+is exactly the supply-chain shape worth refusing here.
+
+The one place that rule has to bend is a GHES instance whose bundled `actions` org does not
+contain the pinned commit (see above). Loosening to a tag there is a real reduction in guarantee,
+not a formatting change, and is one more argument for running this on github.com where SHA pins
+always resolve.
 
 ## Matrix
 
