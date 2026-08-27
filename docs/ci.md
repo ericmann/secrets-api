@@ -46,9 +46,19 @@ wordpress.org:
 
 | Variable | Effect |
 |---|---|
-| `WP_MIRROR_BASE` | Substituted for `https://wordpress.org` in every download |
+| `WP_MIRROR_BASE` | Substituted for `https://wordpress.org` when downloading WordPress itself |
 | `WP_TESTS_ZIP_URL` | Full URL to a WordPress archive, overriding version lookup entirely |
-| `WP_SVN_BASE` | Substituted for `https://develop.svn.wordpress.org` when fetching the test suite |
+| `WP_API_BASE` | Substituted for `https://api.wordpress.org`, used only to resolve what "latest" means |
+| `WP_DEVELOP_BASE` | Substituted for `https://github.com/WordPress/wordpress-develop`, where the test suite comes from |
+
+Three separate hosts, deliberately: a mirror of wordpress.org downloads is not automatically a
+mirror of the version-check API or of the wordpress-develop repository, so collapsing them into
+one variable would quietly send two of the three somewhere that cannot serve them.
+
+The test suite is fetched as a **tarball, not an svn checkout**. `svn` is not installed on
+GitHub's ubuntu-24.04 runners and has not shipped with macOS since Xcode's command line tools
+dropped it, so requiring it meant `make install` — the documented no-Docker path — could not run
+in CI or on a stock Mac. curl-or-wget plus tar is a dependency both already have.
 
 Composer's cache (`~/.composer/cache`) should be restored between runs on any runner without
 reliable egress to Packagist.

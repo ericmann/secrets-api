@@ -30,6 +30,13 @@ WP_CORE_DIR=${WP_CORE_DIR-$TMPDIR/wordpress}
 
 MIRROR_BASE=${WP_MIRROR_BASE-https://wordpress.org}
 
+# Where the version-check API and the wordpress-develop tarballs come from. Split
+# out from MIRROR_BASE because they are genuinely different hosts, and an
+# air-gapped mirror of wordpress.org downloads is not automatically a mirror of
+# either. Both are overridable for the same reason MIRROR_BASE is.
+API_BASE=${WP_API_BASE-https://api.wordpress.org}
+DEVELOP_BASE=${WP_DEVELOP_BASE-https://github.com/WordPress/wordpress-develop}
+
 download() {
 	if command -v curl >/dev/null 2>&1; then
 		curl -fsSL -o "$2" "$1"
@@ -55,12 +62,26 @@ elif [[ $WP_VERSION =~ [0-9]+\.[0-9]+\.[0-9]+ ]]; then
 elif [[ $WP_VERSION == 'nightly' || $WP_VERSION == 'trunk' ]]; then
 	WP_TESTS_TAG="trunk"
 else
-	download "${MIRROR_BASE}/wp-includes/version.php" "$TMPDIR/wp-latest.php"
-	LATEST_VERSION=$(grep -o "'[0-9]\+\.[0-9]\+\(\.[0-9]\+\)\?'" "$TMPDIR/wp-latest.php" | sed "s/'//g" | head -1)
-	if [[ -z "$LATEST_VERSION" ]]; then
-		echo "Could not determine the latest WordPress version." >&2
+	# The version-check API, not wordpress.org/wp-includes/version.php: that path
+	# is a PHP file on a PHP server, so requesting it executes it and returns 200
+	# with an empty body. Combined with `set -o pipefail`, the parse below then
+	# failed with no output at all, which is a genuinely miserable thing to debug.
+	download "${API_BASE}/core/version-check/1.7/" "$TMPDIR/wp-latest.json"
+
+	# Parsed with bash's own regex rather than grep|sed|head. Under `pipefail`, a
+	# pipeline ending in `head` can be killed by SIGPIPE and take the script down
+	# silently even when the parse succeeded -- the same class of failure this
+	# block already caused once.
+	WP_VERSION_CHECK_JSON=$(cat "$TMPDIR/wp-latest.json")
+
+	if [[ $WP_VERSION_CHECK_JSON =~ \"version\":\"([0-9][0-9.]*)\" ]]; then
+		LATEST_VERSION="${BASH_REMATCH[1]}"
+	else
+		echo "Could not determine the latest WordPress version from ${API_BASE}/core/version-check/1.7/." >&2
+		echo "Response was ${#WP_VERSION_CHECK_JSON} bytes." >&2
 		exit 1
 	fi
+
 	WP_TESTS_TAG="tags/$LATEST_VERSION"
 fi
 
@@ -106,17 +127,54 @@ install_test_suite() {
 		local ioption='-i'
 	fi
 
-	if [ ! -d "$WP_TESTS_DIR" ]; then
+	if [ ! -d "$WP_TESTS_DIR/includes" ] || [ ! -f "$WP_TESTS_DIR/wp-tests-config.php" ]; then
 		mkdir -p "$WP_TESTS_DIR"
-		SVN_BASE=${WP_SVN_BASE-https://develop.svn.wordpress.org}
-		svn co --quiet "${SVN_BASE}/${WP_TESTS_TAG}/tests/phpunit/includes/" "$WP_TESTS_DIR/includes"
-		svn co --quiet "${SVN_BASE}/${WP_TESTS_TAG}/tests/phpunit/data/" "$WP_TESTS_DIR/data"
+
+		# Fetched as a wordpress-develop tarball rather than checked out with svn.
+		# svn is not installed on GitHub's ubuntu-24.04 runners and has not shipped
+		# with macOS since the Xcode command line tools dropped it, so requiring it
+		# meant this script could not run unmodified in CI or on a stock Mac -- and
+		# `make install` is the documented no-Docker path for contributors.
+		# curl-or-wget plus tar is a dependency both already have.
+		case "$WP_TESTS_TAG" in
+			trunk)
+				DEVELOP_REF="refs/heads/trunk"
+				;;
+			branches/*)
+				DEVELOP_REF="refs/heads/${WP_TESTS_TAG#branches/}"
+				;;
+			tags/*)
+				DEVELOP_TAG="${WP_TESTS_TAG#tags/}"
+
+				# svn and git disagree about what an x.y release is called: svn
+				# tags it "7.1", the git repository tags it "7.1.0". Only x.y
+				# needs the ".0" -- an x.y.z release is spelled the same in both.
+				if [[ $DEVELOP_TAG =~ ^[0-9]+\.[0-9]+$ ]]; then
+					DEVELOP_TAG="${DEVELOP_TAG}.0"
+				fi
+
+				DEVELOP_REF="refs/tags/${DEVELOP_TAG}"
+				;;
+			*)
+				echo "Unrecognised test suite ref: $WP_TESTS_TAG" >&2
+				exit 1
+				;;
+		esac
+
+		echo "Fetching the test suite from ${DEVELOP_BASE}/archive/${DEVELOP_REF}.tar.gz"
+
+		rm -rf "$TMPDIR/wp-develop"
+		mkdir -p "$TMPDIR/wp-develop"
+		download "${DEVELOP_BASE}/archive/${DEVELOP_REF}.tar.gz" "$TMPDIR/wp-develop.tar.gz"
+		tar --strip-components=1 -zxmf "$TMPDIR/wp-develop.tar.gz" -C "$TMPDIR/wp-develop"
+
+		rm -rf "$WP_TESTS_DIR/includes" "$WP_TESTS_DIR/data"
+		cp -R "$TMPDIR/wp-develop/tests/phpunit/includes" "$WP_TESTS_DIR/includes"
+		cp -R "$TMPDIR/wp-develop/tests/phpunit/data" "$WP_TESTS_DIR/data"
+		cp "$TMPDIR/wp-develop/wp-tests-config-sample.php" "$WP_TESTS_DIR/wp-tests-config.php"
 	fi
 
-	if [ ! -f "$WP_TESTS_DIR/wp-tests-config.php" ]; then
-		SVN_BASE=${WP_SVN_BASE-https://develop.svn.wordpress.org}
-		download "${SVN_BASE}/${WP_TESTS_TAG}/wp-tests-config-sample.php" "$WP_TESTS_DIR/wp-tests-config.php"
-
+	if [ ! -f "$WP_TESTS_DIR/.config-rewritten" ]; then
 		WP_CORE_DIR_ESC=$(echo "$WP_CORE_DIR" | sed "s:/\+$::")
 		sed $ioption "s:dirname( __FILE__ ) . '/src/':'$WP_CORE_DIR_ESC/':" "$WP_TESTS_DIR/wp-tests-config.php"
 		sed $ioption "s:__DIR__ . '/src/':'$WP_CORE_DIR_ESC/':" "$WP_TESTS_DIR/wp-tests-config.php"
@@ -124,6 +182,12 @@ install_test_suite() {
 		sed $ioption "s/yourusernamehere/$DB_USER/" "$WP_TESTS_DIR/wp-tests-config.php"
 		sed $ioption "s/yourpasswordhere/$DB_PASS/" "$WP_TESTS_DIR/wp-tests-config.php"
 		sed $ioption "s|localhost|${DB_HOST}|" "$WP_TESTS_DIR/wp-tests-config.php"
+
+		# Marker rather than re-testing the config file's contents: the rewrites
+		# above are not idempotent (the second run has no 'yourusernamehere' left
+		# to replace, but "s|localhost|...|" would happily rewrite a hostname that
+		# merely contains it), so they must run exactly once per fetched config.
+		touch "$WP_TESTS_DIR/.config-rewritten"
 	fi
 }
 
