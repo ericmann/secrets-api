@@ -42,7 +42,7 @@ target list.
 | `make compat` | PHPCompatibilityWP at `testVersion 7.4-` |
 | `make analyse` | phpstan |
 | `make test` / `make test-ms` | phpunit, single site / multisite |
-| `make coverage` | phpunit with an HTML coverage report |
+| `make coverage` | phpunit with an HTML coverage report (see `docs/open-questions.md` #16 re: wp-env) |
 | `make ci` | all of the above |
 
 Runners without egress to wordpress.org can point the installer at a mirror with `WP_MIRROR_BASE`

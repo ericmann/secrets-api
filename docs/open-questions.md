@@ -313,6 +313,44 @@ under `src/` references any of it.
 
 ---
 
+## 16. 🟢 `make coverage`'s numbers cannot be trusted inside wp-env
+
+`make coverage` runs and produces a report, but the percentages it reports from the wp-env
+container (PHP 7.4, no coverage driver by default) are not reliable, and should not be read as a
+statement about test thoroughness. This is a tooling gap, not a test-coverage gap: the suite is
+395 tests / 836 assertions single-site, 848 multisite, and the classes affected here are
+extensively exercised elsewhere in this repository's own review history (Checkpoint C, the
+demotion AAD bug, Checkpoint F) by tests that pass.
+
+**What was verified, empirically, before writing this down:** the wp-env tests-cli image ships
+no coverage driver (`php -m` shows neither `xdebug` nor `pcov`). Installing `pcov` via `pecl`
+works and produces a report, but every class in `plugin/` and `cli/` reports exactly 0% line and
+method coverage — `Secrets_API_Legacy_Reader`, `Secrets_API_Migrator`,
+`Secrets_API_Prototype_Fallback_Store`, `WP_CLI_Secret_Command` — while every class in `src/`
+reports partial-to-full coverage in the same run, despite dozens of passing, assertion-bearing
+tests calling methods on the "0%" classes directly (e.g. `test-secrets-api-prototype-fallback-
+store.php` alone is 14 tests / 0 of them process-isolated, all green, directly calling `get()`,
+`set()`, `delete()`, `list_names()`, `supports()`).
+
+Three explanations were checked and ruled out rather than assumed: not a symlink/realpath
+mismatch between `plugin/`/`cli/` and `src/` (both resolve identically inside the container); not
+`@runInSeparateProcess` coverage failing to merge back (the fallback-store tests use zero
+isolated processes and still show 0%); not pcov's initial table sizing (`pcov.initial.files`
+raised 8x with no change — though bumping it also revealed that `--filter` degrades coverage
+collection further, dropping even `src/`'s numbers to near-zero, which is a second, related
+symptom of the same unresolved root cause). What is not yet known is why the split falls exactly
+along the `plugin/`+`cli/` vs `src/` boundary when both are required through the identical
+`WP_SECRETS_API_PLUGIN_DIR`-prefixed path from the same one-time bootstrap call.
+
+**Current state:** `make coverage` is left as-is -- a real, working target -- since fixing this
+would mean debugging a Docker-image/pcov/PHPUnit interaction with no clear next hypothesis, for a
+number that gates nothing (no coverage threshold is enforced anywhere in `make ci`). Trustworthy
+coverage numbers, if wanted, should come from the non-Docker path (`make install && make
+coverage` against a host PHP with Xdebug or pcov installed normally, not via a fresh `pecl
+install` inside an already-running container) rather than this one.
+
+---
+
 ## Resolved
 
 Decisions that were open and are now closed, kept so the reasoning is not lost.
