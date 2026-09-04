@@ -15,9 +15,10 @@
  * cannot turn encryption off; there is no method here that accepts or returns
  * anything but ciphertext-bearing structures.
  *
- * A platform store that is read-only from the application (credentials managed by a
- * separate CLI or dashboard) declares that via supports(), rather than being forced
- * to implement a set() it cannot honestly perform.
+ * A platform store that is read-only from the application, with credentials managed
+ * by a separate CLI or dashboard, returns WP_Error from set() rather than pretending
+ * the write succeeded. Providers declare writability up front through
+ * WP_Secrets_Provider::is_writable().
  *
  * @since 7.2.0
  */
@@ -45,8 +46,8 @@ interface WP_Secrets_Store {
 	 * @param array  $record  The record to store.
 	 * @param bool   $network Whether this is a network-scope secret.
 	 *
-	 * @return bool|WP_Error True on success. WP_Error on failure, including when
-	 *                       !supports('write').
+	 * @return bool|WP_Error True on success. WP_Error on failure, including when the
+	 *                       store does not accept writes.
 	 */
 	public function set( $name, $record, $network = false );
 

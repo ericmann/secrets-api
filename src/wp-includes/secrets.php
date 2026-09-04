@@ -107,17 +107,6 @@ define( 'WP_SECRETS_ERROR_RECORD_UNSUPPORTED_VERSION', 'secret_record_unsupporte
 define( 'WP_SECRETS_ERROR_PROVIDER_READ_ONLY', 'secret_provider_read_only' );
 
 /**
- * The store declined a write, delete, or list it does not support.
- *
- * Returned when WP_Secrets_Store::supports() reports false for the operation, as a
- * read-only platform store would. The constant name reflects the operation this was
- * first written for; the code covers all three capabilities.
- *
- * @since 7.2.0
- */
-define( 'WP_SECRETS_ERROR_STORE_READ_ONLY', 'secret_store_read_only' );
-
-/**
  * The current record format version.
  *
  * Bumped only if the record shape in WP_Secrets_Cipher's slot arrays ever changes

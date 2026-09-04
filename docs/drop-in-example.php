@@ -83,7 +83,7 @@ final class Example_Platform_Store implements WP_Secrets_Store {
 	 */
 	public function set( $name, $record, $network = false ) {
 		return new WP_Error(
-			WP_SECRETS_ERROR_STORE_READ_ONLY,
+			WP_SECRETS_ERROR_PROVIDER_READ_ONLY,
 			'This platform manages credentials outside of WordPress.'
 		);
 	}
@@ -98,7 +98,7 @@ final class Example_Platform_Store implements WP_Secrets_Store {
 	 */
 	public function delete( $name, $network = false ) {
 		return new WP_Error(
-			WP_SECRETS_ERROR_STORE_READ_ONLY,
+			WP_SECRETS_ERROR_PROVIDER_READ_ONLY,
 			'This platform manages credentials outside of WordPress.'
 		);
 	}

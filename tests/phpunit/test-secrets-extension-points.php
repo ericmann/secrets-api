@@ -83,16 +83,21 @@ class Tests_Secrets_ExtensionPoints extends WP_UnitTestCase {
 
 
 	/**
+	 * A store that refuses writes must still serve reads. This previously configured
+	 * a capability flag that nothing consulted, so it passed regardless of behavior.
+	 * It now makes set() actually fail, and checks both halves.
+	 *
 	 * @runInSeparateProcess
 	 * @preserveGlobalState disabled
 	 */
-	public function test_read_only_store_still_supports_reads() {
+	public function test_a_store_that_refuses_writes_still_serves_reads() {
 		$store                       = new Mock_Store();
 		$GLOBALS['wp_secrets_store'] = $store;
 
 		wp_set_secret( 'myplugin/api-key', 'value' );
-		$store->configure_supports( 'write', false );
+		$store->configure_fail( 'set', true );
 
+		$this->assertWPError( wp_set_secret( 'myplugin/api-key', 'another' ) );
 		$this->assertSame( 'value', wp_get_secret( 'myplugin/api-key' )->reveal() );
 	}
 
