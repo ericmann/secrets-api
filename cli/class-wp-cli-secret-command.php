@@ -258,6 +258,9 @@ class WP_CLI_Secret_Command {
 	 * [--fields=<fields>]
 	 * : Comma-separated list of fields to show.
 	 *
+	 * [--field=<field>]
+	 * : Print one field per line, for scripting.
+	 *
 	 * [--format=<format>]
 	 * : Render output in a particular format.
 	 * ---
@@ -290,6 +293,26 @@ class WP_CLI_Secret_Command {
 			: array( 'name', 'fingerprint', 'created', 'has_previous', 'needs_rotation' );
 
 		$format = isset( $assoc_args['format'] ) ? $assoc_args['format'] : 'table';
+
+		/*
+		 * 'ids' is handled here rather than by the shared formatter, which expects
+		 * a flat list of scalars and renders a list of rows as the literal string
+		 * "Array". Names are this API's identifiers, so they are what 'ids' means.
+		 */
+		if ( 'ids' === $format ) {
+			WP_CLI::line( implode( ' ', wp_list_pluck( $entries, 'name' ) ) );
+
+			return;
+		}
+
+		// One value per line, for `for n in $(wp secret list --field=name)`.
+		if ( isset( $assoc_args['field'] ) ) {
+			foreach ( $entries as $entry ) {
+				WP_CLI::line( isset( $entry[ $assoc_args['field'] ] ) ? $entry[ $assoc_args['field'] ] : '' );
+			}
+
+			return;
+		}
 
 		\WP_CLI\Utils\format_items( $format, $entries, $fields );
 	}
@@ -337,6 +360,8 @@ class WP_CLI_Secret_Command {
 	 *
 	 * <name>
 	 * : The secret's namespaced name to store it under.
+	 *
+	 * @subcommand import-option
 	 *
 	 * @when after_wp_load
 	 *
@@ -505,6 +530,8 @@ class WP_CLI_Secret_Command {
 	 * Writes to STDOUT only. Never touches wp-config.php -- adding the constant is
 	 * the operator's own step.
 	 *
+	 * @subcommand generate-key
+	 *
 	 * @when after_wp_load
 	 */
 	public function generate_key() {
@@ -559,7 +586,7 @@ class WP_CLI_Secret_Command {
 	}
 
 	/**
-	 * Reports what store and keyring are active.
+	 * Reports what is protecting this site's secrets.
 	 *
 	 * ## OPTIONS
 	 *
