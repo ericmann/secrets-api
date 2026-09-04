@@ -307,10 +307,22 @@ class Tests_Secrets_WPCLISecretCommand extends WP_UnitTestCase {
 		$this->command()->dropin();
 
 		$log = implode( "\n", WP_CLI::$log );
-		// The active store is the prototype-fallback decorator wrapping the option
-		// store. Reporting the decorator is the truthful answer, and tells an
-		// operator the read-time upgrade path is live.
-		$this->assertStringContainsString( 'Secrets_API_Prototype_Fallback_Store', $log );
+
+		// The default output answers "what is protecting my secrets" and stops
+		// there. Storage and keyring class names are internals of the active
+		// provider and live behind --verbose.
+		$this->assertStringContainsString( 'WP_Secrets_Libsodium_Provider', $log );
+		$this->assertStringContainsString( 'Encryption boundary: WordPress', $log );
+		$this->assertStringNotContainsString( 'Store class', $log );
+	}
+
+	public function test_dropin_verbose_shows_the_provider_internals() {
+		$this->command()->dropin( array(), array( 'verbose' => true ) );
+
+		$log = implode( "\n", WP_CLI::$log );
+
+		$this->assertStringContainsString( 'Store class:', $log );
+		$this->assertStringContainsString( 'Keyring class:', $log );
 		$this->assertStringContainsString( 'WP_Secrets_Config_Key_Provider', $log );
 	}
 

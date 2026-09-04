@@ -561,9 +561,17 @@ class WP_CLI_Secret_Command {
 	/**
 	 * Reports what store and keyring are active.
 	 *
+	 * ## OPTIONS
+	 *
+	 * [--verbose]
+	 * : Also show the storage and keyring classes behind the active provider.
+	 *
 	 * @when after_wp_load
+	 *
+	 * @param array $args       Positional arguments.
+	 * @param array $assoc_args Associative arguments.
 	 */
-	public function dropin() {
+	public function dropin( $args = array(), $assoc_args = array() ) {
 		$key_manager = _wp_secrets_get_key_manager();
 
 		WP_CLI::log( sprintf( 'Drop-in active: %s', wp_using_secrets_dropin() ? 'yes' : 'no' ) );
@@ -580,8 +588,16 @@ class WP_CLI_Secret_Command {
 			)
 		);
 		WP_CLI::log( sprintf( 'Accepts writes: %s', $provider->is_writable() ? 'yes' : 'no' ) );
-		WP_CLI::log( sprintf( 'Store: %s', get_class( _wp_secrets_get_store() ) ) );
-		WP_CLI::log( sprintf( 'Keyring: %s', get_class( $key_manager->get_keyring() ) ) );
-		WP_CLI::log( sprintf( 'Key source: %s', $key_manager->get_keyring()->get_key_source() ) );
+
+		/*
+		 * Storage and keyring classes are internals of whichever provider is
+		 * active, so they are shown under --verbose rather than in the default
+		 * output. The question this command answers is "what is protecting my
+		 * secrets", and answering it with four class names buries it.
+		 */
+		if ( isset( $assoc_args['verbose'] ) ) {
+			WP_CLI::log( sprintf( 'Keyring class: %s', get_class( $key_manager->get_keyring() ) ) );
+			WP_CLI::log( sprintf( 'Store class: %s', get_class( _wp_secrets_get_store() ) ) );
+		}
 	}
 }
