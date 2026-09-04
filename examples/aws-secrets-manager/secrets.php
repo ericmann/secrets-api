@@ -132,8 +132,9 @@ final class AWS_Secrets_Manager_Provider implements WP_Secrets_Provider {
 		$result = $this->call(
 			'PutSecretValue',
 			array(
-				'SecretId'     => $aws_name,
-				'SecretString' => $value,
+				'SecretId'           => $aws_name,
+				'SecretString'       => $value,
+				'ClientRequestToken' => wp_generate_uuid4(),
 			)
 		);
 
@@ -143,8 +144,9 @@ final class AWS_Secrets_Manager_Provider implements WP_Secrets_Provider {
 			$result  = $this->call(
 				'CreateSecret',
 				array(
-					'Name'         => $aws_name,
-					'SecretString' => $value,
+					'Name'               => $aws_name,
+					'SecretString'       => $value,
+					'ClientRequestToken' => wp_generate_uuid4(),
 				)
 			);
 			$created = true;
@@ -347,6 +349,11 @@ final class AWS_Secrets_Manager_Provider implements WP_Secrets_Provider {
 	 * hash it, sign the hash with a key derived from date/region/service, and put
 	 * the result in an Authorization header.
 	 *
+	 * Note that write actions need a ClientRequestToken. AWS documents it as
+	 * optional, which is true only because every SDK generates one for you --
+	 * calling the API directly, its absence is a flat InvalidRequestException. It
+	 * is an idempotency token, so each call gets a fresh UUID.
+	 *
 	 * @param string $target  API action, e.g. 'GetSecretValue'.
 	 * @param array  $payload Request body.
 	 *
@@ -414,14 +421,28 @@ final class AWS_Secrets_Manager_Provider implements WP_Secrets_Provider {
 			return new WP_Error( 'aws_not_found', 'No such secret.' );
 		}
 
+		/*
+		 * AWS's JSON protocol is inconsistent about the case of this key, and
+		 * reading only one spelling turns a precise error into a bare exception
+		 * name -- which is exactly how much use "InvalidRequestException" on its
+		 * own is when you are trying to find out what was invalid.
+		 */
+		$detail = '';
+
+		foreach ( array( 'message', 'Message' ) as $key ) {
+			if ( ! empty( $parsed[ $key ] ) ) {
+				$detail = $parsed[ $key ];
+				break;
+			}
+		}
+
+		if ( '' === $detail ) {
+			$detail = wp_remote_retrieve_body( $response );
+		}
+
 		return new WP_Error(
 			WP_SECRETS_ERROR_STORE_UNAVAILABLE,
-			sprintf(
-				'Secrets Manager error (HTTP %d): %s %s',
-				$code,
-				$aws_error,
-				isset( $parsed['message'] ) ? $parsed['message'] : ''
-			)
+			sprintf( 'Secrets Manager error (HTTP %d): %s -- %s', $code, $aws_error, $detail )
 		);
 	}
 }
