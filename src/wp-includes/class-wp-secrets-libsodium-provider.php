@@ -590,10 +590,10 @@ final class WP_Secrets_Libsodium_Provider implements WP_Secrets_Provider {
 	 *
 	 * Fingerprints returned here come directly from the stored record field, not
 	 * recomputed by decrypting each secret. That is a deliberate difference from
-	 * WP_Secret::fingerprint(), which always recomputes (see Checkpoint C in
-	 * docs/open-questions.md) -- recomputing here would mean decrypting every matching
-	 * secret just to list them, defeating the point of a lightweight listing call. This
-	 * is safe specifically because a list entry is documented as informational only and
+	 * WP_Secret::fingerprint(), which always recomputes -- recomputing here would mean
+	 * decrypting every matching secret just to list them, defeating the point of a
+	 * lightweight listing call. This is safe specifically because a list entry is
+	 * documented as informational only and
 	 * is never used to gate anything; nothing in this codebase performs a security
 	 * decision based on a fingerprint returned from this function.
 	 *
@@ -644,7 +644,7 @@ final class WP_Secrets_Libsodium_Provider implements WP_Secrets_Provider {
 			/*
 			 * A corrupted or unreadable record is still listed, with whatever
 			 * metadata could not be salvaged left blank, rather than silently
-			 * omitted. Site Health's "undecryptable secrets" check (§8) depends on
+			 * omitted. Site Health's "undecryptable secrets" check depends on
 			 * exactly this: a secret that has gone bad must remain visible.
 			 */
 			$entries[] = array(

@@ -6,7 +6,7 @@
  * Deliberately independent of Secrets_API_Legacy_Reader's own code: if this reused
  * the reader's logic to write fixtures, a bug in that logic could cancel itself out
  * and the tests would never notice. This reimplements the same algorithm from the
- * build brief's §9.1 description of the format, from scratch.
+ * documented prototype format, from scratch.
  */
 class Legacy_Fixture_Writer {
 

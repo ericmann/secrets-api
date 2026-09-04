@@ -30,7 +30,7 @@ class Tests_Secrets_ApiLegacyReader extends WP_UnitTestCase {
 	}
 
 	/**
-	 * The central compatibility fact from §9.3: legacy always hashes
+	 * The central compatibility fact: the prototype always hashes
 	 * WP_SECRETS_KEY's literal string, even when that string happens to also be
 	 * valid base64-32 -- unlike the new format, which would use it raw. Proven
 	 * directly here: the reader succeeds using the hashed interpretation, and
@@ -122,7 +122,7 @@ class Tests_Secrets_ApiLegacyReader extends WP_UnitTestCase {
 		$this->assertSame( 'value-two', $reader->get( 'other_key' ) );
 	}
 
-	// -- site key candidates (Checkpoint F) ---------------------------------
+	// -- site key candidates ------------------------------------------------
 
 	/**
 	 * The operator sequence that would otherwise strand a site: legacy records

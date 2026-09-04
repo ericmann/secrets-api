@@ -25,7 +25,7 @@ class Tests_Secrets_WpListSecrets extends WP_UnitTestCase {
 
 	/**
 	 * Never a value, under any circumstance -- the entire justification for this
-	 * function existing (§5.1) depends on it.
+	 * function existing depends on it.
 	 */
 	public function test_never_returns_a_value() {
 		wp_set_secret( 'myplugin/api-key', 'a-plaintext-value-that-must-not-leak' );
@@ -98,7 +98,7 @@ class Tests_Secrets_WpListSecrets extends WP_UnitTestCase {
 
 	/**
 	 * A corrupted record must still appear in the list -- Site Health's
-	 * undecryptable-secrets check (§8) depends on being able to see it exists.
+	 * undecryptable-secrets check depends on being able to see it exists.
 	 */
 	public function test_a_corrupt_record_is_still_listed_with_blank_metadata() {
 		update_option( '_wp_secret_myplugin/corrupt', 'not a record at all', false );

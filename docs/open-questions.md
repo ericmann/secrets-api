@@ -140,8 +140,8 @@ rather than overclaiming.
 
 ## 🟢 Testability smells
 
-Per the build brief: if something is hard to test, that is usually a design smell, and it gets
-written down here rather than skipped.
+If something is hard to test, that is usually a design smell, so it gets written down here
+rather than skipped.
 
 - `var_export()` of a `WP_Secret` cannot be masked from userland — it ignores `__debugInfo()` and
   `__toString()` and emits private properties directly. Mitigated by not storing the plaintext as
@@ -194,8 +194,8 @@ covers the method bodies well and covers **nothing** about how WP-CLI actually r
 is a layer with its own rules: flag-name reservations, docblock synopsis parsing, and method-name
 to subcommand-name mapping.
 
-Three real bugs lived there undetected until the commands were run for the first time on
-2026-09-04, all with green tests throughout:
+Three real bugs lived there undetected until the commands were run end to end for the first
+time, all with green tests throughout:
 
 - **`--version=previous` silently returned the current value.** WP-CLI consumes `--version` before
   a subcommand sees it; the synopsis default then filled in `current`. The flag is now `--slot`.

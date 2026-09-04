@@ -2,8 +2,8 @@
 /**
  * Scaffolding smoke tests.
  *
- * These exist so `make ci` is meaningfully green at commit 1 rather than vacuously
- * green: they prove the harness boots, the plugin loads, and the no-op gate behaves.
+ * These exist so `make ci` is meaningfully green rather than vacuously green:
+ * they prove the harness boots, the plugin loads, and the no-op gate behaves.
  *
  * @package SecretsAPI
  */

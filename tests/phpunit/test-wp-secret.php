@@ -209,7 +209,7 @@ class Tests_Secrets_WPSecret extends WP_UnitTestCase {
 	}
 
 	/**
-	 * Nothing plaintext enters the object cache (§7).
+	 * Nothing plaintext enters the object cache.
 	 *
 	 * The mechanism differs by backend and this asserts the outcome rather than the
 	 * route: core's non-persistent cache clones on set, which __clone() refuses,

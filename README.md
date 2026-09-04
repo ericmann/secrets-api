@@ -8,8 +8,9 @@ and 7.1 get something usable before the core patch lands. Everything under `src/
 be copied verbatim into `wordpress-develop` — same paths, same coding style, same `default` text
 domain.
 
-> **Status: in development.** The API surface is not yet complete. See
-> [`docs/open-questions.md`](docs/open-questions.md) for what is deliberately unresolved.
+> **Status: feature plugin, pre-core-merge.** The public API surface is settled — it is the one
+> described in the proposal. See [`docs/open-questions.md`](docs/open-questions.md) for what is
+> deliberately unresolved.
 
 [proposal]: https://make.wordpress.org/core/2026/08/25/proposal-a-secrets-api-for-wordpress-7-2/
 
@@ -42,7 +43,7 @@ target list.
 | `make compat` | PHPCompatibilityWP at `testVersion 7.4-` |
 | `make analyse` | phpstan |
 | `make test` / `make test-ms` | phpunit, single site / multisite |
-| `make coverage` | phpunit with an HTML coverage report (see `docs/open-questions.md` #16 re: wp-env) |
+| `make coverage` | phpunit with an HTML coverage report (see `docs/open-questions.md` re: wp-env) |
 | `make ci` | all of the above |
 
 Runners without egress to wordpress.org can point the installer at a mirror with `WP_MIRROR_BASE`
@@ -50,13 +51,20 @@ or `WP_TESTS_ZIP_URL`. See [`docs/ci.md`](docs/ci.md).
 
 ## What this is
 
-Three layers, each independently replaceable at exactly one seam:
+A key hierarchy in which exactly one value is ever stored wrapped:
 
-```
-site key  ──wraps──▶  root key  ──derives──▶  master key  ──wraps──▶  per-secret data key
- (keyring)             (one per install,       (per scope,             (per secret per slot,
-                        the only wrapped        never stored)           wraps the value)
-                        value on the site)
+```mermaid
+flowchart LR
+    SK["<b>site key</b><br/>from the keyring"]
+    RK["<b>root key</b><br/>one per install<br/><i>the only wrapped value stored</i>"]
+    MK["<b>master key</b><br/>per scope<br/><i>derived on demand, never stored</i>"]
+    DK["<b>data key</b><br/>per secret, per slot"]
+    V["<b>secret value</b>"]
+
+    SK -- wraps --> RK
+    RK -- derives --> MK
+    MK -- wraps --> DK
+    DK -- encrypts --> V
 ```
 
 Rotating the site key re-wraps one value, on a single site or on a 500-site network.
@@ -93,25 +101,36 @@ future screen needs are in scope; the screen is not.
 
 ## Coexisting with the Displace prototype
 
-Some plugins — including the WordPress AI plugin — were built against a vibe-coded prototype of
-this idea. This plugin does not implement that prototype's API; instead, a read for a secret that
-only exists in the prototype's format is transparently upgraded into the current format the first
-time it's read, and the prototype's own data is never touched. See
-[`docs/migrating-from-displace.md`](docs/migrating-from-displace.md).
+Some plugins were built against an earlier prototype of this idea. This plugin does not implement
+that prototype's API. Instead, a read for a secret that exists only in the prototype's format is
+upgraded into the current format the first time it is read, and the prototype's own data is never
+touched or deleted. See [`docs/migrating-from-displace.md`](docs/migrating-from-displace.md).
 
 ## Host and platform support
 
-Platforms that manage credentials themselves — a KMS-backed store, an HSM, a control panel that
-is the system of record — are not expressible under the current contract, which bans them by
-mechanism rather than by property. [`docs/host-provider-model.md`](docs/host-provider-model.md)
-works through what changes, what must not, and which decisions are proposal-level rather than
-implementation-level. Nothing there is built yet.
+Platforms that manage credentials themselves — a KMS-backed store, an HSM, a control panel that is
+the system of record — are expressible, and every one of them is *stronger* at rest than the
+default. The rule that matters is **stronger than the default, never weaker**: plaintext at rest
+stays banned, but "WordPress must be the thing doing the encrypting" was a mechanism standing in
+for that property, and it is not the property itself.
+
+`WP_Secrets_Provider` is the extension point that expresses this, and the provider that ships with
+WordPress is one implementation of it rather than a privileged case.
+[`docs/host-provider-model.md`](docs/host-provider-model.md) has the reasoning, the routing rules,
+and what does not flex.
 
 ## Extending
 
-Two seams, each a small interface: `WP_Secrets_Store` (where a record lives) and
-`WP_Secrets_Keyring` (how the root key is wrapped). A `wp-content/secrets.php` drop-in can
-replace either, or both. See [`docs/extending.md`](docs/extending.md) for the contracts and
+Three seams, outermost first:
+
+| Interface | Replaces | Reach for it when |
+|---|---|---|
+| `WP_Secrets_Provider` | Everything — the platform is the system of record | A control panel, Secrets Manager, or an HSM holds the credential |
+| `WP_Secrets_Keyring` | How the root key is wrapped | A KMS holds your keys, but secrets stay in WordPress |
+| `WP_Secrets_Store` | Where a record lives | Ciphertext belongs somewhere other than `wp_options` |
+
+The keyring is the one most hosts want, and it is three methods. A `wp-content/secrets.php` drop-in
+installs any of them. See [`docs/extending.md`](docs/extending.md) for the contracts and
 [`docs/drop-in-example.php`](docs/drop-in-example.php) for a runnable skeleton.
 
 ## Platform bindings
@@ -136,4 +155,4 @@ matrix plus a multisite job. See [`docs/ci.md`](docs/ci.md).
 
 ## License
 
-GPL-2.0-or-later
+[GPL-2.0-or-later](LICENSE)

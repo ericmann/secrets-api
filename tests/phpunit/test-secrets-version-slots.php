@@ -1,7 +1,7 @@
 <?php
 /**
  * Version slot behaviour: demotion on overwrite, PREVIOUS retrieval, and
- * wp_retire_secret_version(). Per the build brief's §11.3, PREVIOUS retrieval is
+ * wp_retire_secret_version(). PREVIOUS retrieval is
  * "the single most important new test in the suite" -- the prior proof-of-concept
  * could not do this at all.
  *

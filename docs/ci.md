@@ -68,24 +68,16 @@ reliable egress to Packagist.
 `make ci` is the source of truth and depends on none of the below. What follows is only about the
 hosted pipeline.
 
-**github.com, hosted runners.** An earlier revision of `.github/workflows/ci.yml` targeted an
-internal GitHub Enterprise Server instance; see [`open-questions.md`](open-questions.md) #8 for
-the two findings that changed that (GHES provides no hosted runners in any edition and the
-instance had none configured, so no job could execute at all). Moving to github.com also removed
-the reason the workflow was hand-rolling things a Marketplace action does better:
-
-| Was, for GHES | Is, on github.com |
-|---|---|
-| `runs-on: self-hosted` against a runner nobody had provisioned | `runs-on: ubuntu-latest` |
-| `update-alternatives` to switch PHP, assuming a preinstalled multi-PHP image | `shivammathur/setup-php`, which also guarantees the `sodium` extension this API cannot run without |
-| No dependency caching, since `actions/cache` was assumed unavailable | `actions/cache` on Composer's cache directory |
-| A `container:`-based fallback job for the no-Docker / no-egress case | Removed. It existed only for a constraint that no longer applies |
+**github.com, hosted runners.** Static analysis gates a PHP 7.4 / 8.0 / 8.3 × WordPress
+latest / trunk matrix, plus a multisite job. `shivammathur/setup-php` provides the interpreter and
+declares the `sodium` extension explicitly — this API is built entirely on libsodium, and
+"whatever the runner image happens to ship" was never a good enough answer.
 
 The workflow declares `permissions: contents: read`. Nothing in it writes to the repository,
 publishes anything, or needs a token beyond reading the code under test.
 
 `WP_MIRROR_BASE` and the air-gapped path above still work and are still supported by
-`bin/install-wp-tests.sh` — they are just no longer load-bearing for CI.
+`bin/install-wp-tests.sh` — they are just not load-bearing for CI as configured.
 
 ## Pinning
 
@@ -96,10 +88,6 @@ is exactly the supply-chain shape worth refusing here.
 Each SHA in the workflow was resolved from the GitHub API at the version noted beside it, not
 copied out of documentation or a README — a pin nobody verified is a pin to whatever the last
 person pasted.
-
-This is one of the things that got simpler by moving off GHES: bundled GHES actions are captured
-at a point in time, so a SHA valid on github.com may not exist on a given instance, and the
-workaround would have been loosening to a mutable tag.
 
 ## Matrix
 

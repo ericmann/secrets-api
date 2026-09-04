@@ -1,7 +1,7 @@
 # Coexisting with the Displace prototype
 
-This plugin does not provide a compatibility layer for the vibe-coded Displace prototype some
-plugins — including the WordPress AI plugin — were built against. There is no `get_secret()` /
+This plugin does not provide a compatibility layer for the Displace prototype that some plugins
+were built against. There is no `get_secret()` /
 `set_secret()` shim, no reimplemented filter, nothing that lets prototype-era code keep running
 unchanged. That was tried, and deliberately removed: a shim that lets old code run forever is
 exactly the kind of "temporary" surface that never actually goes away, and it does not serve the

@@ -13,8 +13,9 @@
  *
  * The drop-in's presence signals the operator wants storage other than the
  * default -- falling back to WP_Secrets_Option_Store here would silently write
- * secrets to local options against that intent, which is exactly the "fall back to
- * local storage" failure §2.6 forbids. Every operation fails closed instead.
+ * secrets to local options against that intent, which is exactly the silent
+ * downgrade to local storage this API refuses to make. Every operation fails
+ * closed instead.
  *
  * @since 7.2.0
  */

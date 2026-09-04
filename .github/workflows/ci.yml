@@ -6,11 +6,6 @@
 # locally means a green pipeline. If the two ever disagree, the Makefile is
 # right and this file is wrong.
 #
-# Runs on github.com with hosted runners. An earlier revision targeted an
-# internal GitHub Enterprise Server instance and hand-rolled everything that
-# needed a Marketplace action; that is no longer necessary. See
-# docs/open-questions.md #8 for why the host changed.
-#
 # Every action is pinned by full commit SHA rather than by tag. A tag is
 # mutable and this repository implements a credential store, so an action that
 # silently changes under a moved tag is exactly the supply-chain shape worth

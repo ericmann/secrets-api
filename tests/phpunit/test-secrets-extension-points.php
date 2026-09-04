@@ -1,6 +1,6 @@
 <?php
 /**
- * Extension point tests per the build brief's §11.7: a plugin-supplied store or
+ * Extension point tests: a plugin-supplied store or
  * keyring must actually be used, both independently and in combination, and
  * failure anywhere in either must fail closed rather than falling back to local
  * defaults.

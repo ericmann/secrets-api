@@ -311,7 +311,7 @@ function wp_secrets_validate_name( $name ) {
  * itself failed to load cleanly, this returns WP_Secrets_Broken_Store rather than
  * silently using the default: the drop-in's presence signals the operator wants
  * storage other than local options, and falling back to local options anyway would
- * be the exact "fall back to local storage" failure §2.6 forbids.
+ * be the exact silent downgrade this API refuses to make.
  *
  * @since 7.2.0
  *

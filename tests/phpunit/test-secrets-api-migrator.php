@@ -1,7 +1,7 @@
 <?php
 /**
  * Tests for Secrets_API_Migrator. This is the highest-scrutiny file in the build --
- * per the build brief, this is where silent data loss lives.
+ * this is where silent data loss would live.
  *
  * @group secrets
  */
@@ -143,7 +143,7 @@ class Tests_Secrets_ApiMigrator extends WP_UnitTestCase {
 	}
 
 	/**
-	 * The build brief's definition of done names this specifically: a record
+	 * The property this has to guarantee: a record
 	 * written by the fixture writer under each key-derivation path migrates and
 	 * reads back with matching fingerprints. Asserting the revealed value alone
 	 * would not cover it -- the fingerprint is what the migrator's own

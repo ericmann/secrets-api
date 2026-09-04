@@ -11,12 +11,12 @@
  * Strictly additive, by construction rather than by flag: this reads the
  * prototype's option rows and writes new-format ones, and there is no code path
  * here that writes to, deletes, or otherwise disturbs anything the prototype
- * owns. A site that runs this ends up with both copies, and the prototype -- and
- * the AI plugin vendoring it -- keeps working exactly as before.
+ * owns. A site that runs this ends up with both copies, and the prototype --
+ * along with anything vendoring it -- keeps working exactly as before.
  *
- * That is a deliberate narrowing of the build brief's §9.5, which specified a
+ * That is a deliberate narrowing of the original plan, which had a
  * --delete-source flag to remove each legacy option once its migrated value
- * verified. The AI team built atop the prototype and is actively reading those
+ * verified. Plugins built against the prototype are actively reading those
  * rows; deleting them is the one irreversible thing this plugin could do to
  * another team's working system, and no amount of verify-before-delete makes
  * that a good trade for a cleanup step an operator can perform explicitly with

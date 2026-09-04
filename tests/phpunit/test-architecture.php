@@ -6,7 +6,7 @@
  * deliberately placed here, immediately after the first end-to-end commit, so drift
  * fails loudly from the next commit onward instead of being discovered at the end.
  * Never weaken one of these to make a build green -- if one fails, the code is wrong,
- * or the spec needs an operator decision. See docs/open-questions.md.
+ * or the design needs a decision. See docs/open-questions.md.
  *
  * @group secrets
  * @group architecture

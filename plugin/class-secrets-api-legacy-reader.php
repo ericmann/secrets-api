@@ -11,9 +11,9 @@
  * Never writes, never deletes -- this class exists purely so
  * Secrets_API_Migrator can read a value out of the old format to write it into the
  * new one. All legacy crypto is isolated here specifically so it can be deleted in
- * one commit when the compatibility window closes, per the build brief's §9.4.
+ * one commit when the compatibility window closes.
  *
- * The legacy format, verified from source (§9.1 of the build brief):
+ * The legacy format, verified against the prototype's own source:
  *
  * - Secret option: '_secret_{key}'.
  * - Master key option: '_secrets_master_key'.

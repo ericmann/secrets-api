@@ -1,29 +1,30 @@
 # The host-provider model
 
-Working document for [`open-questions.md`](open-questions.md) #2. The interface is written
-(`src/wp-includes/interface-wp-secrets-provider.php`) and `WP_Secret` supports withheld values;
-routing the public functions through a provider is the next step and is not done.
+How a hosting platform takes over custody of a site's credentials, and why the extension point is
+shaped the way it is.
 
-It exists to answer a question the proposal asked and three hosts answered "not quite":
+This started as a response to a question the proposal asked:
 
 > Providers are meant to cover what a filter would normally give you — is that substitution
 > sufficient for the cases you'd actually need to hook?
 
-The honest answer from the comments thread is **no, not yet** — and the reason is narrow and
-fixable.
+Three platforms answered "not quite," and they were right. What follows is the resulting design,
+which is implemented: `WP_Secrets_Provider` is the outermost extension point, and the public
+functions route through it.
 
-## What three platforms actually asked for
+## What three platforms asked for
 
 | | Who holds the credential | Who encrypts it | Writes | Can WordPress read the value? |
 |---|---|---|---|---|
 | **Default (self-hosted)** | WordPress, in `wp_options` | WordPress | `wp_set_secret()` | Yes |
 | **Pantheon** (Chris Reynolds) | The platform | The platform | Platform tooling | Yes, over an authenticated channel |
 | **Altis** (Ryan McCue / Rafael Meneses) | KMS-backed store | The KMS | Host tooling; store is read-only to WP | Yes |
-| **VIP** (intended) | VIP dashboard | The platform / HSM | Dashboard only | Yes, at runtime |
+| **VIP** (stated direction, not a shipped capability) | Platform dashboard | The platform / HSM | Dashboard only | Yes, at runtime |
 
-Every one of these is *stronger* at rest than the default. Not one of them can be expressed today.
+Every one of these is *stronger* at rest than the default. None of them could be expressed by the
+original two-seam design.
 
-## Why the current contract blocks them
+## Why the original contract blocked them
 
 The proposal says of the two drop-in extension points:
 
@@ -42,8 +43,14 @@ Rafael Meneses (Altis) put the correction better than I can paraphrase it:
 
 That is the whole fix. Replace "never handed plaintext" — a mechanism — with **"never weaker than
 the default"** — the actual property. Plaintext-at-rest stays banned. An HSM that receives a value
-over an authenticated channel and never writes it to disk is not weaker than AES-256 in
-`wp_options`; it is the thing `wp_options` was a poor substitute for.
+over an authenticated channel and never writes it to disk is not weaker than an authenticated
+libsodium envelope in `wp_options`; it is the thing `wp_options` was a poor substitute for.
+
+To be clear about intent: the platform arrangements were never *meant* to be excluded. The goal
+was always a secure default with more-secure upgrade paths available. The two-seam design (store +
+keyring) described WordPress's own envelope so precisely that it left no room to say "something
+else protects this, and protects it better." That was a design accident, and the fix is to make
+the provider the seam rather than to carve exceptions into the store contract.
 
 ## What must not flex
 
@@ -51,8 +58,8 @@ Stating these first, because "we relaxed the guarantee" is a sentence that shoul
 
 - **The default path is unchanged.** No drop-in, no platform: encryption is unconditional, there
   is no constant to disable it, and nothing is handed a plaintext.
-- **Plaintext at rest in the database stays impossible.** The shipped `WP_Secrets_Option_Store`
-  never sees a plaintext and never will.
+- **Plaintext at rest in the database stays impossible.** The shipped store never sees a plaintext
+  and never will.
 - **No filter on the retrieval path.** A provider is a *swap*, not a hook. This distinction is the
   proposal's own and it survives intact: you replace the component, you do not intercept the value
   on its way past.
@@ -61,162 +68,104 @@ Stating these first, because "we relaxed the guarantee" is a sentence that shoul
 - **The three-state contract.** `WP_Secret|null|WP_Error`, never collapsed, regardless of who
   answered.
 
-## Being honest about what WordPress can verify
+## How routing works
+
+Exactly one provider serves a request. It is selected once, declaratively, and never mixed with
+another:
+
+```mermaid
+flowchart TD
+    A["wp_get_secret()"] --> B{"wp-content/secrets.php<br/>present?"}
+    B -- no --> D["WP_Secrets_Libsodium_Provider<br/>(ships with WordPress)"]
+    B -- yes --> C{"Registered a<br/>WP_Secrets_Provider?"}
+    C -- yes --> E["The drop-in's provider"]
+    C -- "no / failed to load" --> F["WP_Secrets_Broken_Provider"]
+    D --> G["WP_Secret | null | WP_Error"]
+    E --> G
+    F --> H["WP_Error, every call"]
+```
+
+The `WP_Secrets_Broken_Provider` branch is the important one. A drop-in that is present but did
+not register a valid provider is an operator error, and the response is to fail every call loudly
+— **not** to quietly serve secrets from the default provider. Falling back would mean a site whose
+platform integration silently broke starts answering from a different credential store, which is
+how a rotation gets lost or a stale credential gets served forever.
+
+The shipped provider is one implementation of the interface, not the privileged case others must
+be reconciled with. A KMS, an HSM, or a control panel is a peer.
+
+`WP_Secrets_Store` and `WP_Secrets_Keyring` remain, and remain public, but their scope is honest:
+they are the composable internals of the *libsodium provider*, not universal concepts. A host that
+wants KMS key-wrapping with default storage swaps the keyring inside the default provider rather
+than implementing a provider from scratch — three methods instead of eight. See
+[`../examples/README.md`](../examples/README.md) for picking the right seam.
+
+## The interface
+
+Eight methods, in `src/wp-includes/interface-wp-secrets-provider.php`:
+
+| Method | Purpose |
+|---|---|
+| `get( $name, $version, $network )` | `WP_Secret`, `null` for absent, `WP_Error` for unreachable |
+| `set( $name, $value, $network, $needs_rotation, $action )` | Write; `WP_SECRETS_ERROR_PROVIDER_READ_ONLY` if not writable |
+| `delete( $name, $network )` | Succeeds when the secret was already absent |
+| `retire_previous( $name, $network )` | Clears the previous slot; may be a successful no-op |
+| `list_secrets( $name_prefix, $network )` | Metadata only — never a value |
+| `get_label()` | "What is protecting my credentials?" — for Site Health |
+| `get_protection_boundary()` | `BOUNDARY_WORDPRESS` or `BOUNDARY_PROVIDER` |
+| `is_writable()` | So a settings screen can disable Save before an operator types a credential |
+
+The last three replace what was originally a stringly-typed `supports()` flag bolted onto the
+store contract. Each answers a question someone actually asked.
+
+Enforcement stays where it belongs: a provider that cannot accept a write returns
+`WP_SECRETS_ERROR_PROVIDER_READ_ONLY` from `set()`. The declarations are for humans and
+interfaces, never a substitute for the check.
+
+### Being honest about what WordPress can verify
 
 Almost nothing, and the design should say so rather than implying otherwise.
 
 A drop-in is already fully trusted code — it runs before plugins and can implement the keyring. A
-drop-in that wanted to exfiltrate secrets can do that today, with or without this change. So the
+drop-in that wanted to exfiltrate secrets can do that today, with or without this design. So the
 "never handed plaintext" rule was never a sandbox around a hostile drop-in. It was a guard rail
 against a *careless* one, and against the API's shape encouraging bad patterns.
 
-That means a `supports( 'plaintext_boundary' )`-style flag is **not a security control**. Its
-value is entirely in being explicit and visible:
+`get_protection_boundary()` is therefore **not a security control**. Its value is entirely in being
+explicit and visible: a human reviewing a drop-in can see what it claims, Site Health can tell an
+operator where their credentials are actually protected, and a plugin author can find out *before*
+writing a credential that this site's provider will refuse the write. It is documentation with a
+return type, and the docblock says so.
 
-- a human reviewing a drop-in can see what it claims,
-- Site Health can tell an operator where their credentials are actually protected,
-- and a plugin author can find out *before* writing a credential that this site's store will
-  refuse the write.
+### `reveal(): string|WP_Error`
 
-Design for that, and do not dress it up as enforcement.
+`WP_Secret::reveal()` can return a `WP_Error`, and `WP_Secret::withheld( $name, $fingerprint,
+$reason )` constructs a secret a provider can name and fingerprint but will not release to PHP —
+a broker-held or use-only credential, such as an HSM key that signs but never exports.
 
-## Where this landed
-
-The framing above got one thing backwards, and it is worth correcting rather than quietly
-editing: the platform arrangements were never *meant* to be banned. The goal was always a secure
-default with more-secure upgrade paths available. The two-seam design (store + keyring) described
-WordPress's own envelope so precisely that it left no room to say "something else protects this,
-and protects it better" — that was a design accident, not an intent, and the fix is to make the
-provider the seam rather than to carve exceptions into the store contract.
-
-**`WP_Secrets_Provider` is now the outermost extension point** (`src/wp-includes/interface-wp-secrets-provider.php`,
-written; not yet wired in). The provider that ships with WordPress — libsodium, ciphertext in the
-options tables — is *one implementation of it*, not the privileged case that others must be
-reconciled with. A KMS, an HSM, or a control panel is a peer.
-
-`WP_Secrets_Store` and `WP_Secrets_Keyring` remain, and remain public, but their scope is now
-honest: they are the composable internals of the *libsodium provider*, not universal concepts. The
-proposal's argument for keeping them separate still holds and is still served — a host wanting KMS
-key-wrapping with default storage swaps the keyring inside the default provider, rather than
-implementing a provider from scratch. What changes is that neither is imposed on a platform that
-has no envelope for them to describe.
-
-### `supports()` is gone
-
-It was a flag invented to express "read-only", bolted onto the store contract, and stringly typed.
-Three declarations replace it, each answering a question someone actually asked:
-
-| Method | Answers |
-|---|---|
-| `get_label()` | "What is protecting my credentials?" — for Site Health |
-| `get_protection_boundary()` | "Is that WordPress, or something else?" — `BOUNDARY_WORDPRESS` / `BOUNDARY_PROVIDER` |
-| `is_writable()` | "Will `wp_set_secret()` work here?" — so a settings screen can disable Save before an operator types a credential |
-
-Enforcement stays where it belongs: a provider that cannot accept a write returns
-`WP_SECRETS_ERROR_PROVIDER_READ_ONLY` from `set()`. The declaration is for humans and interfaces,
-never a substitute for the check.
-
-### `reveal(): string|WP_Error` — done
-
-Implemented, with `WP_Secret::withheld( $name, $fingerprint, $reason )` for a secret a provider
-can name and fingerprint but will not release to PHP. Everything else about such a secret behaves
-normally: it lists, it reports a stable fingerprint, and it masks itself in every output path.
-`wp secret get` reports the value as withheld rather than halting, because that command is also
-how an operator checks whether a secret exists.
+Everything else about such a secret behaves normally: it lists, it reports a stable fingerprint,
+and it masks itself in every output path. `wp secret get` reports the value as withheld rather
+than halting, because that command is also how an operator checks whether a secret exists.
 
 This does not arise for the shipped provider, which decrypts eagerly and always has a value in
-hand. It is in the signature because a return type cannot be widened after adoption.
+hand. It is in the signature because a return type cannot be widened after adoption — and it was
+worth calling out explicitly rather than slipping in, since `reveal(): string` was published.
 
-## Original analysis
+## For implementers
 
-### 1. A distinct interface, not an overloaded store
+Two rules that are easy to get wrong, both enforced by the conformance suite:
 
-`WP_Secrets_Store` traffics in **records** — the ciphertext structures `WP_Secrets_Cipher`
-produces. A platform that is the encryption boundary traffics in **values**. Making one interface
-return either, depending on a flag, is precisely the kind of polymorphism that produces silent
-bugs, and this codebase's whole posture is that absent and broken must never share a
-representation.
+- **Absence is `null`, unreachability is `WP_Error`.** A network blip must never look like a
+  deleted credential. This is the single property the whole three-state contract exists to protect
+   — because "the credential is gone" is how someone gets talked into regenerating one they still
+  had.
+- **Never cache a plaintext in the persistent object cache.** A provider that calls a platform API
+  on every read will be tempted to. The test suite asserts that a `WP_Secret` cannot round-trip a
+  plaintext through `wp_cache_set()`, and a provider caching the raw value behind WordPress's back
+  would quietly undo that. Request-scoped memoisation only.
 
-So: a second interface, provisionally `WP_Secrets_Provider`, whose implementations are
-authoritative for a value rather than custodians of our ciphertext. The *type* then carries the
-security model — a store cannot accidentally become a plaintext sink, because it has no method
-that accepts one.
+A provider backed by a platform system of record should also not persist a copy locally: the
+dashboard or KMS is authoritative, and a shadow copy in `wp_options` defeats the point.
 
-```php
-interface WP_Secrets_Provider {
-    // WP_Secret on success, null for "not mine — ask the store",
-    // WP_Error for "mine, and I cannot answer" (which never falls through).
-    public function get( $name, $version, $network = false );
-
-    public function set( $name, $value, $network = false );
-    public function delete( $name, $network = false );
-    public function list_names( $network = false );
-    public function supports( $capability );
-
-    // Human-readable, for Site Health. Never key material.
-    public function describe_protection();
-}
-```
-
-### 2. Routing is declared, never inferred
-
-A provider is consulted first. `null` means "not mine" and falls through to the store; `WP_Error`
-means "mine, and broken" and stops there. Mixed estates work — a VIP site can have
-dashboard-managed credentials alongside plugin-set ones — without WordPress guessing which is
-which.
-
-This mirrors a rule already learned the hard way in this build: the prototype fallback store
-originally inferred a mapping by dropping namespaces, and that was replaced with an exact,
-declared correspondence for exactly this reason. Routing that a caller cannot predict is routing
-that will surprise someone holding a credential.
-
-### 3. Capabilities cover writability *and* where encryption happens
-
-Per Altis, `supports()` needs to answer both. `supports( 'write' )` already exists and already
-makes `wp_set_secret()` return `secret_store_read_only`; `wp_secrets_store_supports()` already
-lets a settings screen disable its save button before an operator types a credential. That
-machinery extends to providers unchanged — this part is built and tested.
-
-What is missing is the encryption-locus declaration that lets an admin screen and Site Health say
-*where* a secret is protected, which is the "degrade gracefully" half of the request.
-
-## The decisions I cannot make
-
-**1. Does the published guarantee get amended?** The sentence "Neither is ever handed a plaintext
-secret" is published. Adopting the "stronger, never weaker" framing means restating it. That is a
-proposal-level edit and a comments-thread conversation, not an implementation detail.
-Recommendation: yes, and lead with the reframe rather than the exception — the rule gets *more*
-precise, not weaker.
-
-**2. Does `WP_Secret::reveal()` become `string|WP_Error`?**
-
-This is the one that cannot be deferred. `reveal(): string` is published, and a return type cannot
-be widened after adoption without breaking callers.
-
-Today `reveal()` genuinely cannot fail: `_wp_secrets_get()` decrypts eagerly and there is exactly
-one construction site, so the plaintext is in hand before a `WP_Secret` exists. The case Altis is
-protecting is a broker-held or use-only secret — an HSM that will sign with a key but never export
-it — where the value never enters PHP at all.
-
-Arguments to change it: it is impossible to add later; a lazy or brokered provider makes failure
-real; and `reveal()` is currently the *one* place this API pretends failure cannot happen, which
-sits oddly against everything else in it.
-
-Argument against: it costs every caller an `is_wp_error()` check for a case that does not exist
-yet, and a secret you cannot reveal is arguably not a `WP_Secret` at all but a handle — which
-would be a different type rather than a widened return.
-
-Recommendation: **change it**, on the grounds that the cost is one check at a call site that
-already has to check `wp_get_secret()`, and the alternative is permanent. But flag it in the
-thread explicitly rather than slipping it in — it is a published-signature change.
-
-**3. Is a provider allowed to persist anything locally?** For the VIP model the answer should be
-no: the dashboard is the system of record and a copy in `wp_options` defeats the point. Worth
-stating in the contract rather than leaving to each implementer.
-
-## One implementation hazard worth recording now
-
-A provider that calls a platform API on every `wp_get_secret()` will be tempted to cache. It must
-not cache into the persistent object cache: this suite already asserts that a `WP_Secret` cannot
-round-trip a plaintext through `wp_cache_set()`, and a provider caching the raw value behind
-WordPress's back would quietly undo that. Request-scoped memoisation only.
+Run the conformance suite before trusting an implementation — see
+[`extending.md`](extending.md) and [`../examples/README.md`](../examples/README.md).
