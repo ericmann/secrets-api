@@ -15,5 +15,7 @@ examples/*/vendor/
 # wp-env local overrides — may contain real credentials.
 .wp-env.override.json
 
-# Local demo notes; not part of the published project.
+# Local demo notes and announcement drafts; not part of the published project.
 DEMO.md
+ANNOUNCE-*.md
+ANNOUNCE-*.txt
