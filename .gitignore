@@ -11,3 +11,6 @@
 
 # Platform bindings vendor their own SDKs; never the plugin.
 examples/*/vendor/
+
+# wp-env local overrides — may contain real credentials.
+.wp-env.override.json
