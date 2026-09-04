@@ -1,11 +1,11 @@
 # Coexisting with the Displace prototype
 
 This plugin does not provide a compatibility layer for the Displace prototype that some plugins
-were built against. There is no `get_secret()` /
-`set_secret()` shim, no reimplemented filter, nothing that lets prototype-era code keep running
-unchanged. That was tried, and deliberately removed: a shim that lets old code run forever is
-exactly the kind of "temporary" surface that never actually goes away, and it does not serve the
-one goal that matters here, which is that adopting sites do not break.
+were built against. There is no `get_secret()` / `set_secret()` shim, no reimplemented filter,
+nothing that lets prototype-era code keep running unchanged. That was tried, and deliberately
+removed: a shim that lets old code run forever is exactly the kind of "temporary" surface that
+never actually goes away, and it does not serve the one goal that matters here, which is that
+adopting sites do not break.
 
 What exists instead is narrower and does not need anyone to run anything.
 
@@ -58,12 +58,12 @@ explicitly under the name you want.
 `wp secret migrate-legacy` copies every (or one named) Displace secret into the current format
 up front, without waiting for a first read. By default it keeps each key exactly as Displace
 spelled it — deliberately, since that is the same name a plain `wp_get_secret()` would upgrade it
-to, and a different default would leave the same secret in two current-format records that
-diverge the moment either is rotated. It is strictly additive — it writes new-format
-records and never touches, and cannot delete, a Displace-owned row. `--dry-run` reports what it
-would do without writing anything; `--namespace=<ns>` and `--map=<old>:<new>` both put the migrated secret somewhere specific,
-which is also how you resolve a key whose name Displace allowed but this API's rules do not
-(anything with uppercase, spaces, or dots).
+to, and a different default would leave the same secret in two current-format records that diverge
+the moment either is rotated. It is strictly additive: it writes new-format records and never
+touches, and cannot delete, a Displace-owned row. `--dry-run` reports what it would do without
+writing anything. `--namespace=<ns>` and `--map=<old>:<new>` both put the migrated secret somewhere
+specific, which is also how you resolve a key whose name Displace allowed but this API's rules do
+not (anything with uppercase, spaces, or dots).
 
 If the WordPress AI plugin's own vendored copy of the prototype's code is detected on the site,
 the command warns loudly: that plugin is still reading its own copy of the row you just copied,

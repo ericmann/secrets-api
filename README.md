@@ -3,10 +3,13 @@
 Feature plugin for the [Secrets API proposed for WordPress 7.2][proposal]. Encrypted, versioned
 credential storage with pluggable storage and keyring back ends.
 
-This exists so contributors can *run* the API instead of reading about it, and so sites on 7.0
-and 7.1 get something usable before the core patch lands. Everything under `src/` is written to
+This exists so contributors can *run* the API instead of reading about it, and so sites on 6.6
+and later get something usable before the core patch lands. Everything under `src/` is written to
 be copied verbatim into `wordpress-develop` — same paths, same coding style, same `default` text
 domain.
+
+Once core ships the API, the plugin stands down on its own and says so in an admin notice rather
+than shadowing core's implementation.
 
 > **Status: feature plugin, pre-core-merge.** The public API surface is settled — it is the one
 > described in the proposal. See [`docs/open-questions.md`](docs/open-questions.md) for what is

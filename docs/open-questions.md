@@ -33,9 +33,9 @@ keyring. A drop-in installs a platform provider by setting `$GLOBALS['wp_secrets
 will not release to PHP. Site Health and `wp secret dropin` report all of it.
 
 **What has not happened:** nobody has written a real platform provider against this yet. The
-interface is shaped by descriptions of what hosts need, not by working implementations, and the first real one will find something. That is the useful next feedback to
-seek in the comments thread — not "does this look right" but "build against it and tell us what
-broke."
+interface is shaped by descriptions of what hosts need, not by working implementations, and the
+first real one will find something. That is the useful next feedback to seek in the comments
+thread — not "does this look right" but "build against it and tell us what broke."
 
 See [`host-provider-model.md`](host-provider-model.md) for the reasoning, including why a provider
 declaration is documentation rather than enforcement.
