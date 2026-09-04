@@ -159,6 +159,23 @@ class Tests_Secrets_ApiLegacyReader extends WP_UnitTestCase {
 	}
 
 	/**
+	 * The prototype lets an operator rotate WP_SECRETS_KEY and keep the old value in
+	 * WP_SECRETS_KEY_PREVIOUS so records sealed under it still read. A site part-way
+	 * through that rotation must not lose those records by adopting this plugin.
+	 *
+	 * @runInSeparateProcess
+	 * @preserveGlobalState disabled
+	 */
+	public function test_records_sealed_under_wp_secrets_key_previous_still_read() {
+		( new Legacy_Fixture_Writer() )->write_secret( 'api_key', 'sk_legacy_value', 'the-old-key' );
+
+		define( 'WP_SECRETS_KEY', 'the-new-key' );
+		define( 'WP_SECRETS_KEY_PREVIOUS', 'the-old-key' );
+
+		$this->assertSame( 'sk_legacy_value', ( new Secrets_API_Legacy_Reader() )->get( 'api_key' ) );
+	}
+
+	/**
 	 * Trying several candidates must not turn into "eventually accepts anything":
 	 * when none of them opens the master key, that is still a hard failure.
 	 *

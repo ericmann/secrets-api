@@ -192,6 +192,20 @@ final class Secrets_API_Legacy_Reader {
 			}
 		}
 
+		/*
+		 * The prototype supports WP_SECRETS_KEY_PREVIOUS so that rotating
+		 * WP_SECRETS_KEY does not strand records sealed under the old value. A site
+		 * mid-rotation has records under both, so both have to be candidates here or
+		 * the older ones become unreadable the moment this plugin takes over.
+		 */
+		if ( defined( 'WP_SECRETS_KEY_PREVIOUS' ) ) {
+			$previous = constant( 'WP_SECRETS_KEY_PREVIOUS' );
+
+			if ( is_string( $previous ) && '' !== $previous ) {
+				$candidates[] = sodium_crypto_generichash( $previous, '', SODIUM_CRYPTO_SECRETBOX_KEYBYTES );
+			}
+		}
+
 		if ( defined( 'LOGGED_IN_KEY' ) && defined( 'LOGGED_IN_SALT' )
 			&& is_string( LOGGED_IN_KEY ) && is_string( LOGGED_IN_SALT )
 			&& '' !== LOGGED_IN_KEY && '' !== LOGGED_IN_SALT
@@ -202,7 +216,7 @@ final class Secrets_API_Legacy_Reader {
 		if ( empty( $candidates ) ) {
 			return new WP_Error(
 				'legacy_key_unavailable',
-				__( 'No legacy site key could be derived: WP_SECRETS_KEY is unusable or undefined, and LOGGED_IN_KEY/LOGGED_IN_SALT are not usable either.', 'secrets-api' )
+				__( 'No legacy site key could be derived: WP_SECRETS_KEY and WP_SECRETS_KEY_PREVIOUS are unusable or undefined, and LOGGED_IN_KEY/LOGGED_IN_SALT are not usable either.', 'secrets-api' )
 			);
 		}
 
