@@ -1,7 +1,7 @@
 # Security policy
 
-This project stores credentials. A flaw here is a flaw in the thing protecting everything else,
-so reports are welcome and taken seriously — including ones that turn out to be wrong.
+This project stores credentials, so a bug here can undermine everything it's meant to protect.
+Reports are welcome and taken seriously, including the ones that turn out to be wrong.
 
 ## Reporting a vulnerability
 
@@ -9,10 +9,10 @@ so reports are welcome and taken seriously — including ones that turn out to b
 
 Use GitHub's private vulnerability reporting:
 [**Report a vulnerability**](https://github.com/ericmann/secrets-api/security/advisories/new).
-That opens a private advisory visible only to the maintainers, and it lets us work the fix and
-the disclosure in the same place.
+That opens an advisory only the maintainers can see, and keeps the fix and the disclosure in one
+place.
 
-Useful things to include, in rough order of value:
+Helpful things to include, roughly in order of usefulness:
 
 - the property you believe is violated, stated as a property (for example "a record sealed for
   one secret name can be decrypted under another")
@@ -20,8 +20,8 @@ Useful things to include, in rough order of value:
 - the PHP and WordPress versions, and whether the site is multisite
 - whether a `wp-content/secrets.php` drop-in was installed, and which provider it registered
 
-You will get an acknowledgement. If a report is not a vulnerability, you will get an explanation
-of why rather than silence.
+You'll get an acknowledgement either way. If it turns out not to be a vulnerability, you'll get an
+explanation rather than silence.
 
 ## Scope
 
@@ -29,7 +29,7 @@ This is a pre-release feature plugin (`0.1.0`) tracking a proposal, not yet ship
 core. There is no supported-version matrix yet: `main` is the only supported branch, and fixes
 land there.
 
-In scope, and interesting:
+Things worth reporting:
 
 - the envelope construction and key hierarchy in `src/wp-includes/` — key derivation, AAD
   binding, nonce handling, the two-slot rotation model
@@ -38,22 +38,23 @@ In scope, and interesting:
 - anything that causes a secret value to be written anywhere in plaintext, including logs,
   the persistent object cache, `wp_options`, or CLI output that was not explicitly asked to
   reveal
-- anything that makes an unreachable or broken backend report a credential as **absent**.
-  Absent and broken are deliberately distinct states, and collapsing them is how someone gets
-  talked into regenerating a credential they still had
+- anything that makes an unreachable or broken backend report a credential as **absent**. Absent
+  and broken are kept separate on purpose, since confusing the two is how someone ends up
+  regenerating a credential they still had
 - privilege or capability checks on the WP-CLI commands and Site Health surfaces
 
 ## Known and documented non-goals
 
-These are design decisions, documented in the README and `docs/`, not oversights. Reporting them
-is not useful — though arguing that a decision is *wrong* absolutely is, in a normal issue:
+These are documented decisions in the README and `docs/`, not things that were missed. Reporting
+them won't get you far, though arguing that one of them is the wrong decision is a fair issue to
+open:
 
 - **There is no per-plugin isolation.** Namespacing (`plugin-slug/secret-name`) is organisational.
   Any plugin that can run PHP can read any secret. Masking is hygiene against shoulder-surfing
   and accidental logging, not a privilege boundary.
-- **A `wp-content/secrets.php` drop-in is fully trusted code.** It runs before plugins and can
-  do anything PHP can. `get_protection_boundary()` and friends are declarations for humans and
-  interfaces, never enforcement, and say so in their own docblocks.
+- **A `wp-content/secrets.php` drop-in is fully trusted code.** It runs before plugins and can do
+  anything PHP can. `get_protection_boundary()` and its neighbours are declarations for humans to
+  read; nothing enforces them, and their docblocks say as much.
 - **`var_export()` of a `WP_Secret` cannot be masked from userland.** It ignores `__debugInfo()`
   and emits private properties directly. Mitigated by never storing the plaintext as an object
   property; documented as a known limitation.
@@ -64,9 +65,9 @@ is not useful — though arguing that a decision is *wrong* absolutely is, in a 
 
 ## Cryptography
 
-The construction is deliberately boring: libsodium primitives, composed in the documented way,
-with no invented cipher and no hand-rolled mode.
+The construction is boring on purpose: libsodium primitives, composed the way the documentation
+says to compose them, with no invented cipher and no hand-rolled mode.
 
-If you find that this project is *using* a primitive incorrectly — a reused nonce, an
-unauthenticated path, a KDF misuse, a context string that does not bind what it claims to bind —
-that is exactly the report worth making, and the one hardest to catch from the inside.
+If you find this project *using* one of those primitives incorrectly — a reused nonce, an
+unauthenticated path, a KDF misuse, a context string that doesn't bind what it claims to — that's
+the report worth making, and the hardest kind to catch from the inside.

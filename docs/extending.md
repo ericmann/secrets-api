@@ -1,32 +1,31 @@
 # Extending: providers, stores, and keyrings
 
-**Start here: `WP_Secrets_Provider` is the outermost seam.** It answers for a secret — holding it,
-protecting it, and producing it. WordPress ships `WP_Secrets_Libsodium_Provider`, which encrypts
-with libsodium and keeps ciphertext in the options tables, and that is the *default*, not the
-privileged case. A platform that protects credentials in a KMS, an HSM, or its own control panel
-implements the same interface and is a peer.
+**Start here: `WP_Secrets_Provider` is the outermost extension point.** A provider is responsible
+for a secret: storing it, protecting it, and handing it back. WordPress ships
+`WP_Secrets_Libsodium_Provider`, which encrypts with libsodium and keeps ciphertext in the options
+tables. That's the default and nothing more. A platform that protects credentials in a KMS, an
+HSM, or its own control panel implements the same interface and stands on equal footing.
 
-The rule a provider must satisfy is **stronger than the default, never weaker**. Storing a
-plaintext where the default would have stored ciphertext stays impossible. Receiving a value over
-an authenticated channel and protecting it in an HSM is not that.
+Every provider has to be **stronger than the default, never weaker**. You still can't store a
+plaintext where the default would have stored ciphertext. Taking a value over an authenticated
+channel and keeping it in an HSM clears that bar comfortably.
 
 ```php
 // wp-content/secrets.php
 $GLOBALS['wp_secrets_provider'] = new My_Platform_Provider();
 ```
 
-A provider declares three things, so Site Health and a future settings screen can be honest about
-what is protecting a site's credentials: `get_label()`, `get_protection_boundary()` (
-`BOUNDARY_WORDPRESS` or `BOUNDARY_PROVIDER`), and `is_writable()`. **These are declarations, not
-enforcement** — a drop-in is fully trusted code that could already read every secret. Their value
-is visibility, and the interface says so rather than implying a boundary that is not there.
+A provider declares three things so Site Health and a future settings screen can tell an operator
+what's protecting their credentials: `get_label()`, `get_protection_boundary()`
+(`BOUNDARY_WORDPRESS` or `BOUNDARY_PROVIDER`), and `is_writable()`. **Nothing enforces these
+declarations.** A drop-in is fully trusted code that could already read every secret. They exist
+so a human reviewing a drop-in, or an operator reading Site Health, can see what it claims.
 
-### Prove it conforms before you ship it
+### Check it against the conformance suite
 
-`implements WP_Secrets_Provider` is a claim PHP can check about method names and
-nothing else. It cannot tell you that absence is reported as `null` rather than an error, or that
-an unreachable backend fails closed instead of looking empty — and those are the properties that
-actually matter to a caller holding a credential.
+PHP can verify your class has the right method names. It can't tell you whether absence comes back
+as `null` instead of an error, or whether an unreachable backend fails closed rather than looking
+empty. Those are the parts a caller holding a credential depends on.
 
 So extend the conformance suite and point it at your provider:
 
@@ -38,22 +37,22 @@ class Tests_My_Platform_Provider extends WP_Secrets_Provider_Conformance {
 }
 ```
 
-It checks what every provider owes a caller: a name that was never set reads as `null`; `PREVIOUS`
-with no previous value is absence rather than an error; deleting something absent succeeds;
-fingerprints are stable for the same value; listings never contain a plaintext; and a provider
-that declares itself read-only actually refuses writes with `secret_provider_read_only`. Where the
-contract legitimately varies it adapts — a read-only provider is not asked to round-trip a value —
-and it says in the report what it skipped rather than passing silently.
+It checks that a name you never set reads as `null`; that `PREVIOUS` with no previous value is an
+absence rather than an error; that deleting something absent succeeds; that fingerprints stay
+stable for the same value; that listings never contain a plaintext; and that a provider declaring
+itself read-only really does refuse writes with `secret_provider_read_only`. Where the contract
+allows variation it adapts, so a read-only provider is never asked to round-trip a value, and it
+reports what it skipped instead of passing quietly.
 
 The suite lives in `tests/includes/class-wp-secrets-provider-conformance.php` and runs against the
-shipped provider, so there is a known-good subject to compare failures against.
+shipped provider, so you have a known-good subject to compare failures against.
 
 ---
 
-The two interfaces below are the *internals of the shipped provider*, and remain replaceable
-independently. A host who wants their own key custody but is happy with WordPress's storage swaps
-only the keyring and writes no provider at all. Both live in `src/wp-includes/` and both are part
-of the API surface intended for core.
+The two interfaces below are the internals of the shipped provider, and you can still replace
+either one on its own. A host who wants their own key custody but is happy with WordPress's
+storage swaps the keyring and writes no provider at all. Both live in `src/wp-includes/`, and both
+are part of the API surface intended for core.
 
 ## `WP_Secrets_Store`: where records live
 
@@ -101,15 +100,15 @@ interface WP_Secrets_Keyring {
 }
 ```
 
-Smaller surface, higher stakes: this is the one thing every other key in the system derives
-from. `wrap()`/`unwrap()` protect exactly one thing — 32 bytes of root key material — never a
-secret value. A KMS or HSM lives behind this interface in a real deployment; the shipped default
-(`WP_Secrets_Config_Key_Provider`) wraps it with a key derived from `wp-config.php`, because that
-is the only thing guaranteed to exist on every WordPress install.
+A smaller interface, but everything else depends on it: every other key in the system derives
+from what this one protects. `wrap()` and `unwrap()` only ever handle 32 bytes of root key
+material, never a secret value. In a real deployment a KMS or HSM sits behind this interface. The
+shipped default (`WP_Secrets_Config_Key_Provider`) wraps the root key with a key derived from
+`wp-config.php`, since that's the only thing guaranteed to exist on every WordPress install.
 
-`get_key_source()` is a one-line, human-readable string surfaced in Site Health so an operator
-can see at a glance whether they're running the config-derived default or something they wired
-up themselves — not sensitive, never the key material itself.
+`get_key_source()` returns a short human-readable string for Site Health, so an operator can see
+whether they're on the config-derived default or something they wired up themselves. It describes
+the key; it never contains the key material.
 
 ### Registering one
 
@@ -118,29 +117,29 @@ up themselves — not sensitive, never the key material itself.
 $GLOBALS['wp_secrets_keyring'] = new My_KMS_Keyring();
 ```
 
-A drop-in can set any of the three globals, or none. Setting only the keyring and leaving storage
-on the default is a normal, supported combination — most hosts want their own key management long
+A drop-in can set any of the three globals, or none of them. Setting only the keyring and leaving
+storage on the default is a normal thing to do; most hosts want their own key management long
 before they want their own row storage. Setting `$GLOBALS['wp_secrets_provider']` replaces both at
-once, and is what a platform that is itself the encryption boundary should do.
+once, which is what a platform doing its own encryption should do.
 
 ## What happens if you get it wrong
 
 `wp_secrets_api_load_dropin()` requires `secrets.php`, if one exists, and checks the type of
 whatever ends up in `$GLOBALS['wp_secrets_provider']` / `$GLOBALS['wp_secrets_store']` /
 `$GLOBALS['wp_secrets_keyring']` afterward.
-A missing global is fine — a drop-in that sets only one of them is a legitimate and common case.
-A global set to something that isn't an instance of the matching interface is not fine, and
-neither is a drop-in that throws or has a syntax error. Both fail the whole drop-in closed, via
+Leaving a global unset is fine; plenty of drop-ins set only one. Setting one to something that
+isn't an instance of the matching interface is not, and neither is a drop-in that throws or has a
+syntax error. Either way the whole drop-in fails closed, through
 `WP_Secrets_Broken_Provider` / `WP_Secrets_Broken_Store` / `WP_Secrets_Broken_Keyring`, which turn
-every operation into a `WP_Error` rather than silently falling back to the default. A broken
+every operation into a `WP_Error` instead of quietly falling back to the default. A broken
 credential backend must never look like a working one that happens to have no secrets in it yet.
 
-One gap, load-bearing enough to call out here rather than leave buried: PHP treats certain class
-declaration errors in the drop-in — most notably a class that `implements` an interface but
-omits a required method — as an uncatchable fatal, even inside the `try`/`catch` around the
-`require`. There is no userland way to close this; a fatal there is a fatal for the whole
-request, not a scoped, contained failure. Test your drop-in with `-l` and a real request before
-trusting it in production. See [`open-questions.md`](open-questions.md), "Drop-in file loading".
+There's one gap worth knowing about. PHP treats some class declaration errors in the drop-in as an
+uncatchable fatal, even inside the `try`/`catch` around the `require`. The usual culprit is a class
+that `implements` an interface but omits one of its methods. Userland can't intercept that, and it
+takes down the whole request rather than failing in a contained way. Run `php -l` over your drop-in
+and load a real request before you trust it in production. See
+[`open-questions.md`](open-questions.md), "Drop-in file loading".
 
 ## Error codes
 

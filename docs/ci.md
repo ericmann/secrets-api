@@ -70,23 +70,23 @@ hosted pipeline.
 
 **github.com, hosted runners.** Static analysis gates a PHP 7.4 / 8.0 / 8.3 × WordPress
 latest / trunk matrix, plus a multisite job. `shivammathur/setup-php` provides the interpreter and
-declares the `sodium` extension explicitly — this API is built entirely on libsodium, and
-"whatever the runner image happens to ship" was never a good enough answer.
+asks for the `sodium` extension by name. The whole API is built on libsodium, so relying on
+whatever the runner image happens to ship wasn't good enough.
 
 The workflow declares `permissions: contents: read`. Nothing in it writes to the repository,
 publishes anything, or needs a token beyond reading the code under test.
 
 `WP_MIRROR_BASE` and the air-gapped path above still work and are still supported by
-`bin/install-wp-tests.sh` — they are just not load-bearing for CI as configured.
+`bin/install-wp-tests.sh`. CI as configured just doesn't depend on them.
 
 ## Pinning
 
-Every action is pinned by **full commit SHA**, not by tag. A tag is mutable; a SHA is not, and
-this repository implements a credential store — an action that silently changes under a moved tag
-is exactly the supply-chain shape worth refusing here.
+Every action is pinned by **full commit SHA** rather than by tag. Tags move; SHAs don't. Given
+this repository implements a credential store, an action that could change underneath a moved tag
+isn't a risk worth taking.
 
-Each SHA in the workflow was resolved from the GitHub API at the version noted beside it, not
-copied out of documentation or a README — a pin nobody verified is a pin to whatever the last
+Each SHA in the workflow came from the GitHub API at the version noted beside it, rather than
+copied out of documentation or a README. An unverified pin is really a pin to whatever the last
 person pasted.
 
 ## Matrix

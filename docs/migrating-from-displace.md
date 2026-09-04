@@ -2,12 +2,12 @@
 
 This plugin does not provide a compatibility layer for the Displace prototype that some plugins
 were built against. There is no `get_secret()` / `set_secret()` shim, no reimplemented filter,
-nothing that lets prototype-era code keep running unchanged. That was tried, and deliberately
-removed: a shim that lets old code run forever is exactly the kind of "temporary" surface that
-never actually goes away, and it does not serve the one goal that matters here, which is that
-adopting sites do not break.
+nothing that lets prototype-era code keep running unchanged. An earlier revision had one, and it
+was removed on purpose. A shim that lets old code run indefinitely is the kind of "temporary"
+surface that never goes away, and it doesn't serve the goal here, which is that adopting sites
+don't break.
 
-What exists instead is narrower and does not need anyone to run anything.
+What's there instead is narrower, and nobody has to run anything for it to work.
 
 ## What happens automatically
 
@@ -19,9 +19,9 @@ again. Nothing about this requires a migration command, a flag, or advance notic
 switching from calling Displace's functions directly to calling `wp_get_secret()` will simply
 start working, one credential at a time, as each one is first read under its new name.
 
-The upgraded secret is flagged `needs_rotation`. It has been sitting in the prototype's format,
-and moving it into a new envelope does not undo wherever it has already been — the same reasoning
-`wp_import_option_as_secret()` uses for a value pulled out of a plain option.
+The upgraded secret is flagged `needs_rotation`. It's been sitting in the prototype's format, and
+re-encrypting it doesn't undo wherever it has already been. `wp_import_option_as_secret()` flags
+values pulled out of plain options for the same reason.
 
 **The prototype's own rows are never modified or deleted**, by this or by anything else in this
 plugin. Both systems keep working, indefinitely, on the same site — enforced, not just intended:
@@ -43,10 +43,10 @@ The correspondence is exact, in both directions:
 | `wp_get_secret( 'api_key' )` | Yes — same name, same secret |
 | `wp_get_secret( 'myplugin/api_key' )` | No — Displace had no namespaces, so it never owned this name |
 
-Nothing is rewritten or guessed on your behalf. An earlier revision of this plugin dropped the
-namespace instead, so that `wp_get_secret( 'anything/api_key' )` inherited Displace's `api_key`.
-That was removed: it meant any namespace could silently claim any Displace row, and gave a caller
-no way to tell which of its names were quietly wired to prototype data.
+Nothing gets rewritten or guessed on your behalf. An earlier revision dropped the namespace
+instead, so `wp_get_secret( 'anything/api_key' )` would inherit Displace's `api_key`. That went
+away, because it let any namespace claim any Displace row and gave callers no way to tell which of
+their names were quietly wired to prototype data.
 
 **So: adopt the API first, namespace second.** Change `get_secret( 'api_key' )` to
 `wp_get_secret( 'api_key' )` and it works immediately. When you are ready to take a namespace,
@@ -69,7 +69,6 @@ If the WordPress AI plugin's own vendored copy of the prototype's code is detect
 the command warns loudly: that plugin is still reading its own copy of the row you just copied,
 and will keep doing so until it moves onto this API itself.
 
-There is no delete step, in the command or anywhere else. If you genuinely want a Displace
-option gone after confirming it migrated, use `wp option delete` — that is an explicit,
-reversible-until-you-do-it action for an operator to take, not something this plugin will do on
-your behalf to another plugin's data.
+There's no delete step, in the command or anywhere else. If you want a Displace option gone after
+confirming it migrated, run `wp option delete` yourself. Deleting another plugin's data isn't
+something this one will do on your behalf.

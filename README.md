@@ -72,11 +72,11 @@ flowchart LR
 
 Rotating the site key re-wraps one value, on a single site or on a 500-site network.
 
-Some things are load-bearing and will not change:
+A few rules the design won't bend on:
 
 - **Encryption is unconditional.** There is no plaintext mode and no constant to disable it.
 - **No filter on the retrieval path.** Nothing intercepts a credential between storage and the
-  caller. A filter that can intercept a credential is a filter that can steal one.
+  caller. A filter there would amount to a supported way of reading every credential on the site.
 - **Fail closed.** An unreachable store or keyring is a `WP_Error`, never a fallback to local
   storage or local key wrapping.
 - **No export.** `WP_Secret::reveal()` is the only path to a stored plaintext. Migrations and
@@ -88,10 +88,10 @@ Some things are load-bearing and will not change:
 ### What it is not
 
 There is **no per-plugin isolation**. Namespacing (`plugin-slug/secret-name`) is organisational:
-it groups secrets by owner so that listings, and a future admin screen, can be sensible. It is not
-an access-control or visibility boundary and was never intended as one. Masking is hygiene against
-shoulder-surfing and accidental logging, not a privilege boundary either. **Any plugin that can
-run PHP can read any secret.**
+it groups secrets by owner so listings, and a future admin screen, can be sensible. It was never
+meant to be an access-control or visibility boundary. Masking guards against shoulder-surfing and
+accidental logging; it isn't a privilege boundary either. **Any plugin that can run PHP can read
+any secret.**
 
 There is **no admin settings screen**. The proposal defers it to 7.3. The hooks and accessors a
 future screen needs are in scope; the screen is not.
@@ -112,19 +112,19 @@ touched or deleted. See [`docs/migrating-from-displace.md`](docs/migrating-from-
 ## Host and platform support
 
 Platforms that manage credentials themselves — a KMS-backed store, an HSM, a control panel that is
-the system of record — are expressible, and every one of them is *stronger* at rest than the
-default. The rule that matters is **stronger than the default, never weaker**: plaintext at rest
-stays banned, but "WordPress must be the thing doing the encrypting" was a mechanism standing in
-for that property, and it is not the property itself.
+the system of record — all work, and each of them protects a credential better at rest than the
+default does. The rule is **stronger than the default, never weaker**. Plaintext at rest is still
+banned; what changed is that "WordPress has to do the encrypting" turned out to be a stand-in for
+that rule rather than the rule itself.
 
-`WP_Secrets_Provider` is the extension point that expresses this, and the provider that ships with
-WordPress is one implementation of it rather than a privileged case.
+`WP_Secrets_Provider` is where a platform plugs in, and the provider that ships with WordPress is
+one implementation of it rather than a privileged case.
 [`docs/host-provider-model.md`](docs/host-provider-model.md) has the reasoning, the routing rules,
 and what does not flex.
 
 ## Extending
 
-Three seams, outermost first:
+Three interfaces, outermost first:
 
 | Interface | Replaces | Reach for it when |
 |---|---|---|
@@ -132,18 +132,18 @@ Three seams, outermost first:
 | `WP_Secrets_Keyring` | How the root key is wrapped | A KMS holds your keys, but secrets stay in WordPress |
 | `WP_Secrets_Store` | Where a record lives | Ciphertext belongs somewhere other than `wp_options` |
 
-The keyring is the one most hosts want, and it is three methods. A `wp-content/secrets.php` drop-in
-installs any of them. See [`docs/extending.md`](docs/extending.md) for the contracts and
+The keyring is what most hosts actually want, and it's three methods. A `wp-content/secrets.php`
+drop-in installs any of them. See [`docs/extending.md`](docs/extending.md) for the contracts and
 [`docs/drop-in-example.php`](docs/drop-in-example.php) for a runnable skeleton.
 
 ## Platform bindings
 
 [`examples/`](examples/) holds reference implementations for wiring this API to a cloud provider.
-Nothing there is loaded by the plugin, and it is excluded from `make ci` so those SDK
-dependencies never become this project's. Read its README before writing one — a key-management
-service (AWS KMS, Google Cloud KMS) is a `WP_Secrets_Keyring` and takes three methods, while a
-secret store (Secrets Manager, Parameter Store) is a `WP_Secrets_Provider` and takes eight.
-Choosing the wrong one is the common mistake and it is an expensive one.
+Nothing there is loaded by the plugin, and it's excluded from `make ci` so those SDK dependencies
+never become this project's. Read its README before writing one: a key-management service (AWS
+KMS, Google Cloud KMS) is a `WP_Secrets_Keyring` and takes three methods, while a secret store
+(Secrets Manager, Parameter Store) is a `WP_Secrets_Provider` and takes eight. People routinely
+pick the wrong one and pay for it in per-operation API calls.
 
 ## Contributing
 

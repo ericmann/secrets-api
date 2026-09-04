@@ -1,13 +1,13 @@
 # Open questions
 
 Things this implementation deliberately did **not** decide. Each entry states the conservative
-choice that was made, where the seam is, and who needs to resolve it.
+choice that was made, where the relevant code is, and who needs to resolve it.
 
-**This file holds only what is still open.** Closed questions are deleted rather than archived —
-the reasoning for a decision belongs next to the code that implements it, where someone reading
-that code will actually find it, and a file of answered questions makes the unanswered ones harder
-to see. Entries are referenced by heading rather than by number, so removing one never dangles a
-reference elsewhere.
+**This file holds only what is still open.** Closed questions get deleted rather than archived.
+The reasoning behind a decision belongs next to the code that implements it, where someone reading
+that code will find it, and a long list of answered questions just makes the unanswered ones
+harder to spot. Entries are referenced by heading rather than number, so removing one never leaves
+a dangling reference.
 
 Status legend: 🔴 blocks a release · 🟡 needs an answer before the core patch · 🟢 tracking only
 
@@ -32,17 +32,17 @@ keyring. A drop-in installs a platform provider by setting `$GLOBALS['wp_secrets
 `reveal()` returns `string|WP_Error` and `WP_Secret::withheld()` exists for credentials a provider
 will not release to PHP. Site Health and `wp secret dropin` report all of it.
 
-**What has not happened:** nobody has written a real platform provider against this yet. The
-interface is shaped by descriptions of what hosts need, not by working implementations, and the
-first real one will find something. That is the useful next feedback to seek in the comments
-thread — not "does this look right" but "build against it and tell us what broke."
+**What hasn't happened:** nobody has written a real platform provider against this yet. The
+interface is shaped by hosts describing what they need rather than by anyone building against it,
+and the first real implementation will turn something up. That is what to ask for in the comments
+thread: not "does this look right" but "build against it and tell us what broke."
 
 See [`host-provider-model.md`](host-provider-model.md) for the reasoning, including why a provider
 declaration is documentation rather than enforcement.
 
 ---
 
-## 🟢 Access control language — decided, keep the docs honest
+## 🟢 Access control language — decided, keep the docs accurate
 
 **Namespacing is organisational, not access control, and was never intended as
 anything else.** It groups secrets by owner so listings and a future admin screen can be sensible.
