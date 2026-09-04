@@ -8,16 +8,19 @@
  */
 
 /**
- * A secret exists and was decrypted, but the store or key backend it came from
- * is misbehaving in a way distinct from the more specific codes below.
+ * The store or key backend is misbehaving.
+ *
+ * The secret exists and was decrypted, but the backend it came from failed in a way
+ * none of the more specific codes below describe.
  *
  * @since 7.2.0
  */
 define( 'WP_SECRETS_ERROR_DECRYPTION_FAILED', 'secret_decryption_failed' );
 
 /**
- * The key needed to decrypt or encrypt a secret could not be obtained -- the
- * keyring is unreachable, misconfigured, or refuses.
+ * The key needed to encrypt or decrypt a secret could not be obtained.
+ *
+ * The keyring is unreachable, misconfigured, or refusing to answer.
  *
  * @since 7.2.0
  */
@@ -45,8 +48,10 @@ define( 'WP_SECRETS_ERROR_INVALID_NAME', 'secret_invalid_name' );
 define( 'WP_SECRETS_ERROR_INVALID_VALUE', 'secret_invalid_value' );
 
 /**
- * A caller passed an argument this API cannot act on -- an unrecognised version
- * constant, an invalid scope or slot, a non-string namespace.
+ * A caller passed an argument this API cannot act on.
+ *
+ * An unrecognized version constant, an invalid scope or slot, or a non-string
+ * namespace.
  *
  * Distinct from the codes above in cause rather than in severity: those describe
  * a runtime condition a correct caller can still hit (a name that failed
@@ -60,27 +65,30 @@ define( 'WP_SECRETS_ERROR_INVALID_VALUE', 'secret_invalid_value' );
 define( 'WP_SECRETS_ERROR_INVALID_ARGUMENT', 'secret_invalid_argument' );
 
 /**
- * The cipher this API depends on (libsodium, or its sodium_compat fallback) is
- * not available in this environment.
+ * The cipher this API depends on is unavailable.
+ *
+ * Neither libsodium nor its sodium_compat fallback is present in this environment.
  *
  * @since 7.2.0
  */
 define( 'WP_SECRETS_ERROR_CRYPTO_UNAVAILABLE', 'secret_crypto_unavailable' );
 
 /**
- * A stored record could not be parsed as a secret record at all -- as distinct
- * from decrypting incorrectly, which is WP_SECRETS_ERROR_DECRYPTION_FAILED.
+ * A stored record could not be parsed as a secret record at all.
+ *
+ * Distinct from decrypting incorrectly, which is WP_SECRETS_ERROR_DECRYPTION_FAILED.
  *
  * @since 7.2.0
  */
 define( 'WP_SECRETS_ERROR_RECORD_MALFORMED', 'secret_record_malformed' );
 
 /**
- * A stored record parses, but its 'v' field is not a format version this version of
- * the API understands. Distinct from WP_SECRETS_ERROR_RECORD_MALFORMED so an
- * operator (or Site Health) can tell "corrupt" apart from "written by a newer
- * version of this plugin than is currently active." See docs/open-questions.md,
- * "Record format version bump policy" -- the upgrade path for a future v2 is not
+ * A stored record parses, but its format version is not one this API understands.
+ *
+ * Distinct from WP_SECRETS_ERROR_RECORD_MALFORMED so that an operator, or Site
+ * Health, can tell a corrupt record apart from one written by a newer version of
+ * this plugin than is currently active. See docs/open-questions.md,
+ * "Record format version bump policy". The upgrade path for a future v2 is not
  * designed, so an unrecognized version is rejected outright rather than guessed at.
  *
  * @since 7.2.0
@@ -88,28 +96,32 @@ define( 'WP_SECRETS_ERROR_RECORD_MALFORMED', 'secret_record_malformed' );
 define( 'WP_SECRETS_ERROR_RECORD_UNSUPPORTED_VERSION', 'secret_record_unsupported_version' );
 
 /**
- * The active provider does not accept writes: its credentials are managed by host
- * tooling, a control panel, or a key policy outside WordPress. Distinct from
- * WP_SECRETS_ERROR_STORE_UNAVAILABLE, which means the write could have happened and
- * did not -- this one means it was never going to.
+ * The active provider does not accept writes.
+ *
+ * Its credentials are managed by host tooling, a control panel, or a key policy
+ * outside WordPress. Distinct from WP_SECRETS_ERROR_STORE_UNAVAILABLE, which means
+ * the write could have succeeded and did not. This one means it was never possible.
  *
  * @since 7.2.0
  */
 define( 'WP_SECRETS_ERROR_PROVIDER_READ_ONLY', 'secret_provider_read_only' );
 
 /**
- * The store declined a write, delete, or list because it does not support that
- * operation (WP_Secrets_Store::supports() returned false) -- a read-only platform
- * store, for example. The constant name reflects the operation this was first
- * written for; the code covers all three capabilities.
+ * The store declined a write, delete, or list it does not support.
+ *
+ * Returned when WP_Secrets_Store::supports() reports false for the operation, as a
+ * read-only platform store would. The constant name reflects the operation this was
+ * first written for; the code covers all three capabilities.
  *
  * @since 7.2.0
  */
 define( 'WP_SECRETS_ERROR_STORE_READ_ONLY', 'secret_store_read_only' );
 
 /**
- * The current record format version. Bumped only if the record shape in
- * WP_Secrets_Cipher's slot arrays ever changes incompatibly.
+ * The current record format version.
+ *
+ * Bumped only if the record shape in WP_Secrets_Cipher's slot arrays ever changes
+ * incompatibly.
  *
  * @since 7.2.0
  */
@@ -129,9 +141,10 @@ define( 'WP_SECRETS_RECORD_VERSION', 1 );
 define( 'WP_SECRETS_MAX_NAME_LENGTH', 172 );
 
 /**
- * Capability required at the operator boundary (CLI, a future admin screen) to
- * manage site-scope secrets. Never checked by the function-level API itself --
- * see wp_set_secret()'s docblock.
+ * Capability required to manage site-scope secrets at the operator boundary.
+ *
+ * Checked by WP-CLI and by a future admin screen, never by the function-level API
+ * itself. See wp_set_secret() for why.
  *
  * @since 7.2.0
  */
@@ -154,8 +167,8 @@ define( 'WP_SECRETS_CAP_MANAGE_NETWORK', 'manage_network_secrets' );
  * and that other reference is left completely untouched. Call this on every plaintext
  * local as soon as it is no longer needed, and do not keep incidental copies around.
  *
- * Under sodium_compat -- core's documented fallback when the libsodium extension is
- * unavailable -- this scrubs nothing: a userland polyfill cannot reach a PHP string's
+ * Under sodium_compat, core's documented fallback when the libsodium extension is
+ * unavailable, this scrubs nothing. A userland polyfill cannot reach a PHP string's
  * underlying memory at all. Overwriting the local binding is the only thing available
  * in that case, and it removes the live reference from this scope without touching
  * the memory the string used to occupy.
@@ -202,18 +215,17 @@ function wp_secrets_memzero( &$value ) {
  * hyphens, and underscores in each segment, exactly one '/' separating them,
  * and no segment starting or ending with a hyphen or underscore.
  *
- * Namespacing is organisational, not a security boundary: it groups secrets by
- * owner so listings and admin screens can be sensible. It confers no isolation
- * whatsoever -- any plugin that can run PHP can read any secret, namespaced or
- * not.
+ * Namespacing is a matter of organization, not security. It groups secrets by owner
+ * so that listings and admin screens can be sensible. It confers no isolation: any
+ * plugin that can run PHP can read any secret, namespaced or not.
  *
  * An unnamespaced name ('secret-name', no '/') is accepted, but reports through
  * _doing_it_wrong(). It exists for one reason: code written against the Displace
  * prototype used a flat keyspace, and refusing those names outright would mean
  * every such call site has to be rewritten before it can be ported at all.
- * Accepting them keeps that migration incremental. Nothing else should use one --
- * two plugins that both pick 'api-key' collide silently, which is an organisation
- * problem rather than a security one, but a real one.
+ * Accepting them keeps that migration incremental. Nothing else should use one.
+ * Two plugins that both choose 'api-key' collide silently, which is a real problem
+ * even though it is not a security one.
  *
  * @since 7.2.0
  *
@@ -269,7 +281,7 @@ function wp_secrets_validate_name( $name ) {
 			__FUNCTION__,
 			sprintf(
 				/* translators: %s: The unnamespaced secret name. */
-				__( 'The secret name "%s" has no namespace. Namespaced names ("plugin-slug/secret-name") group secrets by owner so that listings and admin screens can be organised; unnamespaced names are supported only so that code written against the Displace prototype can be ported incrementally.', 'default' ),
+				__( 'The secret name "%s" has no namespace. Namespaced names ("plugin-slug/secret-name") group secrets by owner so that listings and admin screens can be organized; unnamespaced names are supported only so that code written against the Displace prototype can be ported incrementally.', 'default' ),
 				$name
 			),
 			'7.2.0'
@@ -302,7 +314,7 @@ function wp_secrets_validate_name( $name ) {
 /**
  * Returns the active secret store.
  *
- * No filter is applied here, or anywhere on the retrieval path -- see
+ * No filter is applied here, or anywhere on the retrieval path. See
  * docs/extending.md. A secrets.php drop-in overrides the store by setting
  * $GLOBALS['wp_secrets_store'] to an instance before this is first called, and
  * that global is checked here directly, not through a hook.
@@ -381,7 +393,7 @@ function _wp_secrets_get_key_manager() {
  * Whether a secrets.php drop-in is present and was loaded.
  *
  * True whether or not the drop-in successfully provided a store or keyring
- * override -- this reports presence, not health. Site Health reports separately
+ * override. It reports presence rather than health; Site Health reports separately
  * on whether a loaded drop-in is actually working.
  *
  * @since 7.2.0
@@ -414,7 +426,7 @@ function wp_using_secrets_dropin() {
  * Encrypts and stores a secret.
  *
  * Encryption is unconditional: there is no plaintext mode and no constant to
- * disable it. No capability check is applied here -- this must be callable from
+ * disable it. No capability check is applied here, because this must be callable from
  * cron, REST, and front-end requests where no user is logged in. Enforce
  * capabilities at the operator boundary (CLI, an admin screen) instead.
  *
@@ -432,7 +444,7 @@ function wp_set_secret( $name, $value ) {
 /**
  * Imports an existing option's value as a secret.
  *
- * For a deliberate, explicit migration -- "on their own explicit upgrade schedule,"
+ * For an explicit migration, "on their own explicit upgrade schedule,"
  * in the proposal's words, because "core cannot reliably tell which options are
  * credentials, and guessing would break sites." The source option is left
  * untouched: this reads it, it does not move or delete it.
@@ -484,7 +496,7 @@ function wp_import_option_as_secret( $option, $name ) {
  *
  * Three states, never collapsed: a WP_Secret if it exists and decrypts, null if it
  * does not exist, WP_Error if it exists but could not be retrieved. No capability
- * check is applied here -- see wp_set_secret().
+ * check is applied here. See wp_set_secret().
  *
  * @since 7.2.0
  *
@@ -513,7 +525,7 @@ function wp_delete_secret( $name ) {
 /**
  * Clears a secret's previous version, retiring it for good.
  *
- * An explicit operator action -- no timers, no cron. Calling this on a secret
+ * An explicit operator action, with no timers and no cron. Calling this on a secret
  * that has never been rotated, or that does not exist, is a successful no-op:
  * the previous slot is already absent either way.
  *
@@ -545,7 +557,7 @@ function wp_retire_secret_version( $name ) {
  *                        'fingerprint', 'created', 'has_previous', and
  *                        'needs_rotation'.
  */
-function wp_list_secrets( $namespace = '' ) { // phpcs:ignore Universal.NamingConventions.NoReservedKeywordParameterNames.namespaceFound -- matches the build brief's specified signature exactly.
+function wp_list_secrets( $namespace = '' ) { // phpcs:ignore Universal.NamingConventions.NoReservedKeywordParameterNames.namespaceFound -- $namespace is the parameter name the proposal specifies.
 	return _wp_secrets_list( $namespace, false );
 }
 
@@ -623,21 +635,23 @@ function wp_list_network_secrets( $namespace = '' ) { // phpcs:ignore Universal.
 }
 
 /**
- * Returns the active provider: whatever is responsible for holding, protecting, and
- * answering for this site's secrets.
+ * Returns the active provider.
+ *
+ * The provider is whatever is responsible for holding, protecting, and answering for
+ * this site's secrets.
  *
  * A secrets.php drop-in overrides it by setting $GLOBALS['wp_secrets_provider'] to
  * an instance before this is first called. Absent that, the provider WordPress
  * ships is assembled from the active store and keyring, which a drop-in can also
- * replace individually -- so "I want my own key custody but default storage" needs
+ * replace individually, so wanting host-managed key custody with default storage needs
  * no provider at all.
  *
  * No filter is applied here, or anywhere on the retrieval path. Substitution is by
  * replacement, never by interception: a filter that can observe which provider
  * answers is one step from a filter that can answer instead.
  *
- * Cached for the request. A failed drop-in fails closed -- every operation returns
- * WP_Error -- rather than silently reverting to the default, because a
+ * Cached for the request. A failed drop-in fails closed, returning WP_Error from
+ * every operation, rather than silently reverting to the default, because a
  * misconfigured credential backend must never look like a working one that happens
  * to be empty.
  *

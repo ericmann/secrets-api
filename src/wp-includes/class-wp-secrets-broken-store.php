@@ -8,8 +8,10 @@
  */
 
 /**
- * Stands in for the store when a secrets.php drop-in exists but left an invalid
- * value in $GLOBALS['wp_secrets_store'].
+ * Stands in for the store when a drop-in leaves an invalid value behind.
+ *
+ * Installed when a secrets.php drop-in exists but $GLOBALS['wp_secrets_store'] does
+ * not hold a WP_Secrets_Store.
  *
  * The drop-in's presence signals the operator wants storage other than the
  * default -- falling back to WP_Secrets_Option_Store here would silently write

@@ -8,7 +8,9 @@
  */
 
 /**
- * The default secret store: rows in the options tables, always autoload=false and
+ * The default secret store.
+ *
+ * Keeps records as rows in the options tables, always with autoload disabled, and
  * always excluded from options.php and the REST settings endpoint.
  *
  * Site-scope secrets live under '_wp_secret_{name}' via get_option()/update_option().

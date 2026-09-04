@@ -8,8 +8,10 @@
  */
 
 /**
- * The default keyring: derives a site key from wp-config.php, and uses it to wrap
- * and unwrap the root key via authenticated encryption.
+ * The default keyring.
+ *
+ * Derives a site key from wp-config.php and uses it to wrap and unwrap the root key
+ * with authenticated encryption.
  *
  * Site key derivation, in priority order:
  *
@@ -33,8 +35,9 @@
 final class WP_Secrets_Config_Key_Provider implements WP_Secrets_Keyring {
 
 	/**
-	 * AAD binding the root key's wrapped form to this specific purpose, so it can
-	 * never be replayed as some other wrapped value.
+	 * AAD binding the root key's wrapped form to this purpose.
+	 *
+	 * Prevents the wrapped root key from being replayed as some other wrapped value.
 	 *
 	 * @since 7.2.0
 	 * @var string
@@ -42,9 +45,10 @@ final class WP_Secrets_Config_Key_Provider implements WP_Secrets_Keyring {
 	const AAD = 'wp-secrets-root-key-v1';
 
 	/**
-	 * The exact text wp-config-sample.php ships for every auth/salt constant. A site
-	 * running with this literal value never ran the secret-key generator, so treating
-	 * it as usable would derive a key any attacker can also derive.
+	 * The exact text wp-config-sample.php ships for every auth and salt constant.
+	 *
+	 * A site running with this literal value never ran the secret-key generator.
+	 * Treating it as usable would derive a key that any attacker can also derive.
 	 *
 	 * @since 7.2.0
 	 * @var string

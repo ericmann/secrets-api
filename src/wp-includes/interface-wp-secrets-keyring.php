@@ -11,8 +11,8 @@
  * Wraps and unwraps the root key that everything else in this API derives from.
  *
  * A KMS or HSM lives behind this interface in a production deployment. An
- * implementation is never handed a plaintext secret -- only 32 bytes of key
- * material -- and cannot turn encryption off; there is no method here that
+ * implementation is never handed a plaintext secret, only 32 bytes of key material,
+ * and cannot turn encryption off. There is no method here that
  * accepts a plaintext secret value at all.
  *
  * @since 7.2.0

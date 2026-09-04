@@ -10,8 +10,8 @@
 /**
  * Where a secret's encrypted record lives.
  *
- * An implementation is never handed a plaintext secret -- only the record array
- * produced by WP_Secrets_Cipher and assembled by the functions in secrets.php -- and
+ * An implementation is never handed a plaintext secret, only the record array
+ * produced by WP_Secrets_Cipher and assembled by the functions in secrets.php, and
  * cannot turn encryption off; there is no method here that accepts or returns
  * anything but ciphertext-bearing structures.
  *

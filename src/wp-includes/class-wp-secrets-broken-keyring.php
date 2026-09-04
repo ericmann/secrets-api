@@ -8,8 +8,10 @@
  */
 
 /**
- * Stands in for the keyring when a secrets.php drop-in exists but left an invalid
- * value in $GLOBALS['wp_secrets_keyring'].
+ * Stands in for the keyring when a drop-in leaves an invalid value behind.
+ *
+ * Installed when a secrets.php drop-in exists but $GLOBALS['wp_secrets_keyring'] does
+ * not hold a WP_Secrets_Keyring.
  *
  * Same reasoning as WP_Secrets_Broken_Store: the drop-in's presence signals the
  * operator wants a keyring other than the default, so silently falling back to

@@ -391,11 +391,12 @@ class WP_CLI_Secret_Command {
 	 * Migrates secrets from displace-secrets-manager's legacy format.
 	 *
 	 * With no flags, migrates every legacy secret into the new format and leaves
-	 * every legacy option in place -- writing the new-format secret is never
-	 * destructive, and the migration is idempotent (re-running is safe; an
-	 * already-migrated key is reported "skipped"). Deleting the legacy source is
-	 * the actually destructive step and always requires --delete-source, which is
-	 * only ever honoured after this run's own fingerprint verification passes.
+	 * every legacy option in place. Writing a new-format secret is never destructive,
+	 * and the migration is idempotent: re-running is safe, and an already-migrated
+	 * key is reported as skipped.
+	 *
+	 * There is no delete step. Removing a legacy option once the migration is
+	 * verified is left to the operator, using wp option delete.
 	 *
 	 * ## OPTIONS
 	 *

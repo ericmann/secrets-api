@@ -8,59 +8,56 @@
  */
 
 /**
- * What is responsible for a secret: holding it, protecting it, and answering for it.
+ * Interface for a secrets provider.
  *
- * This is the outermost extension point, and the one a hosting platform implements.
- * WordPress ships a provider that encrypts with libsodium and stores ciphertext in
- * the options tables, and that provider is the default rather than the privileged
- * case: a platform that protects credentials in a KMS, an HSM, or its own control
- * panel implements this interface instead and is a peer, not a special case bolted
- * onto the side of the default.
+ * A provider is responsible for a secret: storing it, protecting it, and returning
+ * it to a caller. It is the outermost extension point in the Secrets API, and the
+ * one a hosting platform implements.
  *
- * The rule a provider must satisfy is **stronger than the default, never weaker**.
- * Storing a plaintext where the default would have stored ciphertext is the one
- * thing this interface exists to keep impossible; receiving a value over an
- * authenticated channel and protecting it in an HSM is not that, and was only ever
- * blocked by an earlier contract that described a mechanism ("never handed a
- * plaintext") where it meant a property ("encryption cannot be turned off").
+ * WordPress ships WP_Secrets_Libsodium_Provider, which encrypts with libsodium and
+ * stores ciphertext in the options tables. That provider is the default rather than
+ * a privileged case: a platform that protects credentials in a key management
+ * service, a hardware security module, or its own control panel implements this
+ * same interface.
  *
- * ### What WordPress can and cannot check
+ * A provider must be stronger than the default, never weaker. Storing a plaintext
+ * where the default would have stored ciphertext is what this interface exists to
+ * prevent. Receiving a value over an authenticated channel and holding it in a
+ * hardware security module satisfies that requirement.
  *
- * It cannot check any of this. A provider is loaded from a drop-in, which is fully
- * trusted code that runs before plugins and could already read every secret by
+ * WordPress cannot verify any of this. A provider is loaded from a drop-in, which is
+ * fully trusted code: it runs before plugins, and could already read every secret by
  * implementing the keyring. get_protection_boundary() and is_writable() are
- * therefore **declarations, not enforcement**: their value is that a human
- * reviewing a drop-in can see what it claims, Site Health can tell an operator
- * where their credentials are actually protected, and a settings screen can find
- * out that a write will be refused before an operator types a credential into it.
- * Treating them as a security boundary would be a mistake.
+ * declarations rather than enforcement. They exist so that a developer reviewing a
+ * drop-in can see what it claims, Site Health can report where credentials are
+ * protected, and a settings screen can determine that a write will be refused before
+ * an operator enters a credential. They are not a security boundary.
  *
- * ### Contracts every implementation shares
+ * Every implementation shares these contracts:
  *
- * - **Three states, never collapsed.** get() returns a WP_Secret, null when the
- *   secret does not exist, or WP_Error when it exists but cannot be produced.
- *   "Unreachable" must never be reported as "absent" -- that turns an outage into
- *   an apparently-deleted credential, and is the single failure this API exists to
- *   prevent.
- * - **Fail closed.** A provider that cannot answer returns WP_Error. It never
+ * - Three states, never collapsed. get() returns a WP_Secret, null when the secret
+ *   does not exist, or WP_Error when it exists but cannot be produced. Reporting an
+ *   unreachable backend as absent turns an outage into an apparently deleted
+ *   credential.
+ * - Fail closed. A provider that cannot answer returns WP_Error. It never
  *   substitutes a weaker source, and never returns a partial or placeholder value.
- * - **No filter on the retrieval path.** A provider is a replacement, not a hook.
- *   Nothing may be given the opportunity to observe or alter a value in transit,
- *   which is the whole reason this is an interface rather than an
- *   'wp_secret_value' filter.
- * - **Never persist a value more weakly than you protect it.** In particular, a
- *   provider that fetches over the network must not write the plaintext into the
- *   persistent object cache: WP_Secret deliberately cannot round-trip a plaintext
- *   through wp_cache_set(), and caching the raw value alongside it would quietly
- *   undo that. Request-scoped memoisation only.
+ * - No filter on the retrieval path. A provider replaces a component; it is not a
+ *   hook. Nothing is given the opportunity to observe or alter a value in transit.
+ * - Never persist a value more weakly than the provider protects it. A provider that
+ *   fetches over the network must not write the plaintext into the persistent object
+ *   cache. WP_Secret cannot round-trip a plaintext through wp_cache_set(), and
+ *   caching the raw value alongside it would undo that. Memoize within the request
+ *   only.
  *
  * @since 7.2.0
  */
 interface WP_Secrets_Provider {
 
 	/**
-	 * Protection happens inside WordPress: this provider holds ciphertext that
-	 * WordPress produced, and WordPress holds the key material.
+	 * Protection happens inside WordPress.
+	 *
+	 * The provider holds ciphertext that WordPress produced, and WordPress holds the
+	 * key material.
 	 *
 	 * @since 7.2.0
 	 * @var string
@@ -68,8 +65,10 @@ interface WP_Secrets_Provider {
 	const BOUNDARY_WORDPRESS = 'wordpress';
 
 	/**
-	 * Protection happens outside WordPress: this provider is itself the encryption
-	 * boundary, and WordPress is a consumer of a credential it does not protect.
+	 * Protection happens outside WordPress.
+	 *
+	 * The provider is itself the encryption boundary, and WordPress is a consumer of a
+	 * credential it does not protect.
 	 *
 	 * @since 7.2.0
 	 * @var string
@@ -80,7 +79,7 @@ interface WP_Secrets_Provider {
 	 * Retrieves a secret.
 	 *
 	 * Returning null means "I am not responsible for this name" as well as "this
-	 * name does not exist" -- the two are the same answer from a caller's point of
+	 * name does not exist". The two are the same answer from a caller's point of
 	 * view, and keeping them distinct would require a provider to enumerate names
 	 * it has never heard of.
 	 *
@@ -99,15 +98,16 @@ interface WP_Secrets_Provider {
 	/**
 	 * Stores a secret.
 	 *
-	 * A provider whose credentials are managed elsewhere -- a control panel, host
-	 * tooling, a KMS with its own access policy -- returns WP_Error here with code
+	 * A provider whose credentials are managed elsewhere, by a control panel, host
+	 * tooling, or a KMS with its own access policy, returns WP_Error here with code
 	 * WP_SECRETS_ERROR_PROVIDER_READ_ONLY, and reports false from is_writable() so
 	 * that callers can find that out without attempting the write first.
 	 *
-	 * **Implementations are responsible for firing `wp_secret_changed`.** It is not
-	 * fired for you, because only the provider knows the prior fingerprint without
-	 * paying for an extra read, and an audit hook that silently stops firing when a
-	 * host installs a provider would be worse than one that never existed.
+	 * Implementations are responsible for firing the `wp_secret_changed` action. The
+	 * API does not fire it on the provider's behalf, because only the provider knows
+	 * the prior fingerprint without paying for an additional read. An audit hook that
+	 * stopped firing once a host installed a provider would be unreliable in exactly
+	 * the situation it matters most.
 	 *
 	 * @since 7.2.0
 	 *
@@ -116,11 +116,10 @@ interface WP_Secrets_Provider {
 	 * @param bool        $network        Whether this is a network-scope secret.
 	 * @param bool        $needs_rotation Mark the stored secret as needing rotation.
 	 *                                    Set for values that arrived from somewhere
-	 *                                    less protected than this provider -- an
-	 *                                    imported option, a prototype-format record.
-	 *                                    A provider with nowhere to record this may
-	 *                                    ignore it, but should not pretend to honour
-	 *                                    it.
+	 *                                    less protected than this provider, such as
+	 *                                    an imported option. A provider with nowhere
+	 *                                    to record this may ignore it, but must not
+	 *                                    report it as honored.
 	 * @param string|null $action         Overrides the action reported to
 	 *                                    `wp_secret_changed`; null means the
 	 *                                    provider decides between 'created' and
@@ -133,7 +132,7 @@ interface WP_Secrets_Provider {
 	/**
 	 * Deletes a secret.
 	 *
-	 * Deleting something already absent is success, not failure.
+	 * Deleting a secret that does not exist is a success.
 	 *
 	 * @since 7.2.0
 	 *
@@ -191,7 +190,7 @@ interface WP_Secrets_Provider {
 	 *
 	 * One of the BOUNDARY_* constants. This is what lets Site Health and a future
 	 * admin screen tell an operator whether their credentials are protected by
-	 * WordPress's own libsodium envelope or by something outside it -- a question
+	 * WordPress's own libsodium envelope or by something outside it, a question
 	 * they currently have no way to answer, and the one hosts asked to be able to
 	 * answer honestly.
 	 *

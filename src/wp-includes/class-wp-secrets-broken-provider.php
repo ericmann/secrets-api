@@ -124,7 +124,10 @@ final class WP_Secrets_Broken_Provider implements WP_Secrets_Provider {
 	}
 
 	/**
-	 * Reports the provider boundary: whatever was meant to protect these secrets is not WordPress, and is not working.
+	 * Reports the provider boundary.
+	 *
+	 * Whatever was meant to protect these secrets is not WordPress, and is not
+	 * working.
 	 *
 	 * @since 7.2.0
 	 *

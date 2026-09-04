@@ -8,8 +8,10 @@
  */
 
 /**
- * Encrypts and decrypts a single record slot: a per-secret data key wrapped by a
- * master key, and a value encrypted under that data key.
+ * Encrypts and decrypts a single record slot.
+ *
+ * A slot holds a per-secret data key wrapped by a master key, plus a value encrypted
+ * under that data key.
  *
  * This class does not know where a master key comes from (that is
  * WP_Secrets_Key_Manager's job), does not know about the 'v'/current/previous record
@@ -39,8 +41,9 @@ final class WP_Secrets_Cipher {
 	const AAD_VALUE = 'wp-secrets-value-v1';
 
 	/**
-	 * KDF context used to derive the fingerprint key from a master key. Exactly 8
-	 * bytes, as sodium_crypto_kdf_derive_from_key() requires.
+	 * KDF context used to derive the fingerprint key from a master key.
+	 *
+	 * Exactly 8 bytes, as sodium_crypto_kdf_derive_from_key() requires.
 	 *
 	 * @since 7.2.0
 	 * @var string
@@ -235,8 +238,10 @@ final class WP_Secrets_Cipher {
 	}
 
 	/**
-	 * Builds the AAD binding a ciphertext to its full context, so a record can never
-	 * be replayed under a different purpose, scope, site, name, or slot.
+	 * Builds the AAD that binds a ciphertext to its full context.
+	 *
+	 * Binding covers purpose, scope, site, name, and slot, so that a record can never
+	 * be replayed under any of them.
 	 *
 	 * Centralized in one place rather than inlined at each call site, and only ever
 	 * called after validate_common() has confirmed $name passes
@@ -309,8 +314,10 @@ final class WP_Secrets_Cipher {
 	}
 
 	/**
-	 * Reports a caller error the way WordPress does: a _doing_it_wrong() notice a
-	 * developer will see, plus a WP_Error the caller can act on.
+	 * Reports a caller error the way WordPress does.
+	 *
+	 * Emits a _doing_it_wrong() notice for the developer, and returns a WP_Error the
+	 * caller can act on.
 	 *
 	 * @since 7.2.0
 	 *

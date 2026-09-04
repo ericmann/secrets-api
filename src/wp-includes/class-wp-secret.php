@@ -49,8 +49,10 @@ final class WP_Secret implements JsonSerializable {
 	private $name;
 
 	/**
-	 * Keyed fingerprint of the plaintext. Not sensitive: it is a one-way, per-site,
-	 * per-key digest, not the value itself.
+	 * Keyed fingerprint of the plaintext.
+	 *
+	 * Not sensitive. It is a one-way, per-site, per-key digest rather than the value
+	 * itself.
 	 *
 	 * @since 7.2.0
 	 * @var string

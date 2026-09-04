@@ -8,10 +8,11 @@
  */
 
 /**
- * The provider WordPress ships: libsodium envelope encryption, ciphertext in the
- * options tables.
+ * The provider WordPress ships.
  *
- * This is the default, not the privileged case. Everything it does is expressed
+ * Uses libsodium envelope encryption and stores ciphertext in the options tables.
+ *
+ * This is the default rather than a privileged case. Everything it does is expressed
  * through WP_Secrets_Provider, the same interface a platform implements, so a KMS-
  * or HSM-backed provider is a peer rather than an exception carved into the side of
  * this one.
@@ -95,9 +96,11 @@ final class WP_Secrets_Libsodium_Provider implements WP_Secrets_Provider {
 	}
 
 	/**
-	 * Always true. A store that cannot accept a write reports that from set()
-	 * itself; there is no separate capability flag to consult, and the shipped
-	 * store accepts writes unconditionally.
+	 * Always true.
+	 *
+	 * A store that cannot accept a write reports that from set() itself. There is no
+	 * separate capability flag to consult, and the shipped store accepts writes
+	 * unconditionally.
 	 *
 	 * @since 7.2.0
 	 *
@@ -107,8 +110,9 @@ final class WP_Secrets_Libsodium_Provider implements WP_Secrets_Provider {
 		return true;
 	}
 	/**
-	 * Validates the shape of a record read back from a store, before any decryption is
-	 * attempted.
+	 * Validates the shape of a record read back from a store.
+	 *
+	 * Runs before any decryption is attempted.
 	 *
 	 * @since 7.2.0
 	 *
@@ -245,8 +249,10 @@ final class WP_Secrets_Libsodium_Provider implements WP_Secrets_Provider {
 	}
 
 	/**
-	 * Shared implementation behind wp_set_secret(), wp_set_network_secret(), and
-	 * wp_import_option_as_secret() (via the last two parameters).
+	 * Shared implementation behind the three secret-writing functions.
+	 *
+	 * Backs wp_set_secret(), wp_set_network_secret(), and wp_import_option_as_secret(),
+	 * which select their behavior through the last two parameters.
 	 *
 	 * @since 7.2.0
 	 *
@@ -515,8 +521,9 @@ final class WP_Secrets_Libsodium_Provider implements WP_Secrets_Provider {
 	}
 
 	/**
-	 * Shared implementation behind wp_retire_secret_version() and
-	 * wp_retire_network_secret_version().
+	 * Shared implementation behind the two version-retirement functions.
+	 *
+	 * Backs wp_retire_secret_version() and wp_retire_network_secret_version().
 	 *
 	 * Beyond the API surface the proposal names. It states that retirement is "an
 	 * explicit operator action" but names no function; this is this implementation's

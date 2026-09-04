@@ -8,8 +8,9 @@
  */
 
 /**
- * Owns the root key's lifecycle -- generation, storage, and rotation -- and derives
- * per-scope master keys from it.
+ * Manages the root key and derives per-scope master keys from it.
+ *
+ * Owns the root key's generation, storage, and rotation.
  *
  * There is exactly one root key per install: 32 random bytes, generated once, wrapped
  * by the active WP_Secrets_Keyring, and stored via update_site_option() (which is a
@@ -30,10 +31,11 @@
 final class WP_Secrets_Key_Manager {
 
 	/**
-	 * Option name the wrapped root key is stored under. Always accessed via the
-	 * *_site_option() functions directly -- never through a WP_Secrets_Store -- so
-	 * that swapping the pluggable secret store never relocates the root key, and
-	 * swapping the keyring never touches where ciphertext lives.
+	 * Option name the wrapped root key is stored under.
+	 *
+	 * Always accessed through the *_site_option() functions directly, never through a
+	 * WP_Secrets_Store. Swapping the pluggable secret store therefore never relocates
+	 * the root key, and swapping the keyring never affects where ciphertext lives.
 	 *
 	 * @since 7.2.0
 	 * @var string
@@ -57,8 +59,9 @@ final class WP_Secrets_Key_Manager {
 	const NETWORK_KDF_CONTEXT = 'wpsecnet';
 
 	/**
-	 * Reserved KDF subkey id for network scope. Blog ids start at 1, so this can
-	 * never collide with a real site-scope subkey id.
+	 * Reserved KDF subkey id for network scope.
+	 *
+	 * Blog ids start at 1, so this can never collide with a site-scope subkey id.
 	 *
 	 * @since 7.2.0
 	 * @var int
@@ -86,9 +89,11 @@ final class WP_Secrets_Key_Manager {
 	}
 
 	/**
-	 * Returns the keyring in use, for Site Health and WP-CLI's `wp secret dropin` /
-	 * `wp secret health` -- both need to describe the active keyring without
-	 * duplicating the logic that resolves it.
+	 * Returns the keyring in use.
+	 *
+	 * Used by Site Health and by `wp secret dropin` and `wp secret health`, which all
+	 * need to describe the active keyring without duplicating the logic that resolves
+	 * it.
 	 *
 	 * @since 7.2.0
 	 *
@@ -241,8 +246,9 @@ final class WP_Secrets_Key_Manager {
 	}
 
 	/**
-	 * Generates a new root key and persists it, handling the race where two
-	 * requests both find no root key at the same time.
+	 * Generates a new root key and persists it.
+	 *
+	 * Handles the race where two requests both find no root key at the same time.
 	 *
 	 * @since 7.2.0
 	 *
