@@ -8,21 +8,21 @@ This started as a response to a question the proposal asked:
 > Providers are meant to cover what a filter would normally give you — is that substitution
 > sufficient for the cases you'd actually need to hook?
 
-Three platforms answered "not quite," and they were right. What follows is the resulting design,
-which is implemented: `WP_Secrets_Provider` is the outermost extension point, and the public
-functions route through it.
+Hosts answered "not quite," and they were right. What follows is the resulting design, which is
+implemented: `WP_Secrets_Provider` is the outermost extension point, and the public functions
+route through it.
 
-## What three platforms asked for
+## What hosts asked for
 
 | | Who holds the credential | Who encrypts it | Writes | Can WordPress read the value? |
 |---|---|---|---|---|
 | **Default (self-hosted)** | WordPress, in `wp_options` | WordPress | `wp_set_secret()` | Yes |
 | **Pantheon** (Chris Reynolds) | The platform | The platform | Platform tooling | Yes, over an authenticated channel |
 | **Altis** (Ryan McCue / Rafael Meneses) | KMS-backed store | The KMS | Host tooling; store is read-only to WP | Yes |
-| **VIP** (stated direction, not a shipped capability) | Platform dashboard | The platform / HSM | Dashboard only | Yes, at runtime |
+| **Control-panel model** | A platform dashboard | The platform, often an HSM | Dashboard only | Yes, at runtime |
 
-Every one of these is *stronger* at rest than the default. None of them could be expressed by the
-original two-seam design.
+Every arrangement below the first is *stronger* at rest than the default, and not one of them
+could be expressed by the original two-seam design.
 
 ## Why the original contract blocked them
 

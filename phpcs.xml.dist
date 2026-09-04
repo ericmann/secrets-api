@@ -22,7 +22,7 @@
 
 	<!--
 		Everything is destined for core or written alongside code that is, so core's
-		standard is the target rather than VIP's. WordPress-Extra is layered onto the
+		standard is the target rather than a host-specific one. WordPress-Extra is layered onto the
 		plugin-only directories further down.
 	-->
 	<rule ref="WordPress-Core"/>

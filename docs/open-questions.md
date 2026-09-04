@@ -15,10 +15,10 @@ Status legend: 🔴 blocks a release · 🟡 needs an answer before the core pat
 
 ## 🟢 Host and platform providers — implemented, awaiting real implementations
 
-Three platforms independently reported that the published extension contract could not express
-what they need: Chris Reynolds (Pantheon), Ryan McCue and Rafael Meneses (Altis), and the VIP
-dashboard/HSM model this project wants to support directly. Rafael Meneses supplied the reframe
-that resolved it:
+Hosts independently reported that the published extension contract could not express what they
+need: Chris Reynolds (Pantheon), Ryan McCue and Rafael Meneses (Altis), and the control-panel
+model in which a platform dashboard is the system of record and an HSM does the protecting.
+Rafael Meneses supplied the reframe that resolved it:
 
 > A provider can be stronger than the default, never weaker. Plaintext storage stays banned… and
 > the setups Ryan and Chris describe stop being banned with it.
@@ -33,8 +33,7 @@ keyring. A drop-in installs a platform provider by setting `$GLOBALS['wp_secrets
 will not release to PHP. Site Health and `wp secret dropin` report all of it.
 
 **What has not happened:** nobody has written a real platform provider against this yet. The
-interface is shaped by three descriptions of what hosts need, not by three working
-implementations, and the first real one will find something. That is the useful next feedback to
+interface is shaped by descriptions of what hosts need, not by working implementations, and the first real one will find something. That is the useful next feedback to
 seek in the comments thread — not "does this look right" but "build against it and tell us what
 broke."
 
@@ -90,7 +89,7 @@ These have a home here so answers from the comments thread land somewhere rather
 absorbed into an assumption.
 
 1. **Is the no-filter decision on retrieval sufficient, with providers as the substitution?**
-   — **Answered, and the answer was "not as published."** Three hosts independently found the
+   — **Answered, and the answer was "not as published."** Hosts independently found the
    provider contract could not express their deployments. The no-filter decision itself was never
    challenged; what failed was the contract's shape. See "Host and platform providers" above.
 2. **Are two version slots (`CURRENT`/`PREVIOUS`) adequate, or is a different rotation pattern
