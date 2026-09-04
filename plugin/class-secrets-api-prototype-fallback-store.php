@@ -199,8 +199,14 @@ final class Secrets_API_Prototype_Fallback_Store implements WP_Secrets_Store {
 			return null;
 		}
 
-		// A namespace is something the prototype never had, so a namespaced name
-		// cannot describe a prototype row.
+		/*
+		 * The prototype's keyspace allowed namespaced keys, and its own documentation
+		 * used them, so a row like _secret_my-plugin/api_key can exist. This still
+		 * refuses to map one: guessing which prototype row a namespaced name refers to
+		 * is what an earlier revision did, and it let any namespace claim any row.
+		 * Namespaced prototype keys are migrated explicitly, by wp secret
+		 * migrate-legacy, rather than picked up implicitly here.
+		 */
 		if ( false !== strpos( $name, '/' ) ) {
 			return null;
 		}

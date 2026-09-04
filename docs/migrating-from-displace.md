@@ -41,12 +41,25 @@ The correspondence is exact, in both directions:
 | Call | Reads Displace's `_secret_api_key`? |
 |---|---|
 | `wp_get_secret( 'api_key' )` | Yes — same name, same secret |
-| `wp_get_secret( 'myplugin/api_key' )` | No — Displace had no namespaces, so it never owned this name |
+| `wp_get_secret( 'myplugin/api_key' )` | No — a namespaced name never maps to a bare prototype row |
 
 Nothing gets rewritten or guessed on your behalf. An earlier revision dropped the namespace
 instead, so `wp_get_secret( 'anything/api_key' )` would inherit Displace's `api_key`. That went
 away, because it let any namespace claim any Displace row and gave callers no way to tell which of
 their names were quietly wired to prototype data.
+
+### If your prototype keys were already namespaced
+
+Displace's own documentation used namespaced keys (`my-plugin/api_key`), and a site that followed
+that convention has option rows like `_secret_my-plugin/api_key`.
+
+**Read-time upgrade does not pick those up.** The fallback only maps unnamespaced names, so
+`wp_get_secret( 'my-plugin/api_key' )` returns `null` rather than reaching into a prototype row —
+the same answer it gives for a secret that was never set.
+
+Use `wp secret migrate-legacy` for these. It lists every `_secret_*` row regardless of shape,
+keeps each key exactly as spelled, and writes a current-format record under the same name. After
+that the name resolves normally. `--dry-run` shows you what it would do first.
 
 **So: adopt the API first, namespace second.** Change `get_secret( 'api_key' )` to
 `wp_get_secret( 'api_key' )` and it works immediately. When you are ready to take a namespace,
