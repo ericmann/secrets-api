@@ -518,9 +518,9 @@ final class WP_Secrets_Libsodium_Provider implements WP_Secrets_Provider {
 	 * Shared implementation behind wp_retire_secret_version() and
 	 * wp_retire_network_secret_version().
 	 *
-	 * Beyond the published API surface -- see docs/open-questions.md, "API surface that was never published". The proposal
-	 * states retirement is "an explicit operator action" but names no function; this is
-	 * this implementation's name for it, pending confirmation in the comments thread.
+	 * Beyond the API surface the proposal names. It states that retirement is "an
+	 * explicit operator action" but names no function; this is this implementation's
+	 * name for it, pending confirmation in the comments thread.
 	 *
 	 * @since 7.2.0
 	 *
@@ -584,9 +584,9 @@ final class WP_Secrets_Libsodium_Provider implements WP_Secrets_Provider {
 	/**
 	 * Shared implementation behind wp_list_secrets() and wp_list_network_secrets().
 	 *
-	 * Beyond the published API surface -- see docs/open-questions.md, "API surface that was never published". Justified by
-	 * the proposal's statement that "the hooks and accessors an admin screen would need
-	 * are in scope now; the screen itself is not."
+	 * Beyond the API surface the proposal names, and justified by its statement that
+	 * "the hooks and accessors an admin screen would need are in scope now; the screen
+	 * itself is not."
 	 *
 	 * Fingerprints returned here come directly from the stored record field, not
 	 * recomputed by decrypting each secret. That is a deliberate difference from

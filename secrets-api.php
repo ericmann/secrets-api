@@ -14,9 +14,10 @@
  */
 
 /*
- * Plugin URI points at the current home, which is private for now. Availability of
- * the slug on WordPress.org is settled at submission, not here -- see
- * docs/open-questions.md.
+ * The text domain here is the plugin's own. Everything under src/ uses core's
+ * 'default' domain instead, because those files are written to be copied into
+ * wordpress-develop unchanged; only this wrapper and the plugin-only directories
+ * carry a plugin domain.
  */
 
 defined( 'ABSPATH' ) || exit;
@@ -285,14 +286,18 @@ function wp_secrets_api_load_dropin() {
 
 	/*
 	 * Not set at all is fine -- a drop-in overriding only the keyring, say,
-	 * legitimately leaves the store global untouched. Set to the wrong thing is
-	 * not: that is exactly the case _wp_secrets_get_store() fails closed for.
+	 * legitimately leaves the store and provider globals untouched. Set to the wrong
+	 * thing is not: that is exactly the case the getters fail closed for.
 	 */
 	if ( isset( $GLOBALS['wp_secrets_store'] ) && ! ( $GLOBALS['wp_secrets_store'] instanceof WP_Secrets_Store ) ) {
 		$GLOBALS['wp_secrets_dropin_broken'] = true;
 	}
 
 	if ( isset( $GLOBALS['wp_secrets_keyring'] ) && ! ( $GLOBALS['wp_secrets_keyring'] instanceof WP_Secrets_Keyring ) ) {
+		$GLOBALS['wp_secrets_dropin_broken'] = true;
+	}
+
+	if ( isset( $GLOBALS['wp_secrets_provider'] ) && ! ( $GLOBALS['wp_secrets_provider'] instanceof WP_Secrets_Provider ) ) {
 		$GLOBALS['wp_secrets_dropin_broken'] = true;
 	}
 }

@@ -128,12 +128,12 @@ once, and is what a platform that is itself the encryption boundary should do.
 `wp_secrets_api_load_dropin()` requires `secrets.php`, if one exists, and checks the type of
 whatever ends up in `$GLOBALS['wp_secrets_provider']` / `$GLOBALS['wp_secrets_store']` /
 `$GLOBALS['wp_secrets_keyring']` afterward.
-A missing global is fine — a drop-in that only sets one of them is a legitimate, common case. A
-global set to something that isn't an instance of the matching interface is not fine, and neither
-is a drop-in that throws or has a syntax error: both fail the *entire* store or keyring closed,
-via `WP_Secrets_Broken_Provider` / `WP_Secrets_Broken_Store` / `WP_Secrets_Broken_Keyring`, which
-turn every operation into a `WP_Error` rather than silently falling back to the default. A broken credential backend must
-never look like a working one that happens to have no secrets in it yet.
+A missing global is fine — a drop-in that sets only one of them is a legitimate and common case.
+A global set to something that isn't an instance of the matching interface is not fine, and
+neither is a drop-in that throws or has a syntax error. Both fail the whole drop-in closed, via
+`WP_Secrets_Broken_Provider` / `WP_Secrets_Broken_Store` / `WP_Secrets_Broken_Keyring`, which turn
+every operation into a `WP_Error` rather than silently falling back to the default. A broken
+credential backend must never look like a working one that happens to have no secrets in it yet.
 
 One gap, load-bearing enough to call out here rather than leave buried: PHP treats certain class
 declaration errors in the drop-in — most notably a class that `implements` an interface but

@@ -75,21 +75,28 @@ another:
 
 ```mermaid
 flowchart TD
-    A["wp_get_secret()"] --> B{"wp-content/secrets.php<br/>present?"}
-    B -- no --> D["WP_Secrets_Libsodium_Provider<br/>(ships with WordPress)"]
-    B -- yes --> C{"Registered a<br/>WP_Secrets_Provider?"}
+    A["wp_get_secret()"] --> B{"Did wp-content/secrets.php<br/>load cleanly?"}
+    B -- "no: threw, or set a<br/>global to the wrong type" --> F["WP_Secrets_Broken_Provider"]
+    B -- yes --> C{"Set a<br/>wp_secrets_provider?"}
     C -- yes --> E["The drop-in's provider"]
-    C -- "no / failed to load" --> F["WP_Secrets_Broken_Provider"]
-    D --> G["WP_Secret | null | WP_Error"]
-    E --> G
+    C -- no --> D["WP_Secrets_Libsodium_Provider,<br/>composed with whatever store and<br/>keyring the drop-in did set"]
+    E --> G["WP_Secret | null | WP_Error"]
+    D --> G
     F --> H["WP_Error, every call"]
 ```
 
-The `WP_Secrets_Broken_Provider` branch is the important one. A drop-in that is present but did
-not register a valid provider is an operator error, and the response is to fail every call loudly
-— **not** to quietly serve secrets from the default provider. Falling back would mean a site whose
-platform integration silently broke starts answering from a different credential store, which is
-how a rotation gets lost or a stale credential gets served forever.
+Note the `no` branch out of the second decision: **registering no provider is a supported
+arrangement, not a broken one.** A drop-in that swaps only the keyring — the smallest and most
+common integration — leaves the provider global untouched and gets the shipped provider composed
+with its keyring. Absence of an override is not a failure.
+
+What *is* a failure is an override that is present and wrong: a drop-in that throws, or that sets
+`wp_secrets_provider`, `wp_secrets_store`, or `wp_secrets_keyring` to something that does not
+implement the matching interface. Then every call returns `WP_Error` — **not** a quiet fall-back to
+the default provider. Falling back would mean a site whose platform integration broke starts
+answering from a different credential store, where the credentials do not exist, reporting them
+*absent* rather than *unreachable*. That is the exact collapse the three-state contract exists to
+prevent, and it is how a rotation gets lost or a stale credential gets served forever.
 
 The shipped provider is one implementation of the interface, not the privileged case others must
 be reconciled with. A KMS, an HSM, or a control panel is a peer.

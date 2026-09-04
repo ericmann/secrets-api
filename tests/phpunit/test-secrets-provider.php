@@ -179,14 +179,52 @@ class Tests_Secrets_Provider extends WP_UnitTestCase {
 	}
 
 	/**
-	 * An object that is not a provider at all is ignored rather than installed --
-	 * the same posture the store and keyring globals already take.
+	 * A provider global set to something that is not a provider fails closed, the
+	 * same posture the store and keyring globals take -- for those two,
+	 * wp_secrets_api_load_dropin() marks the drop-in broken on a type mismatch and
+	 * both getters return their Broken_* sentinel.
+	 *
+	 * Falling through to the default provider instead would be the worst available
+	 * outcome: a platform drop-in that misnames its class would have every read
+	 * served from wp_options, find nothing there, and report a site's credentials
+	 * absent when they are merely unreachable.
 	 *
 	 * @runInSeparateProcess
 	 * @preserveGlobalState disabled
 	 */
-	public function test_a_non_provider_global_is_ignored() {
+	public function test_a_non_provider_global_fails_closed() {
 		$GLOBALS['wp_secrets_provider'] = new stdClass();
+
+		$this->assertInstanceOf( 'WP_Secrets_Broken_Provider', _wp_secrets_get_provider() );
+	}
+
+	/**
+	 * And it is an error rather than an absence, which is the property that
+	 * actually protects the operator.
+	 *
+	 * @runInSeparateProcess
+	 * @preserveGlobalState disabled
+	 */
+	public function test_a_non_provider_global_reads_as_an_error_not_an_absence() {
+		$GLOBALS['wp_secrets_provider'] = new stdClass();
+
+		$result = wp_get_secret( 'myplugin/api-key' );
+
+		$this->assertWPError( $result );
+		$this->assertNotNull( $result );
+	}
+
+	/**
+	 * The counterpart, and the case the routing docs must not misdescribe: a drop-in
+	 * that overrides only the keyring registers no provider at all, and that is a
+	 * supported arrangement rather than a broken one. It gets the shipped libsodium
+	 * provider, composed with the keyring it did supply.
+	 *
+	 * @runInSeparateProcess
+	 * @preserveGlobalState disabled
+	 */
+	public function test_a_keyring_only_dropin_still_gets_the_default_provider() {
+		$GLOBALS['wp_secrets_keyring'] = new Mock_Keyring();
 
 		$this->assertInstanceOf( 'WP_Secrets_Libsodium_Provider', _wp_secrets_get_provider() );
 	}
