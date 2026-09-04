@@ -111,8 +111,13 @@ class WP_CLI_Secret_Command {
 	 * <name>
 	 * : The secret's namespaced name.
 	 *
-	 * [--version=<version>]
-	 * : Which version to get.
+	 * [--slot=<slot>]
+	 * : Which stored version to read.
+	 *
+	 * Named --slot rather than --version because WP-CLI consumes `--version`
+	 * itself before a subcommand ever sees it: passing --version=previous
+	 * silently yielded the current value, since the flag was swallowed and the
+	 * synopsis default filled in behind it.
 	 * ---
 	 * default: current
 	 * options:
@@ -127,6 +132,7 @@ class WP_CLI_Secret_Command {
 	 * : Print a single field (name, fingerprint, value) instead of a table.
 	 *
 	 * [--format=<format>]
+	 * : Render output in a particular format.
 	 * ---
 	 * default: table
 	 * options:
@@ -142,7 +148,7 @@ class WP_CLI_Secret_Command {
 	 */
 	public function get( $args, $assoc_args ) {
 		$name    = $args[0];
-		$version = ( isset( $assoc_args['version'] ) && WP_Secret_Version::PREVIOUS === $assoc_args['version'] )
+		$version = ( isset( $assoc_args['slot'] ) && WP_Secret_Version::PREVIOUS === $assoc_args['slot'] )
 			? WP_Secret_Version::PREVIOUS
 			: WP_Secret_Version::CURRENT;
 
@@ -253,6 +259,7 @@ class WP_CLI_Secret_Command {
 	 * : Comma-separated list of fields to show.
 	 *
 	 * [--format=<format>]
+	 * : Render output in a particular format.
 	 * ---
 	 * default: table
 	 * options:
@@ -383,6 +390,7 @@ class WP_CLI_Secret_Command {
 	 * same name a plain wp_get_secret() would upgrade it to on first read.
 	 *
 	 * [--format=<format>]
+	 * : Render output in a particular format.
 	 * ---
 	 * default: table
 	 * options:
@@ -390,6 +398,8 @@ class WP_CLI_Secret_Command {
 	 *   - csv
 	 *   - json
 	 * ---
+	 *
+	 * @subcommand migrate-legacy
 	 *
 	 * @when after_wp_load
 	 *
@@ -507,6 +517,7 @@ class WP_CLI_Secret_Command {
 	 * ## OPTIONS
 	 *
 	 * [--format=<format>]
+	 * : Render output in a particular format.
 	 * ---
 	 * default: table
 	 * options:

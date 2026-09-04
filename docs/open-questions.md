@@ -187,6 +187,36 @@ another look if a process-spawning integration test is judged worth the complexi
 
 ---
 
+## 🟡 CLI dispatch is not covered by any test
+
+Every WP-CLI test in this suite instantiates the command class and calls the method directly. That
+covers the method bodies well and covers **nothing** about how WP-CLI actually reaches them, which
+is a layer with its own rules: flag-name reservations, docblock synopsis parsing, and method-name
+to subcommand-name mapping.
+
+Three real bugs lived there undetected until the commands were run for the first time on
+2026-09-04, all with green tests throughout:
+
+- **`--version=previous` silently returned the current value.** WP-CLI consumes `--version` before
+  a subcommand sees it; the synopsis default then filled in `current`. The flag is now `--slot`.
+  This is the worst of the three: no error, just the wrong secret.
+- **`--format` was rejected as an unknown parameter** on all four commands that declare it. WP-CLI
+  will not register a parameter whose synopsis block has no `: description` line, and every
+  `[--format=<format>]` went straight into its `---` YAML.
+- **`wp secret migrate-legacy` did not exist**, despite every document saying it did. WP-CLI
+  derives subcommand names from method names, so `migrate_legacy()` registered as
+  `migrate_legacy`. Fixed with `@subcommand`.
+
+**What would catch this:** a smoke test that shells out to a real `wp` binary against a real
+install and asserts on exit codes and output — the WordPress test suite cannot do this, and
+wp-env can. Not built. Until it is, treat any change to a command's docblock synopsis or method
+name as untested, and run it by hand.
+
+Cheap interim discipline: `wp help secret <subcommand>` shows the synopsis WP-CLI actually built.
+If a flag is missing there, it is missing everywhere.
+
+---
+
 ## 🟢 `wp secret set --stdin`'s own code path is not covered by an automated test
 
 `WP_CLI_Secret_Command::set()` reads `--stdin` via `file_get_contents( 'php://stdin' )`. Faking

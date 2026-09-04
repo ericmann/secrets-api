@@ -161,6 +161,13 @@ class Tests_Secrets_WPCLISecretCommand extends WP_UnitTestCase {
 		);
 	}
 
+	/**
+	 * NOTE: this calls the command method directly, which is why it cannot catch a
+	 * flag-name collision or a malformed synopsis -- both of those live in WP-CLI's
+	 * dispatch layer, above where this test starts. `--slot` is named that way
+	 * because `--version` was silently swallowed by WP-CLI and this test passed
+	 * throughout. See docs/open-questions.md, "CLI dispatch is not covered".
+	 */
 	public function test_get_previous_version() {
 		wp_set_secret( 'myplugin/api-key', 'first-value' );
 		wp_set_secret( 'myplugin/api-key', 'second-value' );
@@ -168,9 +175,9 @@ class Tests_Secrets_WPCLISecretCommand extends WP_UnitTestCase {
 		$this->command()->get(
 			array( 'myplugin/api-key' ),
 			array(
-				'version' => 'previous',
-				'field'   => 'value',
-				'reveal'  => true,
+				'slot'   => 'previous',
+				'field'  => 'value',
+				'reveal' => true,
 			)
 		);
 
