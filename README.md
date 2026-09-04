@@ -147,10 +147,17 @@ Choosing the wrong one is the common mistake and it is an expensive one.
 
 ## Contributing
 
+See [`CONTRIBUTING.md`](CONTRIBUTING.md) — especially for what feedback this most needs, which
+right now is someone implementing `WP_Secrets_Provider` against a real platform and reporting
+what broke.
+
 Commits are small and logically scoped, and tests land in the same commit as the code they cover.
 Before changing anything under `src/`, read the constraints above — several of them are enforced
 by architectural tests that read the source, and those tests are never weakened to make a build
 green.
+
+Security issues go through [`SECURITY.md`](SECURITY.md) rather than a public issue: this project
+stores credentials, and a flaw in it is a flaw in the thing protecting everything else.
 
 CI (`.github/workflows/ci.yml`) is a thin wrapper around the `make` targets above, running on
 github.com's hosted runners: static analysis gates a PHP 7.4/8.0/8.3 × WordPress latest/trunk

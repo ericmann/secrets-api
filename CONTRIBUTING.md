@@ -1,0 +1,54 @@
+# Contributing
+
+The [proposal][proposal] is the design conversation; this repository is the implementation of it.
+Both are open, and disagreement with the design is as welcome here as a patch.
+
+[proposal]: https://make.wordpress.org/core/2026/08/25/proposal-a-secrets-api-for-wordpress-7-2/
+
+## The feedback this most needs
+
+In rough order of how much it would change the code:
+
+1. **Implement `WP_Secrets_Provider` against a real platform and tell us what broke.** The
+   interface is shaped by hosts *describing* what they need, not by working implementations. The
+   first real one will find something the descriptions missed, and that is worth more than any
+   amount of review. Start with [`docs/extending.md`](docs/extending.md) and
+   [`examples/`](examples/) — and note that a KMS is usually a `WP_Secrets_Keyring`, three
+   methods, not a provider.
+2. **Run the conformance suite against your implementation** (`WP_Secrets_Provider_Conformance`)
+   and report anything it fails to catch, or anything it demands that a reasonable backend cannot
+   provide.
+3. **Answer one of the open questions.** [`docs/open-questions.md`](docs/open-questions.md) is
+   deliberately short and holds only what is still open — 🟡 entries need an answer before the
+   core patch.
+4. **Adopt the API in a plugin** and report where it was awkward. The API surface is settled, but
+   "settled" and "pleasant to use" are different claims.
+
+Security issues go through [`SECURITY.md`](SECURITY.md), never a public issue.
+
+## Working on the code
+
+`make ci` is the single source of truth — lint, PHP 7.4 compatibility, phpstan, and both PHPUnit
+suites. A green local run means a green pipeline. `bin/ci-local.sh` does the same inside wp-env
+if you would rather not set up a test database. See the README for both.
+
+A few conventions that are load-bearing rather than stylistic:
+
+- **`src/` is written to be copied verbatim into `wordpress-develop`.** Same paths, core coding
+  standards, the `default` text domain, `@since 7.2.0`, PHP 7.4 syntax, and no reference to
+  anything that only exists in this plugin. Several architectural tests read the source and
+  enforce exactly this.
+- **Those architectural tests are never weakened to make a build green.** If one fails, either
+  the change is wrong or the design needs a decision — both are worth a conversation in the pull
+  request.
+- **Tests land in the same commit as the code they cover**, and commits stay small and logically
+  scoped.
+- **Absent, present, and broken are three states and never collapse into two.** This is the
+  property most of the design exists to protect; a patch that makes an error look like an absence
+  will be sent back even if everything passes.
+
+## Pull requests
+
+Say what property the change preserves or establishes, not only what it does. If it changes
+anything the proposal published, say that explicitly in the description — those need a
+conversation in the comments thread as well as here.
