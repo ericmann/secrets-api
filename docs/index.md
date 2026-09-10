@@ -65,6 +65,7 @@ directory holds everything longer than that.
 - [`0007-fail-closed-on-a-broken-drop-in.md`](decisions/0007-fail-closed-on-a-broken-drop-in.md) — one provider per request, and a broken drop-in never falls back to the default.
 
 ### journal/
+- [`2026-09-04-0-1-0-is-public.md`](journal/2026-09-04-0-1-0-is-public.md) — devlog: what 0.1.0 shipped, what it left out, and the road to 7.2.
 - [`open-questions.md`](journal/open-questions.md) — what is still deliberately undecided.
 - [`proposal-questions.md`](journal/proposal-questions.md) — the five questions the proposal asked, and the answers so far.
 - [`test-coverage-gaps.md`](journal/test-coverage-gaps.md) — paths the suite cannot reach and what was verified by hand.
