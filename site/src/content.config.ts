@@ -6,7 +6,8 @@ import { docsSchema } from '@astrojs/starlight/schema';
 // Markdown stays readable on GitHub and there is one source of truth.
 export const collections = {
 	docs: defineCollection({
-		loader: glob({ base: '../docs', pattern: '**/[^_]*.{md,mdx}' }),
+		// Underscore-prefixed files and directories (docs/journal/_drafts/) are never published.
+		loader: glob({ base: '../docs', pattern: ['**/[^_]*.{md,mdx}', '!**/_*/**'] }),
 		schema: docsSchema({
 			extend: z.object({
 				// Journal entries carry a date; the sidebar sorts on it.
