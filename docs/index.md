@@ -37,6 +37,14 @@ directory holds everything longer than that.
 
 ### spec/
 - [`extension-points.md`](spec/extension-points.md) — the provider, store, and keyring contracts; fail-closed behaviour; error codes; naming rules.
+- [`envelope-encryption.md`](spec/envelope-encryption.md) — the master-key envelope as proposed versus the four-layer construction as built.
+- [`retrieval.md`](spec/retrieval.md) — the three-state return and the absence of any retrieval filter.
+- [`providers-and-keyrings.md`](spec/providers-and-keyrings.md) — the provider as outermost extension point and how the store and keyring relate to it.
+- [`versioning.md`](spec/versioning.md) — two slots, `WP_Secret_Version` constants, and the PHP 7.4 floor.
+- [`rotation.md`](spec/rotation.md) — value rotation by overwrite, retirement, and site-key rotation.
+- [`import.md`](spec/import.md) — `wp_import_option_as_secret()` and why it copies rather than moves.
+- [`network.md`](spec/network.md) — network scope and per-site key derivation.
+- [`scope.md`](spec/scope.md) — the 7.2 target, the deferred UI, and what 0.1.0 adds beyond the named surface.
 
 ### reference/
 - [`ci.md`](reference/ci.md) — local, Docker-free, and air-gapped test runs; the hosted matrix; action pinning.
