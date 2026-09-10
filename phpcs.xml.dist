@@ -13,6 +13,8 @@
 		CI installing the AWS and Google SDKs to check code it does not ship.
 	-->
 	<exclude-pattern>/examples/*</exclude-pattern>
+	<!-- site/ is the Astro docs site: JavaScript, no PHP of ours, and a node_modules tree. -->
+	<exclude-pattern>/site/*</exclude-pattern>
 
 	<arg name="extensions" value="php"/>
 	<arg name="basepath" value="."/>
@@ -32,6 +34,15 @@
 		<include-pattern>/plugin/*</include-pattern>
 		<include-pattern>/cli/*</include-pattern>
 		<include-pattern>/secrets-api\.php$</include-pattern>
+	</rule>
+
+	<!--
+		bin/gen-reference.php is a development tool, not shipped code. It declares one
+		class in a file named for what the tool does rather than for the class, which
+		is the convention for scripts under bin/.
+	-->
+	<rule ref="WordPress.Files.FileName">
+		<exclude-pattern>/bin/*</exclude-pattern>
 	</rule>
 
 	<rule ref="PHPCompatibilityWP"/>

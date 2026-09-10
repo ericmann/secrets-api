@@ -6,7 +6,7 @@
  */
 
 /**
- * Read-only access to displace-secrets-manager's on-disk format.
+ * Read-only access to the earlier prototype's on-disk format.
  *
  * Never writes, never deletes -- this class exists purely so
  * Secrets_API_Migrator can read a value out of the old format to write it into the

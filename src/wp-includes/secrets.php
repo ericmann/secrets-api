@@ -209,7 +209,7 @@ function wp_secrets_memzero( &$value ) {
  * plugin that can run PHP can read any secret, namespaced or not.
  *
  * An unnamespaced name ('secret-name', no '/') is accepted, but reports through
- * _doing_it_wrong(). It exists for one reason: code written against the Displace
+ * _doing_it_wrong(). It exists for one reason: code written against the earlier
  * prototype used a flat keyspace, and refusing those names outright would mean
  * every such call site has to be rewritten before it can be ported at all.
  * Accepting them keeps that migration incremental. Nothing else should use one.

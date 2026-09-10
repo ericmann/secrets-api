@@ -15,7 +15,7 @@ DB_PASS ?=
 DB_HOST ?= 127.0.0.1
 
 .DEFAULT_GOAL := help
-.PHONY: help install lint lint-fix compat analyse test test-ms coverage ci clean
+.PHONY: help install lint lint-fix compat analyse test test-ms coverage reference reference-check ci clean
 
 help: ## Show this help.
 	@grep -hE '^[a-zA-Z_-]+:.*?## ' $(MAKEFILE_LIST) \
@@ -48,7 +48,13 @@ test-ms: ## Run the multisite suite.
 coverage: ## Run the single-site suite with coverage.
 	$(VENDOR_BIN)/phpunit --coverage-html coverage --coverage-text
 
-ci: lint compat analyse test test-ms ## Everything CI runs.
+reference: ## Regenerate docs/reference/ from source docblocks.
+	php bin/gen-reference.php
+
+reference-check: ## Fail if docs/reference/ is stale relative to the source.
+	php bin/gen-reference.php --check
+
+ci: lint compat analyse reference-check test test-ms ## Everything CI runs.
 
 clean: ## Remove generated artefacts.
 	rm -rf vendor coverage .phpunit.result.cache .phpcs.cache

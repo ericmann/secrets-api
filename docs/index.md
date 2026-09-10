@@ -50,6 +50,10 @@ directory holds everything longer than that.
 - [`ci.md`](reference/ci.md) — local, Docker-free, and air-gapped test runs; the hosted matrix; action pinning.
 - [`migrating-from-displace.md`](reference/migrating-from-displace.md) — read-time upgrade from the prototype format and the bulk migration command.
 - [`drop-in-example.php`](reference/drop-in-example.php) — a runnable `secrets.php` skeleton.
+- [`functions.md`](reference/functions.md) — every function, generated from docblocks.
+- [`classes.md`](reference/classes.md) — every class and interface with public constants and methods, generated.
+- [`hooks.md`](reference/hooks.md) — every action and filter, generated.
+- [`wp-cli.md`](reference/wp-cli.md) — every `wp secret` and `wp network-secret` subcommand, generated.
 
 ### decisions/
 - [`host-provider-model.md`](decisions/host-provider-model.md) — why `WP_Secrets_Provider` is the outermost extension point.

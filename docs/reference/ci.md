@@ -15,6 +15,7 @@ make compat    # PHPCompatibilityWP, testVersion 7.4-
 make analyse   # phpstan
 make test      # phpunit, single site
 make test-ms   # phpunit, multisite
+make reference-check  # docs/reference/ matches the source docblocks
 make ci        # all of the above
 ```
 
@@ -101,6 +102,7 @@ person pasted.
 | `static` | 8.3 | — | lint + compat + analyse. Gates everything else. |
 | `test` | 7.4, 8.0, 8.3 | latest, trunk | Single site |
 | `test-multisite` | 8.3 | latest | Multisite suite |
+| `reference-docs` | 8.3 | — | `bin/gen-reference.php --check`: the committed docs/reference/ matches the source. No Composer install. |
 
 The 7.4 leg is not optional. Core's floor is 7.4 and `src/` must run there; PHPCompatibilityWP
 catches syntax statically, but only a running 7.4 catches runtime behaviour differences.

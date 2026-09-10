@@ -388,7 +388,7 @@ class WP_CLI_Secret_Command {
 	}
 
 	/**
-	 * Migrates secrets from displace-secrets-manager's legacy format.
+	 * Migrates secrets from the earlier prototype's legacy format.
 	 *
 	 * With no flags, migrates every legacy secret into the new format and leaves
 	 * every legacy option in place. Writing a new-format secret is never destructive,

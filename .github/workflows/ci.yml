@@ -66,6 +66,25 @@ jobs:
       - run: make compat
       - run: make analyse
 
+  # docs/reference/ is generated from source docblocks by bin/gen-reference.php and
+  # committed so it stays readable on GitHub. This fails when the committed copy no
+  # longer matches the source: someone changed a docblock and did not regenerate.
+  # Needs PHP and nothing else; the generator has no dependencies.
+  reference-docs:
+    name: Generated reference docs
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Set up PHP
+        uses: shivammathur/setup-php@f3e473d116dcccaddc5834248c87452386958240 # 2.37.2
+        with:
+          php-version: '8.3'
+          coverage: none
+
+      - run: make reference-check
+
   # The 7.4 leg is not optional. Core's floor is 7.4 and src/ has to run there;
   # `make compat` catches syntax statically, but only a running 7.4 catches a
   # runtime behaviour difference. WP trunk is included so a core change that

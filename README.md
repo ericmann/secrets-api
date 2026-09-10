@@ -47,6 +47,7 @@ target list.
 | `make analyse` | phpstan |
 | `make test` / `make test-ms` | phpunit, single site / multisite |
 | `make coverage` | phpunit with an HTML coverage report (see `docs/journal/test-coverage-gaps.md` re: wp-env) |
+| `make reference` / `make reference-check` | regenerate `docs/reference/` from docblocks / fail if it is stale |
 | `make ci` | all of the above |
 
 Runners without egress to wordpress.org can point the installer at a mirror with `WP_MIRROR_BASE`

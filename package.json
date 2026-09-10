@@ -3,6 +3,8 @@
   "private": true,
   "description": "Root scripts for the Secrets API feature plugin repository. The docs site lives in site/.",
   "scripts": {
-    "docs:build": "npm --prefix site run build"
+    "docs:reference": "php bin/gen-reference.php",
+    "docs:reference:check": "php bin/gen-reference.php --check",
+    "docs:build": "npm run docs:reference && npm --prefix site run build"
   }
 }
