@@ -1,0 +1,161 @@
+---
+# Publishes the docs site (site/dist) to Spacefast on every version tag, or on
+# demand from the Actions tab.
+#
+# This is a deployment workflow, not CI: nothing here wraps a Makefile target and
+# `make ci` does not depend on it. It builds with the same `npm run docs:build` a
+# contributor runs locally, then publishes with the Spacefast CLI.
+#
+# Actions are pinned by full commit SHA, as in ci.yml. Each SHA was resolved from
+# the action's tag on GitHub at the version noted beside it.
+#
+# Stray-space guard. The publish always targets the one fixed Space id below,
+# there is no retry, and every failure stops the job. A publish that cannot reach
+# that Space must fail rather than create another one, so a second attempt is
+# never made automatically. Re-run the job by hand once the cause is known.
+name: Publish docs
+
+on:
+  push:
+    tags: ['v*.*.*']
+  workflow_dispatch:
+    inputs:
+      message:
+        description: Changelog entry recorded on the published version.
+        required: false
+        type: string
+
+# Reads the repository; everything it writes goes to Spacefast.
+permissions:
+  contents: read
+
+# One publish at a time, and never cancel one in flight: a cancelled upload is a
+# half-finished version, and the next run would not know that.
+concurrency:
+  group: docs-publish
+  cancel-in-progress: false
+
+env:
+  # The Space this repository's docs live in. Changing the target means editing
+  # this line deliberately, not passing a variable that might be empty.
+  SPACEFAST_SPACE_ID: spc_9bba714db6074646904fbfc3a3bb4fc9
+  SPACEFAST_CLI_VERSION: 0.4.1
+
+jobs:
+  publish:
+    name: Build and publish
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Refuse to run without a token and a target
+        env:
+          SPACEFAST_TOKEN: ${{ secrets.SPACEFAST_TOKEN }}
+        run: |
+          if [ -z "$SPACEFAST_TOKEN" ]; then
+            echo "::error::The SPACEFAST_TOKEN repository secret is not set. See site/README.md." >&2
+            exit 1
+          fi
+          if [ -z "$SPACEFAST_SPACE_ID" ]; then
+            echo "::error::SPACEFAST_SPACE_ID is empty. Refusing to publish without a target Space." >&2
+            exit 1
+          fi
+
+      - name: Check out
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Set up Node
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: site/package-lock.json
+
+      # `npm run docs:build` regenerates docs/reference/ with bin/gen-reference.php first.
+      - name: Set up PHP
+        uses: shivammathur/setup-php@f3e473d116dcccaddc5834248c87452386958240 # 2.37.2
+        with:
+          php-version: '8.3'
+          coverage: none
+
+      - name: Install site dependencies
+        run: npm ci --prefix site
+
+      - name: Build
+        run: npm run docs:build
+
+      - name: Install the Spacefast CLI
+        run: npm install -g "spacefast@${SPACEFAST_CLI_VERSION}"
+
+      - name: Publish to Spacefast
+        env:
+          SPACEFAST_TOKEN: ${{ secrets.SPACEFAST_TOKEN }}
+          PUBLISH_MESSAGE: ${{ github.event_name == 'push' && format('Docs for {0}', github.ref_name) || (inputs.message || format('Manual docs publish from {0}', github.sha)) }}
+        run: |
+          set -euo pipefail
+
+          # One attempt, one target. The exit code and the JSON are both checked.
+          if ! sf publish site/dist --space "$SPACEFAST_SPACE_ID" --message "$PUBLISH_MESSAGE" \
+              --json --wait -y > receipt.json; then
+            echo "::error::sf publish exited non-zero. Not retrying. Output follows." >&2
+            cat receipt.json >&2 || true
+            exit 1
+          fi
+
+          if jq -e '.error' receipt.json > /dev/null; then
+            echo "::error::Spacefast returned an error document. Not retrying." >&2
+            jq . receipt.json >&2
+            exit 1
+          fi
+
+          space=$(jq -r '.data.space.id // empty' receipt.json)
+          outcome=$(jq -r '.data.activation.outcome // empty' receipt.json)
+
+          if [ "$space" != "$SPACEFAST_SPACE_ID" ]; then
+            echo "::error::Publish landed on Space '${space:-none}', not '$SPACEFAST_SPACE_ID'." >&2
+            exit 1
+          fi
+
+          if [ "$outcome" != "activated" ]; then
+            echo "::error::Version was not activated on live (outcome: '${outcome:-none}')." >&2
+            jq . receipt.json >&2
+            exit 1
+          fi
+
+          echo "Published $(jq -r '.data.version.ref' receipt.json): $(jq -r '.data.version.immutableUrl' receipt.json)"
+
+      - name: Write the version receipt to the job summary
+        if: always()
+        run: |
+          # Any string field whose key looks like a credential is redacted before it
+          # reaches the summary. Authenticated receipts carry none, but the cost of the
+          # filter is nothing and the cost of being wrong is a leaked key in a public log.
+          redact='walk(if type == "object" then with_entries(if (.key | test("token|secret|key"; "i")) and (.value | type == "string") then .value = "[redacted]" else . end) else . end)'
+          {
+            echo "## Docs publish"
+            echo
+            if [ -s receipt.json ] && jq -e '.data.version' receipt.json > /dev/null 2>&1; then
+              echo "| | |"
+              echo "|---|---|"
+              echo "| Live URL | $(jq -r '.data.space.liveUrl' receipt.json) |"
+              echo "| Version URL | $(jq -r '.data.version.immutableUrl' receipt.json) |"
+              echo "| Version | $(jq -r '.data.version.ref' receipt.json) (\`$(jq -r '.data.version.id' receipt.json)\`) |"
+              echo "| Activation | $(jq -r '.data.activation.outcome' receipt.json) |"
+              echo "| Message | $(jq -r '.data.version.message // env.PUBLISH_MESSAGE // "-"' receipt.json) |"
+              echo
+              echo "<details><summary>Full version receipt</summary>"
+              echo
+              echo '```json'
+              jq "$redact" receipt.json
+              echo '```'
+              echo
+              echo "</details>"
+            else
+              echo "Publish did not produce a version receipt. See the publish step's log."
+              if [ -s receipt.json ]; then
+                echo
+                echo '```json'
+                jq "$redact" receipt.json 2>/dev/null || cat receipt.json
+                echo '```'
+              fi
+            fi
+          } >> "$GITHUB_STEP_SUMMARY"

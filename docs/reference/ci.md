@@ -110,3 +110,10 @@ catches syntax statically, but only a running 7.4 catches runtime behaviour diff
 Local wp-env is pinned to PHP 7.4 for the same reason — the floor is where bugs hide, so it is
 the default you develop against rather than something CI discovers later. Change `phpVersion` in
 `.wp-env.json` to reproduce a failure on a newer PHP.
+
+## Publishing the docs site
+
+`.github/workflows/docs-publish.yml` is a deployment workflow, not part of `make ci`. On every
+`v*.*.*` tag, and on demand, it runs `npm run docs:build` and publishes `site/dist` to a fixed
+Spacefast Space with the Spacefast CLI, using the `SPACEFAST_TOKEN` repository secret. It publishes
+once, checks the receipt, and fails without retrying. `site/README.md` has the details.
