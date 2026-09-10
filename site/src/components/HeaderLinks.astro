@@ -1,0 +1,39 @@
+---
+/**
+ * Replaces Starlight's SocialIcons slot with text links to where the work
+ * happens: the make/core proposal.
+ */
+const links = [
+	{
+		label: 'Proposal',
+		href: 'https://make.wordpress.org/core/2026/08/25/proposal-a-secrets-api-for-wordpress-7-2/',
+	},
+];
+---
+
+<nav class="header-links sl-flex" aria-label="Project links">
+	{
+		links.map(({ label, href }) => (
+			<a {href} target="_blank" rel="noopener">
+				{label}
+			</a>
+		))
+	}
+</nav>
+
+<style>
+	.header-links {
+		gap: 1rem;
+		align-items: center;
+		font-size: var(--sl-text-sm);
+	}
+	.header-links a {
+		color: var(--sl-color-text-accent);
+		text-decoration: none;
+		white-space: nowrap;
+	}
+	.header-links a:hover {
+		color: var(--sl-color-white);
+		text-decoration: underline;
+	}
+</style>

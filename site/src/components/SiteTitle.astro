@@ -1,0 +1,21 @@
+---
+import Default from '@astrojs/starlight/components/SiteTitle.astro';
+---
+
+<Default><slot /></Default>
+<span class="tagline" translate="no">WordPress Core feature plugin</span>
+
+<style>
+	.tagline {
+		font-size: var(--sl-text-xs);
+		color: var(--sl-color-gray-3);
+		white-space: nowrap;
+		padding-inline-start: 0.75rem;
+		border-inline-start: 1px solid var(--sl-color-gray-5);
+	}
+	@media (max-width: 72rem) {
+		.tagline {
+			display: none;
+		}
+	}
+</style>

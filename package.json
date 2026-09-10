@@ -1,0 +1,8 @@
+{
+  "name": "secrets-api",
+  "private": true,
+  "description": "Root scripts for the Secrets API feature plugin repository. The docs site lives in site/.",
+  "scripts": {
+    "docs:build": "npm --prefix site run build"
+  }
+}

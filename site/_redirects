@@ -1,0 +1,2 @@
+# Serve Starlight's generated 404 page for any path that does not exist.
+/*  /404.html  404

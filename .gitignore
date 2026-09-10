@@ -14,3 +14,11 @@ examples/*/vendor/
 
 # wp-env local overrides — may contain real credentials.
 .wp-env.override.json
+
+# Docs site build artefacts (site/ is an Astro project).
+site/node_modules/
+site/dist/
+site/.astro/
+
+# Spacefast CLI link and state. Written wherever sf publish runs from; never commit it.
+.spacefast/

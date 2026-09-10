@@ -1,0 +1,5 @@
+/* Wide tables in the docs scroll inside their own box rather than the page. */
+.sl-markdown-content table {
+	display: block;
+	overflow-x: auto;
+}
