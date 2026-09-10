@@ -56,6 +56,8 @@ directory holds everything longer than that.
 - [`wp-cli.md`](reference/wp-cli.md) — every `wp secret` and `wp network-secret` subcommand, generated.
 
 ### decisions/
+- [`0001-provider-as-outermost-extension-point.md`](decisions/0001-provider-as-outermost-extension-point.md) — ADR: the reframe to `WP_Secrets_Provider` after proposal feedback.
+- [`0002-plugin-before-core-patch.md`](decisions/0002-plugin-before-core-patch.md) — ADR: why the plugin ships first, and what done means for plugin and patch.
 - [`host-provider-model.md`](decisions/host-provider-model.md) — why `WP_Secrets_Provider` is the outermost extension point.
 - [`namespaces-are-not-access-control.md`](decisions/namespaces-are-not-access-control.md) — namespacing groups secrets; it does not isolate them.
 - [`record-format-v2-not-read-compatible.md`](decisions/record-format-v2-not-read-compatible.md) — a future record format bumps `v` rather than widening v1.
