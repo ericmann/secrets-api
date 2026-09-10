@@ -44,7 +44,7 @@ the secret exists but has never been rotated. See [retrieval.md](retrieval.md).
 record format version, stored as `v` in every record and checked by
 `WP_Secrets_Libsodium_Provider::validate_record_shape()`. An unknown `v` returns
 `WP_SECRETS_ERROR_RECORD_UNSUPPORTED_VERSION` rather than being attempted. This is unrelated to the
-two value slots. `docs/decisions/record-format-v2-not-read-compatible.md` covers what a future
+two value slots. `docs/decisions/0006-record-format-v2-not-read-compatible.md` covers what a future
 bump would mean.
 
 ## Why

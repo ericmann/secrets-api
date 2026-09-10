@@ -19,11 +19,11 @@ directory holds everything longer than that.
 ## Start here
 
 - **Writing a plugin that stores a credential:** the README, then
-  [`decisions/namespaces-are-not-access-control.md`](decisions/namespaces-are-not-access-control.md)
+  [`decisions/0005-namespaces-are-not-access-control.md`](decisions/0005-namespaces-are-not-access-control.md)
   so you know what a namespace does and does not buy you.
 - **Hosting platform integrating a KMS, HSM, or credential store:**
   [`spec/extension-points.md`](spec/extension-points.md), then
-  [`decisions/host-provider-model.md`](decisions/host-provider-model.md) for why the provider is
+  [`decisions/0001-provider-as-outermost-extension-point.md`](decisions/0001-provider-as-outermost-extension-point.md) for why the provider is
   shaped the way it is, then [`reference/drop-in-example.php`](reference/drop-in-example.php)
   and [`../examples/`](../examples/) for something to copy.
 - **Moving off the Displace prototype:**
@@ -56,13 +56,13 @@ directory holds everything longer than that.
 - [`wp-cli.md`](reference/wp-cli.md) — every `wp secret` and `wp network-secret` subcommand, generated.
 
 ### decisions/
-- [`0001-provider-as-outermost-extension-point.md`](decisions/0001-provider-as-outermost-extension-point.md) — ADR: the reframe to `WP_Secrets_Provider` after proposal feedback.
-- [`0002-plugin-before-core-patch.md`](decisions/0002-plugin-before-core-patch.md) — ADR: why the plugin ships first, and what done means for plugin and patch.
-- [`host-provider-model.md`](decisions/host-provider-model.md) — why `WP_Secrets_Provider` is the outermost extension point.
-- [`namespaces-are-not-access-control.md`](decisions/namespaces-are-not-access-control.md) — namespacing groups secrets; it does not isolate them.
-- [`record-format-v2-not-read-compatible.md`](decisions/record-format-v2-not-read-compatible.md) — a future record format bumps `v` rather than widening v1.
-- [`no-compat-shim.md`](decisions/no-compat-shim.md) — no `get_secret()`/`set_secret()` shim for prototype-era code.
-- [`out-of-scope-requests.md`](decisions/out-of-scope-requests.md) — community requests judged reasonable but outside the API.
+- [`0001-provider-as-outermost-extension-point.md`](decisions/0001-provider-as-outermost-extension-point.md) — the reframe to `WP_Secrets_Provider` after proposal feedback.
+- [`0002-plugin-before-core-patch.md`](decisions/0002-plugin-before-core-patch.md) — why the plugin ships first, and what done means for plugin and patch.
+- [`0003-community-requests-out-of-scope.md`](decisions/0003-community-requests-out-of-scope.md) — Two Factor integration and AI plugin coordination, judged outside the API.
+- [`0004-no-compat-shim-for-the-prototype.md`](decisions/0004-no-compat-shim-for-the-prototype.md) — a read-time upgrade and a migration command instead of a shim.
+- [`0005-namespaces-are-not-access-control.md`](decisions/0005-namespaces-are-not-access-control.md) — namespacing groups secrets; it does not isolate them.
+- [`0006-record-format-v2-not-read-compatible.md`](decisions/0006-record-format-v2-not-read-compatible.md) — a future record format bumps `v` rather than widening v1.
+- [`0007-fail-closed-on-a-broken-drop-in.md`](decisions/0007-fail-closed-on-a-broken-drop-in.md) — one provider per request, and a broken drop-in never falls back to the default.
 
 ### journal/
 - [`open-questions.md`](journal/open-questions.md) — what is still deliberately undecided.

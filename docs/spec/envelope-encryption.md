@@ -71,9 +71,8 @@ code inserts a stored root key between them and derives the master key from it. 
 the network requirement in the same proposal ("a network root key derives per-site subkeys") and
 the rotation claim ("rotation re-wraps a single value") both hold at once: on a multisite network
 each blog gets a cryptographically distinct master key, and a site-key rotation still re-wraps
-exactly one stored value, on one site or on five hundred. The README's key-hierarchy diagram and
-`docs/decisions/host-provider-model.md` describe the same structure, so the code and the design
-documents agree here.
+exactly one stored value, on one site or on five hundred. The README's key-hierarchy diagram
+describes the same structure, so the code and the design documents agree here.
 
 **The cipher.** The proposal leaves the AEAD unnamed. XChaCha20-Poly1305-IETF was chosen because
 its 24-byte nonce is large enough that random nonces are safe without any counter or nonce

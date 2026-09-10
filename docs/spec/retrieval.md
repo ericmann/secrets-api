@@ -68,7 +68,7 @@ constructs a secret whose
 `WP_Secret::reveal(): string`. The code widens it so a provider can represent a credential it can
 name and fingerprint but will not release to PHP, such as an HSM key that signs but never exports.
 The shipped provider never produces this case. The change was made before adoption because a return
-type cannot be widened afterwards. `docs/decisions/host-provider-model.md` records the reasoning
+type cannot be widened afterwards. `docs/decisions/0001-provider-as-outermost-extension-point.md` records the reasoning
 and agrees with the code.
 
 **"No filter" is broader than proposed.** The proposal rules out a filter on retrieval. The code

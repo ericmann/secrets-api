@@ -87,8 +87,8 @@ define( 'WP_SECRETS_ERROR_RECORD_MALFORMED', 'secret_record_malformed' );
  *
  * Distinct from WP_SECRETS_ERROR_RECORD_MALFORMED so that an operator, or Site
  * Health, can tell a corrupt record apart from one written by a newer version of
- * this plugin than is currently active. See docs/decisions/record-format-v2-not-read-compatible.md,
- * "Record format version bump policy". The upgrade path for a future v2 is not
+ * this plugin than is currently active. See
+ * docs/decisions/0006-record-format-v2-not-read-compatible.md. The upgrade path for a future v2 is not
  * designed, so an unrecognized version is rejected outright rather than guessed at.
  *
  * @since 7.2.0

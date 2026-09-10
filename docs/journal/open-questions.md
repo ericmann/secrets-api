@@ -43,7 +43,7 @@ interface is shaped by hosts describing what they need rather than by anyone bui
 and the first real implementation will turn something up. That is what to ask for in the comments
 thread: not "does this look right" but "build against it and tell us what broke."
 
-See [`host-provider-model.md`](../decisions/host-provider-model.md) for the reasoning, including why a provider
+See [ADR 0001](../decisions/0001-provider-as-outermost-extension-point.md) for the reasoning, including why a provider
 declaration is documentation rather than enforcement.
 
 ---

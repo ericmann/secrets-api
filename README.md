@@ -120,7 +120,7 @@ that rule rather than the rule itself.
 
 `WP_Secrets_Provider` is where a platform plugs in, and the provider that ships with WordPress is
 one implementation of it rather than a privileged case.
-[`docs/decisions/host-provider-model.md`](docs/decisions/host-provider-model.md) has the reasoning, the routing rules,
+[`docs/decisions/0001-provider-as-outermost-extension-point.md`](docs/decisions/0001-provider-as-outermost-extension-point.md) has the reasoning, the routing rules,
 and what does not flex.
 
 ## Extending

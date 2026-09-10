@@ -53,7 +53,7 @@ behalf. The README states the same rule for the prototype upgrade path.
 prototype are not stranded while its consumers move to `wp_get_secret()`. It is confined to
 `plugin/` and one CLI subcommand, and an architectural test
 (`test_no_prototype_compat_symbols_in_src()` in `tests/phpunit/test-architecture.php`) keeps it
-out of core-bound code. `docs/decisions/no-compat-shim.md` records why it is an upgrade rather
+out of core-bound code. `docs/decisions/0004-no-compat-shim-for-the-prototype.md` records why it is an upgrade rather
 than a compatibility layer.
 
 [proposal]: https://make.wordpress.org/core/2026/08/25/proposal-a-secrets-api-for-wordpress-7-2/

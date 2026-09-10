@@ -81,7 +81,7 @@ its own KMS or HSM, and serves it to WordPress over an authenticated channel. Un
 contract that is banned, because the store is handed something WordPress did not encrypt. The
 resolution was to restate the rule as "a provider must be stronger than the default, never
 weaker" and to put the provider one level outside the store and keyring, rather than carve
-exceptions into the store contract. `docs/decisions/host-provider-model.md` records the
+exceptions into the store contract. `docs/decisions/0001-provider-as-outermost-extension-point.md` records the
 discussion; `docs/spec/extension-points.md` holds the contracts.
 
 **"Never handed a plaintext" is now a property of the shipped provider, not of every extension.**
