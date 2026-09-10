@@ -1,3 +1,8 @@
+---
+title: "Extending: providers, stores, and keyrings"
+description: "The WP_Secrets_Provider, WP_Secrets_Store, and WP_Secrets_Keyring contracts, drop-in registration, fail-closed behaviour, error codes, and naming rules."
+---
+
 # Extending: providers, stores, and keyrings
 
 **Start here: `WP_Secrets_Provider` is the outermost extension point.** A provider is responsible
@@ -88,7 +93,7 @@ managed in a control panel is not really describing its record storage at all.
 $GLOBALS['wp_secrets_store'] = new My_Platform_Store();
 ```
 
-See [`drop-in-example.php`](drop-in-example.php) for a complete, runnable skeleton.
+See [`drop-in-example.php`](../reference/drop-in-example.php) for a complete, runnable skeleton.
 
 ## `WP_Secrets_Keyring`: where the root key lives
 
@@ -139,7 +144,7 @@ uncatchable fatal, even inside the `try`/`catch` around the `require`. The usual
 that `implements` an interface but omits one of its methods. Userland can't intercept that, and it
 takes down the whole request rather than failing in a contained way. Run `php -l` over your drop-in
 and load a real request before you trust it in production. See
-[`open-questions.md`](open-questions.md), "Drop-in file loading".
+[`test-coverage-gaps.md`](../journal/test-coverage-gaps.md), "Drop-in file loading".
 
 ## Error codes
 

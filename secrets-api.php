@@ -190,7 +190,7 @@ function wp_secrets_api_bootstrap() {
 		 * - tests/includes/class-legacy-fixture-writer.php and the three
 		 *   test-secrets-api-{legacy-reader,migrator,prototype-fallback-store}.php
 		 *   files
-		 * - docs/migrating-from-displace.md
+		 * - docs/reference/migrating-from-displace.md
 		 *
 		 * Nothing under src/ references any of it, no core-bound file knows it
 		 * exists, and an architectural test enforces both. Deleting that list
@@ -255,7 +255,7 @@ function wp_secrets_api_notice_conflict() {
  * a required method -- as an uncatchable fatal even inside a try/catch around the
  * require, confirmed empirically on both PHP 7.4 and 8.5 before writing this
  * comment. That gap is unavoidable from userland and is recorded in
- * docs/open-questions.md rather than silently assumed away.
+ * docs/journal/test-coverage-gaps.md rather than silently assumed away.
  *
  * @return void
  */

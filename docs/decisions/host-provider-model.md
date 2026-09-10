@@ -1,3 +1,8 @@
+---
+title: "The host-provider model"
+description: "Why WP_Secrets_Provider became the outermost extension point: what hosts asked for, why the original contract blocked them, and what did not flex."
+---
+
 # The host-provider model
 
 How a hosting platform takes over custody of a site's credentials, and why the extension point is
@@ -104,7 +109,7 @@ credential gets served for months.
 what they actually are: the pieces the libsodium provider is built from. A host that wants KMS key
 wrapping with default storage swaps the keyring inside the default provider instead of writing a
 provider from scratch, which is three methods rather than eight. See
-[`../examples/README.md`](../examples/README.md) for choosing between them.
+[`../../examples/README.md`](../../examples/README.md) for choosing between them.
 
 ## The interface
 
@@ -172,5 +177,5 @@ Two rules that are easy to get wrong. The conformance suite checks both:
 If your provider is backed by a platform that owns the credential, don't keep a local copy either.
 The dashboard or KMS is the authority, and a shadow copy in `wp_options` defeats the purpose.
 
-Run the conformance suite before you trust an implementation. See [`extending.md`](extending.md)
-and [`../examples/README.md`](../examples/README.md).
+Run the conformance suite before you trust an implementation. See [`extension-points.md`](../spec/extension-points.md)
+and [`../../examples/README.md`](../../examples/README.md).

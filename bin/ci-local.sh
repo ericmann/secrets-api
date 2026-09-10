@@ -10,7 +10,7 @@
 #
 # wp-env ships the WordPress core PHPUnit suite in its tests container and points
 # WP_TESTS_DIR at it, so bin/install-wp-tests.sh is not needed on this path. That
-# script exists for the no-Docker route -- see docs/ci.md.
+# script exists for the no-Docker route -- see docs/reference/ci.md.
 #
 set -euo pipefail
 
@@ -28,7 +28,7 @@ for arg in "$@"; do
 done
 
 if ! command -v docker >/dev/null 2>&1; then
-	echo "Docker is required. See docs/ci.md for the no-Docker path." >&2
+	echo "Docker is required. See docs/reference/ci.md for the no-Docker path." >&2
 	exit 1
 fi
 

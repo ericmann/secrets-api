@@ -87,7 +87,7 @@ define( 'WP_SECRETS_ERROR_RECORD_MALFORMED', 'secret_record_malformed' );
  *
  * Distinct from WP_SECRETS_ERROR_RECORD_MALFORMED so that an operator, or Site
  * Health, can tell a corrupt record apart from one written by a newer version of
- * this plugin than is currently active. See docs/open-questions.md,
+ * this plugin than is currently active. See docs/decisions/record-format-v2-not-read-compatible.md,
  * "Record format version bump policy". The upgrade path for a future v2 is not
  * designed, so an unrecognized version is rejected outright rather than guessed at.
  *
@@ -304,7 +304,7 @@ function wp_secrets_validate_name( $name ) {
  * Returns the active secret store.
  *
  * No filter is applied here, or anywhere on the retrieval path. See
- * docs/extending.md. A secrets.php drop-in overrides the store by setting
+ * docs/spec/extension-points.md. A secrets.php drop-in overrides the store by setting
  * $GLOBALS['wp_secrets_store'] to an instance before this is first called, and
  * that global is checked here directly, not through a hook.
  *

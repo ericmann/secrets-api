@@ -12,7 +12,7 @@ Once core ships the API, the plugin stands down on its own and says so in an adm
 than shadowing core's implementation.
 
 > **Status: feature plugin, pre-core-merge.** The public API surface is settled — it is the one
-> described in the proposal. See [`docs/open-questions.md`](docs/open-questions.md) for what is
+> described in the proposal. See [`docs/journal/open-questions.md`](docs/journal/open-questions.md) for what is
 > deliberately unresolved.
 
 [proposal]: https://make.wordpress.org/core/2026/08/25/proposal-a-secrets-api-for-wordpress-7-2/
@@ -46,11 +46,11 @@ target list.
 | `make compat` | PHPCompatibilityWP at `testVersion 7.4-` |
 | `make analyse` | phpstan |
 | `make test` / `make test-ms` | phpunit, single site / multisite |
-| `make coverage` | phpunit with an HTML coverage report (see `docs/open-questions.md` re: wp-env) |
+| `make coverage` | phpunit with an HTML coverage report (see `docs/journal/test-coverage-gaps.md` re: wp-env) |
 | `make ci` | all of the above |
 
 Runners without egress to wordpress.org can point the installer at a mirror with `WP_MIRROR_BASE`
-or `WP_TESTS_ZIP_URL`. See [`docs/ci.md`](docs/ci.md).
+or `WP_TESTS_ZIP_URL`. See [`docs/reference/ci.md`](docs/reference/ci.md).
 
 ## What this is
 
@@ -107,7 +107,7 @@ future screen needs are in scope; the screen is not.
 Some plugins were built against an earlier prototype of this idea. This plugin does not implement
 that prototype's API. Instead, a read for a secret that exists only in the prototype's format is
 upgraded into the current format the first time it is read, and the prototype's own data is never
-touched or deleted. See [`docs/migrating-from-displace.md`](docs/migrating-from-displace.md).
+touched or deleted. See [`docs/reference/migrating-from-displace.md`](docs/reference/migrating-from-displace.md).
 
 ## Host and platform support
 
@@ -119,7 +119,7 @@ that rule rather than the rule itself.
 
 `WP_Secrets_Provider` is where a platform plugs in, and the provider that ships with WordPress is
 one implementation of it rather than a privileged case.
-[`docs/host-provider-model.md`](docs/host-provider-model.md) has the reasoning, the routing rules,
+[`docs/decisions/host-provider-model.md`](docs/decisions/host-provider-model.md) has the reasoning, the routing rules,
 and what does not flex.
 
 ## Extending
@@ -133,8 +133,8 @@ Three interfaces, outermost first:
 | `WP_Secrets_Store` | Where a record lives | Ciphertext belongs somewhere other than `wp_options` |
 
 The keyring is what most hosts actually want, and it's three methods. A `wp-content/secrets.php`
-drop-in installs any of them. See [`docs/extending.md`](docs/extending.md) for the contracts and
-[`docs/drop-in-example.php`](docs/drop-in-example.php) for a runnable skeleton.
+drop-in installs any of them. See [`docs/spec/extension-points.md`](docs/spec/extension-points.md) for the contracts and
+[`docs/reference/drop-in-example.php`](docs/reference/drop-in-example.php) for a runnable skeleton.
 
 ## Platform bindings
 
@@ -161,7 +161,7 @@ stores credentials, and a flaw in it is a flaw in the thing protecting everythin
 
 CI (`.github/workflows/ci.yml`) is a thin wrapper around the `make` targets above, running on
 github.com's hosted runners: static analysis gates a PHP 7.4/8.0/8.3 × WordPress latest/trunk
-matrix plus a multisite job. See [`docs/ci.md`](docs/ci.md).
+matrix plus a multisite job. See [`docs/reference/ci.md`](docs/reference/ci.md).
 
 ## License
 

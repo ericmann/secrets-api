@@ -13,12 +13,12 @@ In rough order of how much it would change the code:
    interface is shaped by hosts describing what they need rather than by anyone having built
    against it. The first real implementation will turn up something those descriptions missed, and
    that's worth more than any amount of review. Start with
-   [`docs/extending.md`](docs/extending.md) and [`examples/`](examples/). Note that a KMS is
+   [`docs/spec/extension-points.md`](docs/spec/extension-points.md) and [`examples/`](examples/). Note that a KMS is
    usually a `WP_Secrets_Keyring` — three methods — rather than a provider.
 2. **Run the conformance suite against your implementation** (`WP_Secrets_Provider_Conformance`)
    and report anything it fails to catch, or anything it demands that a reasonable backend cannot
    provide.
-3. **Answer one of the open questions.** [`docs/open-questions.md`](docs/open-questions.md) is
+3. **Answer one of the open questions.** [`docs/journal/open-questions.md`](docs/journal/open-questions.md) is
    deliberately short and holds only what is still open — 🟡 entries need an answer before the
    core patch.
 4. **Adopt the API in a plugin** and report where it got awkward. The surface is settled, which

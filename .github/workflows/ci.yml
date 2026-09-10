@@ -1,7 +1,7 @@
 ---
 # CI for the Secrets API feature plugin.
 #
-# `make ci` is the single source of truth (see docs/ci.md and README.md) — every
+# `make ci` is the single source of truth (see docs/reference/ci.md and README.md) — every
 # job here is a thin wrapper around Makefile targets, so a green `make ci`
 # locally means a green pipeline. If the two ever disagree, the Makefile is
 # right and this file is wrong.

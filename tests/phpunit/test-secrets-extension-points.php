@@ -15,7 +15,7 @@
  * @runInSeparateProcess gives each test a fresh process with nothing cached yet, so
  * setting the global before the first call actually takes effect. This tests the
  * real consumption logic in _wp_secrets_get_store()/_wp_secrets_get_key_manager();
- * see docs/open-questions.md for what this does not cover (the drop-in's own file
+ * see docs/journal/test-coverage-gaps.md for what this does not cover (the drop-in's own file
  * loading, which cannot be driven the same way).
  *
  * @group secrets

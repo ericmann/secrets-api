@@ -1,107 +1,7 @@
-# Open questions
-
-Things this implementation deliberately did **not** decide. Each entry states the conservative
-choice that was made, where the relevant code is, and who needs to resolve it.
-
-**This file holds only what is still open.** Closed questions get deleted rather than archived.
-The reasoning behind a decision belongs next to the code that implements it, where someone reading
-that code will find it, and a long list of answered questions just makes the unanswered ones
-harder to spot. Entries are referenced by heading rather than number, so removing one never leaves
-a dangling reference.
-
-Status legend: 🔴 blocks a release · 🟡 needs an answer before the core patch · 🟢 tracking only
-
 ---
-
-## 🟢 Host and platform providers — implemented, awaiting real implementations
-
-Hosts independently reported that the published extension contract could not express what they
-need: Chris Reynolds (Pantheon), Ryan McCue and Rafael Meneses (Altis), and the control-panel
-model in which a platform dashboard is the system of record and an HSM does the protecting.
-Rafael Meneses supplied the reframe that resolved it:
-
-> A provider can be stronger than the default, never weaker. Plaintext storage stays banned… and
-> the setups Ryan and Chris describe stop being banned with it.
-
-**Done.** `WP_Secrets_Provider` is the outermost extension point and the public functions route
-through it. `WP_Secrets_Libsodium_Provider` — the shipped default — is one implementation of that
-interface rather than a privileged case, composed from a `WP_Secrets_Store` and a
-`WP_Secrets_Keyring` so that a host wanting only their own key custody still swaps only the
-keyring. A drop-in installs a platform provider by setting `$GLOBALS['wp_secrets_provider']`.
-`supports()` is gone, replaced by `get_label()`, `get_protection_boundary()`, and `is_writable()`.
-`reveal()` returns `string|WP_Error` and `WP_Secret::withheld()` exists for credentials a provider
-will not release to PHP. Site Health and `wp secret dropin` report all of it.
-
-**What hasn't happened:** nobody has written a real platform provider against this yet. The
-interface is shaped by hosts describing what they need rather than by anyone building against it,
-and the first real implementation will turn something up. That is what to ask for in the comments
-thread: not "does this look right" but "build against it and tell us what broke."
-
-See [`host-provider-model.md`](host-provider-model.md) for the reasoning, including why a provider
-declaration is documentation rather than enforcement.
-
----
-
-## 🟢 Access control language — decided, keep the docs accurate
-
-**Namespacing is organisational, not access control, and was never intended as
-anything else.** It groups secrets by owner so listings and a future admin screen can be sensible.
-It is not a visibility or privilege boundary.
-
-This matters because the prior proof-of-concept's README described namespace-based access control
-in a way that led people to believe one plugin's secret was inaccessible to another. Darin Kotter
-raised it in the comments. It was not true then, it is not true now, and the docs must not drift
-back toward implying it.
-
-**The phrasing to keep using:** there is no per-plugin isolation. Any plugin that can run PHP can
-read any secret. Masking is hygiene against shoulder-surfing and accidental logging, not a
-privilege boundary.
-
-Tracking-only now: applied in `README.md`, in `wp_secrets_validate_name()`'s docblock, and in the
-`_doing_it_wrong()` message an unnamespaced name produces. Anything new that describes namespaces
-should match.
-
----
-
-## 🟡 Record format version bump policy
-
-`'v' => 1` exists so a future format change is detectable rather than presenting as a decryption
-failure.
-
-**Decided: v2 will not be read-compatible with v1.** The upgrade path is therefore either a
-migration pass over existing records, or a version-switched read path that keeps v1 handling
-alongside v2. Which of the two is a decision for when v2 actually exists — they differ mainly in
-whether sites take a one-time cost or the code carries two decoders indefinitely.
-
-What that rules out, usefully: nobody should design v2 assuming a v1 reader can make sense of it,
-and no future change should quietly widen v1's shape rather than bumping the version.
-
-Still true and worth keeping in view when that day comes: `v` sits outside the AAD, so it is
-unauthenticated metadata. It must be treated as a routing hint validated *before* decryption, and
-an unknown `v` must be rejected outright rather than attempted. Today it is:
-`secret_record_unsupported_version` is returned rather than guessed at, and that is tested.
-
----
-
-## 🟢 The five questions the proposal asked the community
-
-These have a home here so answers from the comments thread land somewhere rather than being
-absorbed into an assumption.
-
-1. **Is the no-filter decision on retrieval sufficient, with providers as the substitution?**
-   — **Answered, and the answer was "not as published."** Hosts independently found the
-   provider contract could not express their deployments. The no-filter decision itself was never
-   challenged; what failed was the contract's shape. See "Host and platform providers" above.
-2. **Are two version slots (`CURRENT`/`PREVIOUS`) adequate, or is a different rotation pattern
-   necessary?** — no answers recorded yet. `'v' => 1` leaves room to change this, but see "Record
-   format version bump policy".
-3. **Does `wp_import_option_as_secret()` fit actual plugin migration workflows?**
-   — no answers recorded yet.
-4. **Which WP-CLI commands most need this surface, and in what priority order?** — the command set
-   implemented here is a starting set, not a settled one. Track real answers rather than assuming.
-5. **For hosts running secret stores or key backends: what is missing from the drop-in surface?**
-   — answered at length by Pantheon and Altis; see "Host and platform providers".
-
+title: "Test coverage gaps"
+description: "Code paths the automated suite does not reach, why, and what was verified by hand instead."
+date: 2026-09-04
 ---
 
 ## 🟢 `sodium_compat` is never exercised by the test suite
@@ -125,30 +25,6 @@ Related and unchanged: `sodium_memzero()` really is a no-op under `sodium_compat
 userland polyfill cannot reach a PHP string's memory. `wp_secrets_memzero()`'s docblock says so
 rather than overclaiming.
 
----
-
-## 🟢 Community requests not in scope
-
-- **Two Factor plugin integration** (Brian Haas). Reasonable, out of scope for the API itself.
-  Worth a note about whether the Two Factor plugin should be an early consumer.
-- **Iterating UX/DX inside the AI plugin's Key Encryption experiment before core merge**
-  (Jeffrey Paul). This plugin touches the AI plugin only through the prototype-format upgrade
-  path. Whether the two efforts should coordinate is a project question.
-
----
-
-## 🟢 Testability smells
-
-If something is hard to test, that is usually a design smell, so it gets written down here
-rather than skipped.
-
-- `var_export()` of a `WP_Secret` cannot be masked from userland — it ignores `__debugInfo()` and
-  `__toString()` and emits private properties directly. Mitigated by not storing the plaintext as
-  an object property at all. Documented as a known limitation regardless.
-- The `options.php` all-settings screen reads the options table directly with no filter, so a
-  plugin cannot exclude secrets from it. Surfaced as a Site Health warning and documented as a
-  core-patch-only fix. There is an existing core ticket and pull request on plaintext display in
-  `options.php` to reference.
 
 ---
 
@@ -184,6 +60,7 @@ So a malformed drop-in fails safely for syntax errors and thrown exceptions, but
 class silently fails to fully implement its interface can still produce a fatal error page. Worth
 another look if a process-spawning integration test is judged worth the complexity later.
 
+
 ---
 
 ## 🟡 CLI dispatch is not covered by any test
@@ -214,6 +91,7 @@ name as untested, and run it by hand.
 Cheap interim discipline: `wp help secret <subcommand>` shows the synopsis WP-CLI actually built.
 If a flag is missing there, it is missing everywhere.
 
+
 ---
 
 ## 🟢 `wp secret set --stdin`'s own code path is not covered by an automated test
@@ -223,6 +101,7 @@ that stream meaningfully from inside a PHPUnit process would need a real pipe (`
 getting it wrong risks hanging the whole test run waiting on a stream nothing is writing to — not
 worth it for one branch. Every other branch of `set()` (positional value, missing value, the
 shell-history warning, success/porcelain/error reporting) is covered directly.
+
 
 ---
 

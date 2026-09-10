@@ -1,3 +1,8 @@
+---
+title: "CI"
+description: "How to run the test matrix locally, without Docker, and in air-gapped environments, and how the hosted pipeline is pinned."
+---
+
 # CI
 
 `make ci` is the single source of truth. Any hosted pipeline is a thin wrapper around the same

@@ -1,3 +1,8 @@
+---
+title: "Coexisting with the Displace prototype"
+description: "How prototype-era secrets are picked up at read time, and when to use wp secret migrate-legacy instead."
+---
+
 # Coexisting with the Displace prototype
 
 This plugin does not provide a compatibility layer for the Displace prototype that some plugins

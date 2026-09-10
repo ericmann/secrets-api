@@ -70,7 +70,7 @@ class Tests_My_Platform_Provider extends WP_Secrets_Provider_Conformance {
 It covers what `implements WP_Secrets_Provider` can't: absence reported as `null`, deleting
 something absent succeeding, fingerprints staying stable for the same value, listings never
 containing a plaintext, and a read-only declaration actually being honoured. See
-[`../docs/extending.md`](../docs/extending.md).
+[`../docs/spec/extension-points.md`](../docs/spec/extension-points.md).
 
 ## Dependencies
 

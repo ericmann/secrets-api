@@ -229,7 +229,7 @@ final class WP_Secret implements JsonSerializable {
 	 * Note that print_r() and var_export() have no equivalent hook. They are safe
 	 * regardless, because the plaintext is never a declared property for them to
 	 * enumerate; they will surface the (non-sensitive) name and fingerprint rather
-	 * than this placeholder. See docs/open-questions.md for the documented
+	 * than this placeholder. See docs/journal/open-questions.md for the documented
 	 * var_export() limitation.
 	 *
 	 * @since 7.2.0

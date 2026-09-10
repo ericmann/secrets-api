@@ -4,7 +4,7 @@
 #
 # Adapted from the canonical script shipped by `wp scaffold plugin-tests`, with one
 # addition: every download honours a configurable mirror so this works on a CI runner
-# with no egress to wordpress.org. See docs/ci.md.
+# with no egress to wordpress.org. See docs/reference/ci.md.
 #
 #   WP_TESTS_ZIP_URL   full URL to a WordPress tarball, overriding version lookup
 #   WP_MIRROR_BASE     base URL substituted for https://wordpress.org

@@ -166,7 +166,7 @@ class Tests_Secrets_WPCLISecretCommand extends WP_UnitTestCase {
 	 * flag-name collision or a malformed synopsis -- both of those live in WP-CLI's
 	 * dispatch layer, above where this test starts. `--slot` is named that way
 	 * because `--version` was silently swallowed by WP-CLI and this test passed
-	 * throughout. See docs/open-questions.md, "CLI dispatch is not covered".
+	 * throughout. See docs/journal/test-coverage-gaps.md, "CLI dispatch is not covered".
 	 */
 	public function test_get_previous_version() {
 		wp_set_secret( 'myplugin/api-key', 'first-value' );

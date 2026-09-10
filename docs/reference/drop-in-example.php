@@ -4,7 +4,7 @@
  *
  * This file is documentation, not code this plugin loads or tests. Copy what you
  * need into wp-content/secrets.php and replace the two stub classes below with
- * real calls into your platform. See docs/extending.md for the contracts these
+ * real calls into your platform. See docs/spec/extension-points.md for the contracts these
  * implement and what happens if a global ends up set to the wrong thing.
  *
  * A drop-in can set either global, both, or neither. Most hosts want their own
@@ -19,7 +19,7 @@
  * Example read-only platform store.
  *
  * Modeled on real feedback from the proposal's comment thread (see
- * docs/open-questions.md, "Host and platform providers"): some platforms are
+ * docs/journal/open-questions.md, "Host and platform providers"): some platforms are
  * themselves the encryption boundary and want to serve their own credentials to
  * WordPress without ever
  * accepting a write back. Refusing from set() is how that is expressed --
@@ -38,7 +38,7 @@
  * one, set() (were it implemented) would accept one. A platform that wants to
  * serve its own plaintext to WordPress is a materially different feature than
  * this interface provides, and is tracked, unresolved, at
- * docs/open-questions.md, "Host and platform providers".
+ * docs/journal/open-questions.md, "Host and platform providers".
  */
 final class Example_Platform_Store implements WP_Secrets_Store {
 
