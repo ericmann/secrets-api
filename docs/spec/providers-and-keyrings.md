@@ -10,8 +10,8 @@ description: "WP_Secrets_Provider as the outermost extension point, the shipped 
 A `secrets.php` drop-in exposes two independently replaceable extension points: where ciphertext is
 stored (a store) and what wraps the master key (a keyring). Neither is ever handed a plaintext
 secret, and neither can turn encryption off. See "Two extension points, independently
-replaceable" in the [proposal][proposal]. The proposal does not use the word "provider" or name
-any interface.
+replaceable" in the [proposal][proposal]. The proposal uses "provider" informally in its feedback
+questions, asking whether providers could stand in for a retrieval filter, but names no interface.
 
 ## As built
 
