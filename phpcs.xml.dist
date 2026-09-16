@@ -127,11 +127,11 @@
 	</rule>
 	<!--
 		docs/reference/drop-in-example.php is a single reference file meant to be read and
-		copied whole into wp-content/secrets.php: it deliberately shows a store
-		and a keyring side by side, which is exactly the multi-class shape a real
-		drop-in has (see docs/spec/extension-points.md: a drop-in can set either global, both,
-		or neither). Splitting it into two files would make it harder, not easier,
-		to use as a reference.
+		copied whole into wp-content/secrets.php: it deliberately shows a provider
+		stub, a store, and a keyring side by side, which is the multi-class shape a
+		real drop-in can have (see docs/spec/extension-points.md: a drop-in can set
+		any of the three globals, or none of them). Splitting it into three files
+		would make it harder, not easier, to use as a reference.
 	-->
 	<rule ref="Generic.Files.OneObjectStructurePerFile">
 		<exclude-pattern>/tests/includes/class-mock-wp-cli\.php$</exclude-pattern>
