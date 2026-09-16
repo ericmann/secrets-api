@@ -16,13 +16,16 @@ What's there instead is narrower, and nobody has to run anything for it to work.
 
 ## What happens automatically
 
-When code calls `wp_get_secret( 'your-namespace/some-key' )` and no current-format record exists
-yet, the default store falls through to the Displace-format option row for `some-key` (dropping
-the namespace — see below), decrypts it, and writes a proper current-format record before
-returning. The next read hits that new record directly and never touches the prototype row
-again. Nothing about this requires a migration command, a flag, or advance notice — a plugin
-switching from calling Displace's functions directly to calling `wp_get_secret()` will simply
-start working, one credential at a time, as each one is first read under its new name.
+When code calls `wp_get_secret( 'api_key' )` and no current-format record exists for that name
+yet, the plugin's default store falls through to the Displace-format option row `_secret_api_key`,
+decrypts it, writes a current-format record under `api_key`, and returns that. The name is used
+exactly as given: only an unnamespaced name can reach a prototype row, because the prototype's
+keyspace was flat (see below). The next read hits the new record directly and never touches the
+prototype row again. Nothing about this requires a migration command, a flag, or advance notice.
+A plugin switching from Displace's `get_secret( 'api_key' )` to `wp_get_secret( 'api_key' )`
+simply starts working, one credential at a time, as each is first read. A `secrets.php` drop-in
+that installs its own store replaces this fallback entirely, so host-served secrets never inherit
+prototype rows.
 
 The upgraded secret is flagged `needs_rotation`. It's been sitting in the prototype's format, and
 re-encrypting it doesn't undo wherever it has already been. `wp_import_option_as_secret()` flags
@@ -68,7 +71,7 @@ that the name resolves normally. `--dry-run` shows you what it would do first.
 
 **So: adopt the API first, namespace second.** Change `get_secret( 'api_key' )` to
 `wp_get_secret( 'api_key' )` and it works immediately. When you are ready to take a namespace,
-`wp secret migrate-legacy --map=api_key:myplugin/api-key` moves it, or set the new value
+`wp secret migrate-legacy --map=api_key:myplugin/api-key` copies it there, or set the new value
 explicitly under the name you want.
 
 ## If you want it done in bulk instead of lazily
