@@ -54,6 +54,8 @@ instead, used only during site-key rotation. See [envelope-encryption.md](envelo
 A missing global is fine. A throw or a wrong type sets `$GLOBALS['wp_secrets_dropin_broken']`.
 `wp_using_secrets_dropin()` reports presence. In the plugin, this runs after every core-bound
 interface has been required, since a drop-in class needs the interface to compile.
+[`docs/reference/drop-in-example.php`](../reference/drop-in-example.php) is a skeleton with a
+stub of each of the three classes and the globals that install them.
 
 **Relationship to the proposal's two axes.** The store and keyring are the internals of the
 shipped provider, and remain public. A drop-in may set `wp_secrets_store`, `wp_secrets_keyring`,
@@ -93,9 +95,5 @@ the rule.
 security controls. A drop-in is fully trusted code and could already read every secret by
 implementing the keyring. They exist so Site Health, a reviewer, and a future settings screen can
 see what a provider claims.
-
-**Design documents lag the code in one place.** `docs/reference/drop-in-example.php` still says a
-drop-in "can set either global, both, or neither", describing two globals. The 0.1.0 code checks
-three. The code is correct; the example predates the provider.
 
 [proposal]: https://make.wordpress.org/core/2026/08/25/proposal-a-secrets-api-for-wordpress-7-2/
