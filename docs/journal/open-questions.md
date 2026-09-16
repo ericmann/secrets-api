@@ -19,36 +19,28 @@ Status legend: 🔴 blocks a release · 🟡 needs an answer before the core pat
 
 ---
 
-## 🟢 Host and platform providers — implemented, awaiting real implementations
+## Host and platform providers
 
-Hosts independently reported that the published extension contract could not express what they
-need: Chris Reynolds (Pantheon), Ryan McCue and Rafael Meneses (Altis), and the control-panel
-model in which a platform dashboard is the system of record and an HSM does the protecting.
-Rafael Meneses supplied the reframe that resolved it:
+🟢 Tracking only.
 
-> A provider can be stronger than the default, never weaker. Plaintext storage stays banned… and
-> the setups Ryan and Chris describe stop being banned with it.
+Hosting platforms on the proposal thread showed that the published two-point contract could not
+express deployments they already run, and one commenter supplied the reframe that resolved it: a
+provider can be stronger than the default, never weaker.
+[ADR 0001](../decisions/0001-provider-as-outermost-extension-point.md) records the discussion,
+the decision, and what shipped in 0.1.0.
 
-**Done.** `WP_Secrets_Provider` is the outermost extension point and the public functions route
-through it. `WP_Secrets_Libsodium_Provider` — the shipped default — is one implementation of that
-interface rather than a privileged case, composed from a `WP_Secrets_Store` and a
-`WP_Secrets_Keyring` so that a host wanting only their own key custody still swaps only the
-keyring. A drop-in installs a platform provider by setting `$GLOBALS['wp_secrets_provider']`.
-`supports()` is gone, replaced by `get_label()`, `get_protection_boundary()`, and `is_writable()`.
-`reveal()` returns `string|WP_Error` and `WP_Secret::withheld()` exists for credentials a provider
-will not release to PHP. Site Health and `wp secret dropin` report all of it.
-
-**What hasn't happened:** nobody has written a real platform provider against this yet. The
-interface is shaped by hosts describing what they need rather than by anyone building against it,
-and the first real implementation will turn something up. That is what to ask for in the comments
-thread: not "does this look right" but "build against it and tell us what broke."
-
-See [ADR 0001](../decisions/0001-provider-as-outermost-extension-point.md) for the reasoning, including why a provider
-declaration is documentation rather than enforcement.
+**What is still open:** nobody has written a real platform provider against `WP_Secrets_Provider`
+yet. The interface is shaped by hosts describing what they need rather than by anyone building
+against it, and the first real implementation will turn something up. That is what to ask for on
+the thread: not "does this look right" but "build against it and tell us what broke", and run
+the conformance suite in `tests/includes/class-wp-secrets-provider-conformance.php` to see what it
+fails to catch.
 
 ---
 
-## 🟢 Testability smells
+## Testability smells
+
+🟢 Tracking only.
 
 If something is hard to test, that is usually a design smell, so it gets written down here
 rather than skipped.
