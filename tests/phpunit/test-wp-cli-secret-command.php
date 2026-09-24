@@ -334,6 +334,155 @@ class Tests_Secrets_WPCLISecretCommand extends WP_UnitTestCase {
 		$this->command()->rotate( array(), array( 'yes' => true ) );
 	}
 
+	public function test_rotate_rejects_an_unknown_from_value() {
+		$this->expectException( Mock_WP_CLI_Exit_Exception::class );
+
+		try {
+			$this->command()->rotate(
+				array(),
+				array(
+					'from' => 'vault',
+					'yes'  => true,
+				)
+			);
+		} finally {
+			$this->assertNotEmpty( WP_CLI::$errors );
+			$this->assertStringContainsString( '--from', WP_CLI::$errors[0] );
+		}
+	}
+
+	public function test_rotate_from_config_refuses_when_the_active_keyring_is_the_config_keyring() {
+		$root = random_bytes( 32 );
+		update_site_option( WP_Secrets_Key_Manager::ROOT_KEY_OPTION, ( new WP_Secrets_Config_Key_Provider() )->wrap( $root ) );
+
+		$before = get_site_option( WP_Secrets_Key_Manager::ROOT_KEY_OPTION );
+
+		$this->expectException( Mock_WP_CLI_Exit_Exception::class );
+
+		try {
+			$this->command()->rotate(
+				array(),
+				array(
+					'from' => 'config',
+					'yes'  => true,
+				)
+			);
+		} finally {
+			$this->assertNotEmpty( WP_CLI::$errors );
+			$this->assertStringContainsString( 'WP_SECRETS_KEY', WP_CLI::$errors[0] );
+			$this->assertSame( $before, get_site_option( WP_Secrets_Key_Manager::ROOT_KEY_OPTION ) );
+		}
+	}
+
+	/**
+	 * @runInSeparateProcess
+	 * @preserveGlobalState disabled
+	 */
+	public function test_rotate_from_config_previous_refuses_when_both_constants_are_identical() {
+		$same = base64_encode( str_repeat( 'A', 32 ) );
+		define( 'WP_SECRETS_KEY_PREVIOUS', $same );
+		define( 'WP_SECRETS_KEY', $same );
+
+		$root = random_bytes( 32 );
+		update_site_option( WP_Secrets_Key_Manager::ROOT_KEY_OPTION, ( new WP_Secrets_Config_Key_Provider() )->wrap( $root ) );
+
+		$this->expectException( Mock_WP_CLI_Exit_Exception::class );
+
+		try {
+			$this->command()->rotate( array(), array( 'yes' => true ) );
+		} finally {
+			$this->assertNotEmpty( WP_CLI::$errors );
+			$this->assertStringContainsString( 'WP_SECRETS_KEY_PREVIOUS', WP_CLI::$errors[0] );
+			$this->assertStringContainsString( 'WP_SECRETS_KEY', WP_CLI::$errors[0] );
+		}
+	}
+
+	/**
+	 * @runInSeparateProcess
+	 * @preserveGlobalState disabled
+	 */
+	public function test_rotate_from_config_previous_rewraps_under_the_new_site_key() {
+		define( 'WP_SECRETS_KEY_PREVIOUS', base64_encode( str_repeat( 'A', 32 ) ) );
+		define( 'WP_SECRETS_KEY', base64_encode( str_repeat( 'B', 32 ) ) );
+
+		$root = random_bytes( 32 );
+		update_site_option( WP_Secrets_Key_Manager::ROOT_KEY_OPTION, ( new WP_Secrets_Config_Key_Provider( true ) )->wrap( $root ) );
+
+		$this->command()->rotate( array(), array( 'yes' => true ) );
+
+		$rewrapped = get_site_option( WP_Secrets_Key_Manager::ROOT_KEY_OPTION );
+
+		$this->assertSame( $root, ( new WP_Secrets_Config_Key_Provider( false ) )->unwrap( $rewrapped ) );
+		$this->assertNotEmpty( WP_CLI::$success );
+	}
+
+	/**
+	 * @runInSeparateProcess
+	 * @preserveGlobalState disabled
+	 */
+	public function test_rotate_from_config_moves_the_root_key_onto_the_dropin_keyring() {
+		$root = random_bytes( 32 );
+		update_site_option( WP_Secrets_Key_Manager::ROOT_KEY_OPTION, ( new WP_Secrets_Config_Key_Provider() )->wrap( $root ) );
+
+		$provider = new WP_Secrets_Libsodium_Provider(
+			new WP_Secrets_Option_Store(),
+			new WP_Secrets_Key_Manager( new WP_Secrets_Config_Key_Provider() )
+		);
+		$provider->set( 'myplugin/api-key', 'value' );
+
+		$mock = new Mock_Keyring();
+
+		$GLOBALS['wp_secrets_keyring'] = $mock;
+
+		$this->assertWPError( wp_get_secret( 'myplugin/api-key' ) );
+
+		$this->command()->rotate(
+			array(),
+			array(
+				'from' => 'config',
+				'yes'  => true,
+			)
+		);
+
+		$secret = wp_get_secret( 'myplugin/api-key' );
+		$this->assertInstanceOf( 'WP_Secret', $secret );
+		$this->assertSame( 'value', $secret->reveal() );
+
+		$stored = get_site_option( WP_Secrets_Key_Manager::ROOT_KEY_OPTION );
+		$this->assertStringStartsWith( Mock_Keyring::MARKER, $stored );
+		$this->assertSame( $root, $mock->unwrap( $stored ) );
+	}
+
+	/**
+	 * @runInSeparateProcess
+	 * @preserveGlobalState disabled
+	 */
+	public function test_rotate_never_logs_key_material() {
+		$root = random_bytes( 32 );
+		update_site_option( WP_Secrets_Key_Manager::ROOT_KEY_OPTION, ( new WP_Secrets_Config_Key_Provider() )->wrap( $root ) );
+
+		$provider = new WP_Secrets_Libsodium_Provider(
+			new WP_Secrets_Option_Store(),
+			new WP_Secrets_Key_Manager( new WP_Secrets_Config_Key_Provider() )
+		);
+		$provider->set( 'myplugin/api-key', 'value' );
+
+		$GLOBALS['wp_secrets_keyring'] = new Mock_Keyring();
+
+		$this->command()->rotate(
+			array(),
+			array(
+				'from' => 'config',
+				'yes'  => true,
+			)
+		);
+
+		$everything = implode( "\n", array_merge( WP_CLI::$log, WP_CLI::$success, WP_CLI::$warning, WP_CLI::$errors ) );
+
+		$this->assertStringNotContainsString( $root, $everything );
+		$this->assertStringNotContainsString( base64_encode( $root ), $everything );
+	}
+
 	// -- migrate-legacy -----------------------------------------------------
 
 	public function test_migrate_legacy_is_refused_for_network_scope() {
