@@ -15,6 +15,8 @@
 	<exclude-pattern>/examples/*</exclude-pattern>
 	<!-- site/ is the Astro docs site: JavaScript, no PHP of ours, and a node_modules tree. -->
 	<exclude-pattern>/site/*</exclude-pattern>
+	<!-- .smoke/ is bin/smoke-install.sh's throwaway install: all of WordPress core, plus a symlink back to this repository that would otherwise send phpcs into a cycle. -->
+	<exclude-pattern>/.smoke/*</exclude-pattern>
 
 	<arg name="extensions" value="php"/>
 	<arg name="basepath" value="."/>
