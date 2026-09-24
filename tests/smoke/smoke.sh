@@ -431,7 +431,66 @@ case_b_behaviour() {
 # --- case C: rotation ---
 
 case_c_rotation() {
-	:
+	local r="${NS}/rotate" vr="smoke-value-rotate-$$"
+	local old new json_file
+
+	# 1. Refusal first, while WP_SECRETS_KEY_PREVIOUS is still undefined:
+	# bin/smoke-install.sh recreates wp-config.php on every run.
+	run "${WP[@]}" secret rotate --yes
+	if [ "$STATUS" -ne 0 ]; then
+		ok "rotate without WP_SECRETS_KEY_PREVIOUS refuses"
+	else
+		not_ok "rotate without WP_SECRETS_KEY_PREVIOUS refuses" "exit status was 0"
+	fi
+	assert_err_contains "WP_SECRETS_KEY_PREVIOUS" "rotate without WP_SECRETS_KEY_PREVIOUS refuses with its explanatory message"
+
+	# 2. Move the current key to PREVIOUS, generate a new one. Never print
+	# either value.
+	run "${WP[@]}" secret set "$r" "$vr"
+	assert_status 0 "set $r exits 0"
+
+	old="$("${WP[@]}" config get WP_SECRETS_KEY)"
+	run "${WP[@]}" config set WP_SECRETS_KEY_PREVIOUS "$old" --type=constant --quiet
+	assert_status 0 "config set WP_SECRETS_KEY_PREVIOUS exits 0"
+
+	new="$("${WP[@]}" secret generate-key)"
+	run "${WP[@]}" config set WP_SECRETS_KEY "$new" --type=constant --quiet
+	assert_status 0 "config set WP_SECRETS_KEY to a new value exits 0"
+	unset old new
+
+	# 3. rotate --yes now succeeds.
+	run "${WP[@]}" secret rotate --yes
+	assert_status 0 "rotate --yes exits 0 with the previous key configured"
+
+	# 4. The value still decrypts.
+	run "${WP[@]}" secret get "$r" --reveal --field=value
+	assert_status 0 "get $r --reveal --field=value exits 0 after rotation"
+	assert_out_eq "$vr" "the value still decrypts after rotation"
+
+	# 5. health reports nothing undecryptable. The CLI's "check" column
+	# holds the Site Health label text ("All secrets can be decrypted" /
+	# "Some secrets cannot be decrypted"), not the string "undecryptable"
+	# itself, so the row is matched on "decrypt" rather than the literal
+	# word the detailed spec's check name uses.
+	run "${WP[@]}" secret health --format=json
+	assert_status 0 "health --format=json exits 0 after rotation"
+	json_file="$(mktemp)"
+	printf '%s' "$OUT" >"$json_file"
+	run php -r '
+		$rows = json_decode( file_get_contents( $argv[1] ), true );
+		foreach ( (array) $rows as $row ) {
+			if ( false !== stripos( $row["check"], "decrypt" ) ) {
+				echo $row["status"];
+				exit( 0 );
+			}
+		}
+		exit( 1 );
+	' -- "$json_file"
+	assert_out_eq "good" "health reports no undecryptable secrets after rotation"
+	rm -f "$json_file"
+
+	# rotate --from=config (refused: same keyring on both sides) is added
+	# once build/kms-keyring lands --from.
 }
 
 # --- case D: drop-in loading ---
