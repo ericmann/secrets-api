@@ -22,7 +22,7 @@ Started: 2026-09-24T20:47:35.233Z
 - [x] P7-01 Update the coverage gaps, the spec pages, and the detailed spec's status
 - [x] P7-02 Document make smoke in the README and the CI reference
 - [x] P7-03 Write the journal entry and link it from the index
-- [ ] P7-04 Push phase 7 and record the final manual checks
+- [x] P7-04 Push phase 7 and record the final manual checks
 - [x] R1-01 Preserve the root key across multisite conversion
 - [x] R1-02 Make the smoke list-value and rotation assertions able to fail
 - [x] R1-03 Widen the smoke diagnostic constraint to the variables the suite uses
@@ -500,3 +500,14 @@ Verified: head -5 shows the three frontmatter keys; grep -c
 'testing-the-cli-for-real' hits both docs/index.md and
 tests/smoke/SPEC.md; docs/journal/_drafts untouched. bin/ci-local.sh
 --keep and make reference-check both green.
+
+### P7-04 — 79f08c1
+Pushed build/cli-smoke to origin (4886a53..ee4ad02, fast-forward, no
+force) before this empty task commit; pushed again after. git status
+clean; git ls-files | grep -c wp-env.override prints 0.
+
+Manual check: NOT VERIFIED (human): (1) make smoke on a clean
+checkout with a local MySQL; (2) the CI smoke job green on 7.4 and
+8.3; (3) npm run docs:build renders the new journal entry in the
+sidebar in date order; (4) a read of the journal entry for voice and
+for anything private.
