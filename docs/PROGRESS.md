@@ -8,7 +8,7 @@ Started: 2026-09-24T20:47:35.233Z
 - [x] P2-01 Create smoke.sh with the TAP helpers and the has-command matrix
 - [x] P2-02 Check the flag table exactly and pin the --version cause
 - [x] P2-03 Push phase 2 and record the manual check
-- [ ] P3-01 Cover set and get, masking, stdin, porcelain, slots, and JSON
+- [x] P3-01 Cover set and get, masking, stdin, porcelain, slots, and JSON
 - [ ] P3-02 Cover list filters, retire, delete, absence, keys, health, dropin, import, migrate, and the single-site refusal
 - [ ] P3-03 Push phase 3 and record the manual check
 - [ ] P4-01 Rotate the site key end to end
@@ -106,3 +106,20 @@ Pushed build/cli-smoke to origin. No code changes.
 Push: done (origin/build/cli-smoke).
 Manual check: NOT VERIFIED (human)
 - make smoke on a host without Docker runs case A green.
+
+### P3-01 — cb8145c
+Added run_stdin() helper (same contract as run(), stdin from a file)
+and filled in case_b_behaviour: positional set, set --stdin round
+trip, set --porcelain (one line, matches get --field=fingerprint),
+default masking, --reveal (--field=value and table), --slot=previous
+demotion (bug 1 end to end), and --format=json (php -r json_decode
+validity + exactly one row named for the secret).
+
+Verified inside wp-env cli container against a fresh install: 58
+assertions total (38-58 new), 0 failed, exit 0.
+
+Namespace/value conventions from Conventions section used throughout:
+NS="smoke-$$", values "smoke-value-<label>-$$". list, retire, delete,
+generate-key, health, dropin, import-option, migrate-legacy,
+network-secret refusal, rotation, and drop-ins remain out of scope
+here (P3-02 and later).
