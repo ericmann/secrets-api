@@ -20,7 +20,7 @@ Started: 2026-09-24T20:46:46.009Z
 - [x] P6-02 Add ADR 0009 and update the spec pages' "As built" sections
 - [x] P6-03 Update the journal tracking pages, write the journal entry, and index both
 - [x] P6-04 Push phase 6, remove the Vault container, and record the manual checks
-- [ ] R1-01 Preserve other custom_metadata keys when writing the rotation flag, and tighten the Vault provider's docblocks and unreachable test
+- [x] R1-01 Preserve other custom_metadata keys when writing the rotation flag, and tighten the Vault provider's docblocks and unreachable test
 - [ ] R1-02 Make Vault_Test_Server fail loudly when Vault is unreachable instead of reporting absence
 - [ ] R1-03 Correct the Vault README, tracking page, root README, Makefile and ci.yml comments, and guard against leaked task IDs
 
@@ -283,3 +283,21 @@ Manual check: NOT VERIFIED (human)
 (4) a reviewer has read examples/vault-provider/README.md against the four
     questions
 Push: done (origin/build/vault-provider updated)
+
+### R1-01 — c2cee99
+write_flag($vault_path, $set, $meta) now merges self::ROTATION_FLAG into the
+custom_metadata already read by set() via array_merge, instead of posting a
+map with only the flag key. Docblock explains the merge + non-atomicity.
+Removed all P#-##/R#-## task-ID references from docblocks (lines near 48,
+151, 269, 309, 534) and fixed line 18 '../README.md' -> 'README.md'.
+REQUEST_TIMEOUT docblock now states measured values (~0.005s refused,
+~4s non-routable) instead of citing a task.
+
+Tests: added test_setting_and_clearing_the_flag_preserves_other_custom_metadata
+(seeds owner via raw POST, verifies owner survives both set-with-flag and
+set-without-flag, and MAX_VERSIONS unchanged). Strengthened
+test_an_unreachable_vault_is_an_error_not_absence to assert
+WP_SECRETS_ERROR_STORE_UNAVAILABLE for get/list_secrets/delete.
+
+Verified: php -l both files, grep for task IDs empty, bin/ci-local.sh --keep
+green (single site + multisite, 456 tests each), make reference-check green.
