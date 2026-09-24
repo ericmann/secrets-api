@@ -18,7 +18,7 @@ Started: 2026-09-24T20:46:46.009Z
 - [x] P5-02 Push phase 5 and record the manual checks
 - [x] P6-01 Write the Vault example README and update the example index, root README, and CI reference
 - [x] P6-02 Add ADR 0009 and update the spec pages' "As built" sections
-- [ ] P6-03 Update the journal tracking pages, write the journal entry, and index both
+- [x] P6-03 Update the journal tracking pages, write the journal entry, and index both
 - [ ] P6-04 Push phase 6, remove the Vault container, and record the manual checks
 
 ## Log
@@ -244,3 +244,24 @@ Vault run as a second known-good subject.
 Verified: grep -c '^## ' reports 3 on all four pages; docs/decisions/ shows
 0009 as the only new file; the ADR link left dangling by P6-01's README now
 resolves; bin/ci-local.sh --keep and make reference-check both pass.
+
+### P6-03 — 14b05e7
+open-questions.md: appended "What the Vault example added" under "Host and
+platform providers" (left the existing KMS-keyring-has-no-example sentence
+untouched for build/kms-keyring); added "What 'previous' means on a backend
+with more than two versions" (🟡) and "A provider outside the WordPress
+boundary still needs a root key" (🟢) before "Testability smells".
+test-coverage-gaps.md: appended "The Vault example's failure paths are
+simulated" (🟢).
+proposal-questions.md question 2: appended the Vault-translation sentences;
+AWS sentence and silence paragraph untouched.
+Journal entry docs/journal/2026-09-24-a-vault-provider.md ("A Vault
+provider", new): what was built/found/left out/means for the Trac patch;
+links the README, ADR 0008, ADR 0009, and
+test_previous_is_strictly_n_minus_1_even_when_older_versions_survive by name.
+docs/index.md: added the ADR 0009 and journal-entry lines.
+Verified: git diff --word-diff main..HEAD on the three tracking pages shows
+zero deletions; git diff --stat shows 3 modified + 1 new under docs/journal;
+head -5 of the entry shows title/description/date=2026-09-24; grep -c
+'a-vault-provider' docs/index.md is 1. bin/ci-local.sh --keep and make
+reference-check both pass.
