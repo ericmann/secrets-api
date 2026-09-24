@@ -9,7 +9,7 @@ Started: 2026-09-24T20:47:35.233Z
 - [x] P2-02 Check the flag table exactly and pin the --version cause
 - [x] P2-03 Push phase 2 and record the manual check
 - [x] P3-01 Cover set and get, masking, stdin, porcelain, slots, and JSON
-- [ ] P3-02 Cover list filters, retire, delete, absence, keys, health, dropin, import, migrate, and the single-site refusal
+- [x] P3-02 Cover list filters, retire, delete, absence, keys, health, dropin, import, migrate, and the single-site refusal
 - [ ] P3-03 Push phase 3 and record the manual check
 - [ ] P4-01 Rotate the site key end to end
 - [ ] P4-02 Load drop-ins through the real loader, with cleanup on exit
@@ -123,3 +123,20 @@ NS="smoke-$$", values "smoke-value-<label>-$$". list, retire, delete,
 generate-key, health, dropin, import-option, migrate-legacy,
 network-secret refusal, rotation, and drop-ins remain out of scope
 here (P3-02 and later).
+
+### P3-02 — fe509b7
+Extended case_b_behaviour with list (JSON/CSV validity, fields header,
+--namespace prefix filter, never a value across both namespaces),
+retire, delete, absence (never-set get, no-value set), generate-key
+(44 chars / 32 bytes), health/dropin (JSON validity, "Drop-in active:
+no"), import-option (copy not move: source option still present),
+migrate-legacy --dry-run, and network-secret's single-site refusal
+(non-zero exit, stderr contains "multisite", from WP_CLI::error()'s
+"Network secrets require a multisite installation.").
+
+Verified inside wp-env cli container against a fresh install: 92
+assertions total (59-92 new), 0 failed, exit 0. bin/ci-local.sh --keep
+and make reference-check both green.
+
+Rotation (C), drop-ins (D), multisite (E), and CI wiring remain out of
+scope, per the task.
