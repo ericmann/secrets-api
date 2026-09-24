@@ -184,3 +184,66 @@ jobs:
         run: make install WP_VERSION=latest DB_HOST=127.0.0.1
 
       - run: make test-ms
+
+  # Runs the platform-binding examples (examples/*/secrets.php) against a real
+  # Vault dev server, not part of `make ci`: examples/README.md and the KMS
+  # spec §5 say the shared-harness examples suite needs a live service
+  # container that `make ci`'s environments do not provide. The Vault image is
+  # pinned by the same digest as the Makefile comment above test-examples
+  # (P1-01) -- the "vault" service's image: line below.
+  examples:
+    name: Examples
+    needs: static
+    runs-on: ubuntu-latest
+    services:
+      mysql:
+        image: mysql:8.0
+        env:
+          MYSQL_ALLOW_EMPTY_PASSWORD: 'yes'
+          MYSQL_DATABASE: wordpress_test
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=5
+      vault:
+        image: hashicorp/vault@sha256:47f14a6acb98f48d798a07df7c83f23a6e636e1cf724c5f8ff165cb32667a1e2
+        env:
+          VAULT_DEV_ROOT_TOKEN_ID: dev-root
+        ports:
+          - 8200:8200
+        options: >-
+          --cap-add=IPC_LOCK
+          --health-cmd="wget -qO- http://127.0.0.1:8200/v1/sys/health"
+          --health-interval=5s
+          --health-timeout=3s
+          --health-retries=10
+    steps:
+      - name: Check out
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Set up PHP
+        uses: shivammathur/setup-php@f3e473d116dcccaddc5834248c87452386958240 # 2.37.2
+        with:
+          php-version: '8.3'
+          extensions: sodium, mysqli
+          coverage: none
+          tools: composer
+
+      - name: Cache Composer packages
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ~/.cache/composer
+          key: composer-${{ runner.os }}-php8.3-${{ hashFiles('composer.lock') }}
+          restore-keys: composer-${{ runner.os }}-php8.3-
+
+      - name: Install dependencies and the WordPress test suite
+        run: make install WP_VERSION=latest DB_HOST=127.0.0.1
+
+      - name: Run the examples suite against Vault
+        run: make test-examples
+        env:
+          VAULT_ADDR: http://127.0.0.1:8200
+          VAULT_TOKEN: dev-root
