@@ -16,7 +16,7 @@ Started: 2026-09-24T20:46:46.009Z
 - [x] P4-03 Push phase 4 and record the manual checks
 - [x] P5-01 Map AWS site scope to `wp/site/<blog_id>/<name>` and test it by capturing the request
 - [x] P5-02 Push phase 5 and record the manual checks
-- [ ] P6-01 Write the Vault example README and update the example index, root README, and CI reference
+- [x] P6-01 Write the Vault example README and update the example index, root README, and CI reference
 - [ ] P6-02 Add ADR 0009 and update the spec pages' "As built" sections
 - [ ] P6-03 Update the journal tracking pages, write the journal entry, and index both
 - [ ] P6-04 Push phase 6, remove the Vault container, and record the manual checks
@@ -197,3 +197,28 @@ Manual check: NOT VERIFIED (human)
     as `wp/site/1/<name>`
 (2) confirm the rename walkthrough in the README works on a throwaway account
 Push: done (origin/build/vault-provider updated)
+
+### P6-01 — ef92129
+examples/vault-provider/README.md (new): title/summary, credentials
+(.wp-env.override.json with the four WP_SECRETS_VAULT_* constants, noting
+host.docker.internal:8201 for wp-env vs 127.0.0.1:8200), install/remove loop
+matching the AWS README's register and PHPUnit gotcha, Vault policy (the
+three secret/data|metadata|destroy path patterns), the Naming table from the
+detailed spec, the four questions each as its own subsection (previous is
+strictly N-1 and the test that proves it; max_versions:2 and secrets created
+outside the provider; custom_metadata.needs_rotation "1"/"0" and the failure
+rule; list_secrets cost), Known limits, OpenBao, and Run the tests (pinned
+digest docker run line + two wp-env commands + make test-examples).
+Interpretation: linked ADR 0009 from question 2 per the plan even though
+that ADR is created later in P6-02 of this same phase; the link resolves
+once that task lands, and creating the ADR is explicitly out of scope here.
+examples/README.md: added the Vault row to the interface table and a new
+"In this directory" section right after "Which interface do you need?";
+left the KMS advice and Dependencies section untouched.
+README.md: one sentence in Platform bindings naming both examples; extended
+the Contributing CI sentence with the examples job.
+docs/reference/ci.md: added the examples row to Matrix and one sentence
+under "Where this runs".
+Verified: every ../ relative link resolves except the by-design ADR 0009
+one; the pinned digest matches Makefile and ci.yml verbatim; bin/ci-local.sh
+--keep and make reference-check both pass.
