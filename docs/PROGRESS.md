@@ -19,7 +19,7 @@ Started: 2026-09-24T20:46:46.009Z
 - [x] P6-01 Write the Vault example README and update the example index, root README, and CI reference
 - [x] P6-02 Add ADR 0009 and update the spec pages' "As built" sections
 - [x] P6-03 Update the journal tracking pages, write the journal entry, and index both
-- [ ] P6-04 Push phase 6, remove the Vault container, and record the manual checks
+- [x] P6-04 Push phase 6, remove the Vault container, and record the manual checks
 
 ## Log
 (one entry per task, appended by implement)
@@ -265,3 +265,18 @@ zero deletions; git diff --stat shows 3 modified + 1 new under docs/journal;
 head -5 of the entry shows title/description/date=2026-09-24; grep -c
 'a-vault-provider' docs/index.md is 1. bin/ci-local.sh --keep and make
 reference-check both pass.
+
+### P6-04 — 1728561
+Pushed build/vault-provider to origin (bd5782d..c5d39ce, then 1728561 marker
+commit). Removed the local secrets-api-vault container
+(docker rm -f secrets-api-vault); docker ps -a | grep -c secrets-api-vault
+is 0.
+Manual check: NOT VERIFIED (human)
+(1) an OpenBao run: start openbao/openbao in dev mode on another port,
+    point VAULT_ADDR at it, run the examples suite, and record the result
+(2) confirm the `examples` job is green on GitHub Actions
+(3) confirm `npm run docs:build` in site/ renders the new README-linked
+    pages, ADR 0009, and the journal entry, with the sidebar sorted by date
+(4) a reviewer has read examples/vault-provider/README.md against the four
+    questions
+Push: done (origin/build/vault-provider updated)
