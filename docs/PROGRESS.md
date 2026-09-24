@@ -9,7 +9,7 @@ Started: 2026-09-24T20:46:16.429Z
 - [x] P1-01 Cache the unwrapped root key in WP_Secrets_Key_Manager for the request
 - [x] P1-02 Document root-key caching: examples README, spec page, ADR 0009
 - [x] P1-03 Push phase 1
-- [ ] P2-01 Generalise wp secret rotate with --from and re-wrap under the active keyring
+- [x] P2-01 Generalise wp secret rotate with --from and re-wrap under the active keyring
 - [ ] P2-02 Push phase 2
 - [ ] P3-01 Add the examples PHPUnit harness, Moto, and the AWS Secrets Manager conformance run
 - [ ] P3-02 Add the examples CI job with a pinned Moto service container
@@ -115,3 +115,23 @@ make reference-check both green.
 ### P1-03 — e8ed503
 Pushed build/kms-keyring to origin (e8ed503).
 Manual check: none required by SPEC.
+
+### P2-01 — 72afe57
+rotate() now accepts --from=config-previous (default, today's behaviour)
+or --from=config (moves the root key onto whatever keyring
+_wp_secrets_get_key_manager()->get_keyring() currently resolves to, e.g.
+after a secrets.php drop-in installs one). Unknown --from values error
+mentioning --from. Each mode refuses with a specific message when there
+is nothing meaningful to rotate (both constants identical; active
+keyring already the config keyring). Confirmation prompt and success
+message use get_key_source() only, never key material.
+
+Added 7 tests (unknown --from, config-refused, config-previous-refused,
+config-previous round trip, config->drop-in move, no-key-material-
+leaked). Ran vendor/bin/phpcbf once to fix 4 array-declaration-spacing
+findings in the new tests. docs/reference/wp-cli.md regenerated (diff
+confined to that file). Verified `wp help secret rotate` synopsis is
+"wp secret rotate [--from=<keyring>] [--yes]" against the real wp-env cli
+container.
+
+bin/ci-local.sh --keep and make reference-check both green, 481 tests.
