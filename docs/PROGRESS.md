@@ -8,7 +8,7 @@ Started: 2026-09-24T20:46:16.429Z
 - [x] P0-03 Push phase 0
 - [x] P1-01 Cache the unwrapped root key in WP_Secrets_Key_Manager for the request
 - [x] P1-02 Document root-key caching: examples README, spec page, ADR 0009
-- [ ] P1-03 Push phase 1
+- [x] P1-03 Push phase 1
 - [ ] P2-01 Generalise wp secret rotate with --from and re-wrap under the active keyring
 - [ ] P2-02 Push phase 2
 - [ ] P3-01 Add the examples PHPUnit harness, Moto, and the AWS Secrets Manager conformance run
@@ -111,3 +111,7 @@ decisions/ list.
 grep -n '^## ' shows exactly As proposed/As built/Why in order; grep -c
 'once per request' examples/README.md is 1. bin/ci-local.sh --keep and
 make reference-check both green.
+
+### P1-03 — e8ed503
+Pushed build/kms-keyring to origin (e8ed503).
+Manual check: none required by SPEC.
