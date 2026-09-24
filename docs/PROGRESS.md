@@ -24,7 +24,7 @@ Started: 2026-09-24T20:46:16.429Z
 - [x] P5-04 Push phase 5, remove the Moto container, record the live-KMS check as not verified
 - [x] R1-01 Restore the misconfigured-WP_SECRETS_KEY scenario in the three-state contract test
 - [x] R1-02 Correct the published docs: journal finding, worktree-specific wp-env path, ci.md, KMS README CI sentence
-- [ ] R2-01 Correct the Secrets Manager README CI claim and remove Foundry task IDs from published docs
+- [x] R2-01 Correct the Secrets Manager README CI claim and remove Foundry task IDs from published docs
 
 ## Log
 (one entry per task, appended by implement)
@@ -360,3 +360,20 @@ Fixed five docs to match reality:
 Verified via the exact greps in the task's Acceptance tests (all pass),
 bin/ci-local.sh --keep green, make reference-check clean. git diff --stat
 touches only the five named files (plus docs/PROGRESS.md via the tool).
+
+### R2-01 — 19be872
+Fixed 4 wording issues per reviewer round 2:
+- examples/aws-secrets-manager/README.md: replaced false "CI does not
+  provide [Moto] by default" claim with the same true sentence
+  aws-kms-keyring/README.md uses (separate examples CI job runs a pinned
+  Moto service container).
+- docs/journal/2026-09-24-a-kms-keyring.md L58: "P0-01 made it" -> "This
+  work made it" (no task ID, first-person voice kept).
+- docs/journal/test-coverage-gaps.md L93: "P2-01 commit body" -> "the
+  commit that added --from".
+- docs/journal/test-coverage-gaps.md L142-143: "P4-04 log entry as not
+  yet verified" -> "has not been run yet" (no pointer to
+  PROGRESS/PLAN/HANDOFF/REVIEW).
+Verified: all 3 required greps clean/matching; git diff --stat touched
+only the 3 named files; bin/ci-local.sh --keep green (482 tests,
+20/12 skipped as before); make reference-check clean.
