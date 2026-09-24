@@ -11,7 +11,7 @@ Started: 2026-09-24T20:47:35.233Z
 - [x] P3-01 Cover set and get, masking, stdin, porcelain, slots, and JSON
 - [x] P3-02 Cover list filters, retire, delete, absence, keys, health, dropin, import, migrate, and the single-site refusal
 - [x] P3-03 Push phase 3 and record the manual check
-- [ ] P4-01 Rotate the site key end to end
+- [x] P4-01 Rotate the site key end to end
 - [ ] P4-02 Load drop-ins through the real loader, with cleanup on exit
 - [ ] P4-03 Push phase 4 and record the manual check
 - [ ] P5-01 Convert to multisite and run the network pass
@@ -150,3 +150,24 @@ Manual check: NOT VERIFIED (human)
   key: every case-B run this phase passed cleanly (92/92), so no
   not_ok diagnostic ever printed; passing lines are descriptions
   only, never OUT.
+
+### P4-01 — eeea787
+Implemented case_c_rotation in tests/smoke/smoke.sh: refusal before
+WP_SECRETS_KEY_PREVIOUS exists (with message check), the two config
+writes, rotate --yes, get --reveal decrypting the original value, and
+health --format=json showing "good" on the decrypt-check row (matched
+on "decrypt" since the JSON check column holds Site Health label text,
+not the literal word "undecryptable").
+
+Verified against a real wp-env mariadb-backed smoke install: full
+suite 102 assertions, 0 failed, exit 0. bin/ci-local.sh --keep and
+make reference-check both green.
+
+Interpretation: the task's prescribed negative check (skip setting
+WP_SECRETS_KEY to $new, expect step 3/4 to fail) does not actually
+fail — WP_SECRETS_KEY_PREVIOUS ends up equal to WP_SECRETS_KEY, and
+docs/spec/rotation.md's site-key rotation has no requirement that old
+and new differ, so it's a legitimate no-op that succeeds. Verified
+this by hand (disabled the line, reran, 102/102 still passed,
+reverted). Recorded in the commit message; no test encodes this as
+an assertion since it isn't a defect.
