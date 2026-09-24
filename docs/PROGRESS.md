@@ -12,7 +12,7 @@ Started: 2026-09-24T20:47:35.233Z
 - [x] P3-02 Cover list filters, retire, delete, absence, keys, health, dropin, import, migrate, and the single-site refusal
 - [x] P3-03 Push phase 3 and record the manual check
 - [x] P4-01 Rotate the site key end to end
-- [ ] P4-02 Load drop-ins through the real loader, with cleanup on exit
+- [x] P4-02 Load drop-ins through the real loader, with cleanup on exit
 - [ ] P4-03 Push phase 4 and record the manual check
 - [ ] P5-01 Convert to multisite and run the network pass
 - [ ] P5-02 Wire smoke into make ci, bin/ci-local.sh, and a smoke CI job
@@ -171,3 +171,23 @@ and new differ, so it's a legitimate no-op that succeeds. Verified
 this by hand (disabled the line, reran, 102/102 still passed,
 reverted). Recorded in the commit message; no test encodes this as
 an assertion since it isn't a defect.
+
+### P4-02 — d92a115
+Implemented case_d_dropin: write_dropin/remove_dropin helpers (finish
+EXIT trap now calls remove_dropin first), and 15 assertions covering
+the four drop-in shapes (syntax error, throws on load, wrong-type
+provider global -- all exit 2 via WP_Secrets_Broken_Provider; sets
+nothing behaves exactly as no drop-in) plus the recorded uncatchable
+fatal (class implementing WP_Secrets_Keyring with no methods: exit
+non-zero, "Fatal error" on stderr) and a final "no drop-in remains"
+check.
+
+Verified against a real wp-env mariadb-backed smoke install: full
+suite 117 assertions, 0 failed, exit 0; confirmed the drop-in file is
+gone afterward. bin/ci-local.sh --keep and make reference-check both
+green.
+
+Manual trap check done as specified: inserted `exit 3` after the
+first write_dropin, reran, confirmed the drop-in file was removed and
+exit status was non-zero, reverted (diff-verified byte-identical to
+pre-edit).
