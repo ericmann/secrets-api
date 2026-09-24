@@ -2,9 +2,9 @@
 
 Branch: `build/cli-smoke`
 Base: `1209b5013018`
-Head: `1643f2e`
+Head: `4ea429b`
 
-Task counts: 14 done, 1 blocked, 8 skipped (dependents of the blocked task), 0 todo, 0 in progress. 23 total.
+Task counts: 24 done, 0 blocked, 0 skipped, 0 todo, 0 in progress. 24 total.
 
 ## Round 1
 
@@ -66,49 +66,96 @@ edit (a commented-out `config set WP_SECRETS_KEY` line), labeling it "Security T
 though the task (R1-02) explicitly called for the edit and its immediate revert. Worked around by
 verifying the logic by hand instead of executing it.
 
-## Blocked
+## Round 2
 
-- **P5-01** — Convert to multisite and run the network pass. Implemented `convert_to_multisite`
-  and `case_e_multisite` exactly as specified (130 of 131 new assertions passed). The one failure,
-  `network-secret health --format=json exits 0`, is not a smoke-test defect: it surfaces a real,
-  reproducible data-loss bug in the plugin core. `_wp_secrets_root_key` is stored via
-  `get_site_option()` / `add_site_option()`, which read/write `wp_options` on a single site and
-  `wp_sitemeta` on multisite. `wp core multisite-convert` never migrates that row between the two
-  tables, so the first `get_root_key()` call after conversion finds nothing in `wp_sitemeta` and
-  silently calls `generate_root_key()`, creating a brand-new root key. Every secret set before
-  conversion becomes permanently undecryptable (verified directly: a second, different
-  `_wp_secrets_root_key` row appears in `wp_sitemeta` after conversion, while the original
-  `wp_options` row sits orphaned). This directly contradicts `docs/spec/network.md`'s own "Why"
-  section: "converting a single site into a network does not strand its secrets." As built, it
-  does.
+Review-fix round. The reviewer unblocked P5-01 (fixed upstream by R1-01, already landed in Round
+1) along with its whole dependent chain (P5-02, P5-03, P6-01, P6-02, P7-01..04), plus queued one
+new fix task, R2-01. All 10 open tasks are now `[x]`; 0 blocked, 0 skipped, 0 todo.
 
-  This task's Files touched is `tests/smoke/smoke.sh` only, so I could not fix the underlying
-  `src/` defect here, and working around it in the test (e.g. retiring/deleting the pre-conversion
-  secrets before the health check) would hide a real, spec-contradicting bug rather than surface
-  it — the opposite of what this smoke suite exists to do. See the task's log entry in
-  `docs/PROGRESS.md` for the full investigation. Suggested fix: on activation/upgrade, or as part
-  of a `wp core multisite-convert` companion step, copy `_wp_secrets_root_key` from `wp_options`
-  into `wp_sitemeta` (`site_id = 1`); or have `get_root_key()` fall back to `get_option()` before
-  generating a new key when `is_multisite()` is true and `get_site_option()` returns `false`. That
-  change belongs to `src/wp-includes/class-wp-secrets-key-manager.php`, owned by a different flight
-  (kms-keyring or vault-provider per the parallel-flights split, or a PLAN update authorizing a
-  `src/` fix inside this flight).
+**P5-01 — Convert to multisite and run the network pass.** Implemented `convert_to_multisite`
+(`wp core multisite-convert`, network-activate, `site create --slug=smoke2`, export
+`SITE2_ID`/`SITE2_URL`) and `case_e_multisite` (network-secret round-trip visible from both sites,
+a site-2 secret invisible from site 1 and readable from site 2 with `--url`, `network-secret
+health --format=json` valid JSON). 14 new assertions, 139 total. Ran the full A–E suite twice
+against wp-env with `bin/smoke-install.sh` reprovisioning between runs, per the task's acceptance
+test: 139/139 both times. R1-01's root-key adoption fix (from Round 1) is what made this task
+completable — the same `network-secret health` check that failed 1/131 last round now passes.
 
-## Skipped (cascaded from the P5-01 block)
+**P5-02 — Wire smoke into `make ci`, `bin/ci-local.sh`, and a smoke CI job.** `Makefile`'s `ci:`
+target gained `smoke`; `bin/ci-local.sh` gained an `==> smoke` step after `test-ms`, running
+`bin/smoke-install.sh` then `tests/smoke/smoke.sh` in wp-env's `cli` container (never `tests-cli`,
+never `wordpress_test`); `ci.yml` gained a `smoke` job after `test-multisite` (`needs: static`,
+PHP 7.4/8.3 matrix, `mysql` service with `MYSQL_DATABASE: wordpress_smoke`, no Composer step,
+checkout/setup-php lines copied verbatim). Verified `bin/ci-local.sh --keep` runs end to end and
+prints "All green."; `make -n ci` lists `smoke` last; `ci.yml` parses via `ruby -ryaml` (PyYAML
+absent on this host); every `uses:` line is still a SHA pin.
 
-All of these `dependsOn` P5-01 directly or transitively, so `foundry_task_next` auto-skipped them
-without attempting any work:
+**P5-03 / P6-02 / P7-04 — phase-end pushes.** Each pushed `build/cli-smoke` to `origin` (policy
+`push=on`) via an empty commit titled for the task (no code to change), logged `Manual check: NOT
+VERIFIED (human)` per the task text, and re-pushed after `foundry_task_done` added the PROGRESS.md
+commit.
 
-- **P5-02** — Wire smoke into `make ci`, `bin/ci-local.sh`, and a smoke CI job.
-- **P5-03** — Push phase 5 and record the manual check.
-- **P6-01** — Prove each historical bug fails the smoke test.
-- **P6-02** — Push phase 6 and record the manual check.
-- **P7-01** — Update the coverage gaps, the spec pages, and the detailed spec's status.
-- **P7-02** — Document `make smoke` in the README and the CI reference.
-- **P7-03** — Write the journal entry and link it from the index.
-- **P7-04** — Push phase 7 and record the final manual checks.
+**P6-01 — Prove each historical bug fails the smoke test.** Reintroduced each of the three
+historical CLI dispatch bugs by hand inside wp-env, confirmed the suite failed for the right
+reason, and reverted with `git checkout --` before committing (`git diff --stat HEAD -- cli/` was
+empty at commit time). Bug 1 (`get()`'s `--slot` renamed to `--version`): 4 failures. Bug 2
+(`list()`'s `--format` description line deleted): 9 failures. Bug 3 (`@subcommand migrate-legacy`
+deleted): 4 failures. All three `not ok` groups are quoted verbatim in the P6-01 commit message. A
+"Regression proof" comment block under `tests/smoke/smoke.sh`'s header records the same mapping.
+Final green run after all reverts: 139/139.
 
-None of these were started; no code exists for them yet.
+**P7-01 — Update the coverage gaps, the spec pages, and the detailed spec's status.**
+`docs/journal/test-coverage-gaps.md`: removed the "CLI dispatch" and "set `--stdin`" sections
+whole (with their `---` separators); narrowed "Drop-in file loading" to the uncatchable-fatal case
+alone, now that case D covers the rest through the real loader. One sentence each added to
+`docs/spec/scope.md` (WP-CLI paragraph), `docs/spec/extension-points.md` (the drop-in gap
+paragraph), and `docs/spec/retrieval.md` (Fail closed paragraph). `tests/smoke/SPEC.md`:
+`Status: planned` → `Status: built`, with a forward reference to the P7-03 journal entry (today's
+date, 2026-09-24, per the task's fallback rule — and it turned out to be right, since P7-03 landed
+the same day). `open-questions.md` and `proposal-questions.md`: reviewed, no change needed — no
+interface changed. All three spec pages still have exactly 3 `## ` headings, in order; "CLI
+dispatch" and "--stdin" no longer appear in `test-coverage-gaps.md`.
+
+**P7-02 — Document `make smoke` in the README and the CI reference.** `README.md`: a `make smoke`
+row in the target table, a sentence in "Clone to green," and a mention in the Contributing CI
+sentence. `docs/reference/ci.md`: `make smoke` added to the command list; a new "The WP-CLI smoke
+test" section after "Without Docker" (variables, network requirements, its path through
+`bin/ci-local.sh`, disposable install); a `smoke` row in the Matrix table; one sentence under
+Pinning about `wp-cli.phar`'s version+SHA-256 pin.
+
+**P7-03 — Write the journal entry and link it from the index.**
+`docs/journal/2026-09-24-testing-the-cli-for-real.md` (new): frontmatter, voice matching the 4
+September entry, four sections in the required order (what was built / found / left out / means
+for the Trac patch). Per the dependency log note, this entry names the `--version` swallow as the
+concrete PHPUnit-can't-catch finding **and** names the multisite root-key adoption fix (R1-01) as
+the one `src/` change this work drove — the "if nothing in `src/` changed" branch of the task's
+instructions did not apply, since R1-01 landed in Round 1. `docs/index.md` got the entry's line
+under `journal/`, after the 0.1.0 line. `tests/smoke/SPEC.md`'s date, already written by P7-01,
+matched today and needed no correction.
+
+**R2-01 — Make the smoke diagnostic rule catch any key- or value-holding variable.** The
+`smoke-diagnostics-never-print-stdout` constraint in `docs/foundry.json` now also matches any
+interpolated identifier containing `key` or `value` in any letter case
+(`[A-Za-z0-9_]*[Kk][Ee][Yy][A-Za-z0-9_]*` and the equivalent for `value`), plus the exact names
+`VN` and `VS`, on top of the existing exact-name alternation from R1-03. This closes the blind
+spot R1-03 left open: `current_key`/`previous_key` (added by R1-02) and `VN`/`VS` (added by this
+round's P5-01) would not have matched the old pattern. Added the 5 required `shouldMatch` and 2
+required `shouldNotMatch` fixtures (copied verbatim from the real file); every prior fixture still
+passes. `baseBranch`, `branchPrefix`, `permissionMode`, and both verify commands (with timeouts)
+are untouched. `CLAUDE.md` got only the matching `## Constraints` bullet update — confirmed via
+`git diff CLAUDE.md` that the `# Working in this repository` heading and every other line are
+untouched. Re-read `tests/smoke/smoke.sh` for any other new plaintext/key variable since P5-01
+landed: none found beyond what the fixtures now cover, and none of those variables are
+interpolated inside an existing `not_ok`/`diag` call, so the real-tree scan is still zero hits.
+
+All ten tasks verified individually with `foundry_verify` (all 13 constraints ok, `bin/ci-local.sh
+--keep` green, `make reference-check` clean) and again at round end with `foundry_verify` and no
+file scope: 13/13 constraints ok, `bin/ci-local.sh --keep` green (459/459 single-site PHPUnit,
+459/459 multisite PHPUnit, 139/139 smoke), `make reference-check` clean.
+
+### Round 2 pipeline friction
+
+None logged this round.
 
 ## Interpretation choices
 
@@ -120,13 +167,18 @@ None of these were started; no code exists for them yet.
   (disabled the line, reran, 102/102 still passed, reverted). No test encodes this as an assertion
   since it isn't a defect; recorded in the P4-01 commit message and log entry instead.
 
-No other task required an interpretation call; each was implemented literally against the PLAN.md
-text and the cited SPEC sections.
+- **P7-01 / P7-03** — `tests/smoke/SPEC.md`'s forward reference to the P7-03 journal entry uses
+  today's date, `2026-09-24`, per the task's explicit fallback rule ("if unsure, write today's
+  date and P7-03 corrects it"). P7-03 ran the same day, so no correction was needed.
+
+No other task in Round 2 required an interpretation call beyond what is described in that task's
+own entry above; each was implemented literally against the PLAN.md text and the cited SPEC
+sections.
 
 ## ⚠️ ASSUMPTION config keys
 
-None were introduced in this round. No new config surface was added; the smoke test only drives
-the existing CLI.
+None were introduced in Round 2 either. No new config surface was added; the smoke test and its
+CI wiring only drive the existing CLI and the existing Makefile/wp-env plumbing.
 
 ## What a human must check by hand, per phase
 
@@ -138,26 +190,36 @@ the existing CLI.
   forward.
 - **Phases 1–3 (earlier rounds, unchanged this round)** — Their own manual-check log entries in
   `docs/PROGRESS.md` still apply; nothing in this round touched that work.
-- **P5-01's finding, once a fix lands** — After `src/wp-includes/class-wp-secrets-key-manager.php`
-  is changed to preserve the root key across `wp core multisite-convert`, a human should re-run
-  `bin/smoke-install.sh` + `tests/smoke/smoke.sh` from a fresh single-site install through
-  conversion and confirm secrets set before conversion are still readable after it, then resume
-  P5-01 in a new round.
+- **P5-01, resolved this round** — `src/wp-includes/class-wp-secrets-key-manager.php` now
+  preserves the root key across `wp core multisite-convert` (R1-01, Round 1), and this round's
+  P5-01 confirmed it end to end: a full A–E smoke run, then a fresh `bin/smoke-install.sh` +
+  another full run, both 139/139. No further human action needed on this specific finding, though
+  the general phase-end manual checks below still apply.
+- **Phase 5 (P5-03 log)** — the `smoke` CI job green on PHP 7.4 and 8.3 in the Actions tab; `make
+  smoke` on a host without Docker passes both passes.
+- **Phase 6 (P6-02 log)** — a reader confirms the P6-01 commit's quoted evidence (three `not ok`
+  groups) matches the detailed spec's three historical bugs one to one.
+- **Phase 7 (P7-04 log)** — (1) `make smoke` on a clean checkout with a local MySQL; (2) the CI
+  `smoke` job green on 7.4 and 8.3; (3) `npm run docs:build` renders the new journal entry in the
+  sidebar in date order; (4) a read of the journal entry for voice and for anything private.
 
 ## Notes for the reviewer
 
-- All 117 assertions from phases 1–4 pass cleanly and repeatably against a real `wp` binary; I ran
-  the suite from scratch (fresh `bin/smoke-install.sh`, using a wp-env-provisioned MariaDB
-  container as `.smoke`'s database since no local MySQL/MariaDB was available on this host) several
-  times across P4-01, P4-02, and again while investigating P5-01, and it was green every time
-  before the multisite conversion step.
-- `bin/ci-local.sh --keep` and `make reference-check` both pass on the final tree (see the last
-  `foundry_verify` run in this round).
-- The P5-01 finding is, I believe, the most important thing to read before continuing this PLAN:
-  it means phases 5–7 as currently scoped (smoke test only, no `src/` changes) cannot reach a
-  fully green multisite pass until the root-key migration gap is fixed elsewhere. Whoever resumes
-  this PLAN should either get that fix landed first, or get the PLAN amended to authorize a `src/`
-  change inside this flight, before re-attempting P5-01.
-- `tests/smoke/smoke.sh`'s `case_c_rotation` and `case_d_dropin` are new this round (P4-01, P4-02);
-  `convert_to_multisite`/`case_e_multisite` were left as stubs (`:`) after the P5-01 block reset,
-  matching their state at the start of this round's P5-01 attempt.
+- All 139 smoke assertions pass cleanly and repeatably against a real `wp` binary, on single site
+  and multisite. I ran the full suite (A–E) from scratch multiple times this round — twice back to
+  back for P5-01's specific acceptance test (install, smoke, install, smoke), once more inline
+  inside `bin/ci-local.sh --keep` for P5-02, once more for P7-01/P7-02, and a final `foundry_verify`
+  with no file scope at round end — using the wp-env-provisioned MariaDB container as `.smoke`'s
+  database (no local MySQL/MariaDB on this host). Every run was 139/139, exit 0.
+- `bin/ci-local.sh --keep` and `make reference-check` both pass on the final tree; the last
+  `foundry_verify` run (no file scope) shows all 13 constraints ok and both commands green.
+- P6-01's regression-proof cycle (reintroduce each historical bug, confirm failure, revert) was
+  run against a real wp-env install for all three bugs, one at a time, with a fresh
+  `bin/smoke-install.sh` between bugs 1 and 2 to avoid state bleed from case E's multisite
+  conversion; `git diff --stat HEAD -- cli/` was empty before each commit.
+- Nothing in `src/`, `plugin/`, or the three interface files changed this round. The only
+  production-code change in this entire branch is R1-01 from Round 1.
+- `docs/foundry.json`'s `smoke-diagnostics-never-print-stdout` rule (R2-01) is now broader than
+  an exact-name list; if a future task adds another plaintext-holding local that does *not*
+  contain `key` or `value` in its name, it will not be caught automatically — name new
+  plaintext-holding locals with `key` or `value` in them, or extend the rule again.
