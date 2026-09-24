@@ -198,6 +198,20 @@
         "\"${WP_ENV[@]}\" stop >/dev/null 2>&1 || true",
         "# Every action is pinned by full commit SHA rather than by tag."
       ]
+    },
+    {
+      "id": "no-foundry-task-ids-in-shipped-files",
+      "description": "No Foundry task ID or PROGRESS.md-style reference (P4-02, R1-01, ...) leaks into a shipped file. Docblocks and comments describe behaviour, never the flight that landed it.",
+      "paths": ["examples/", "Makefile", ".github/", "README.md", "docs/journal/", "docs/decisions/", "docs/spec/", "docs/reference/", "src/", "plugin/", "cli/", "tests/", "bin/"],
+      "pattern": "[PR][0-9]+-[0-9]{2}\\b",
+      "shouldMatch": [
+        "# Local Vault dev server for the vault-provider example (pinned digest, from P1-01):",
+        "\t * un-deleted. Completed in P2-02."
+      ],
+      "shouldNotMatch": [
+        "hashicorp/vault@sha256:47f14a6acb98f48d798a07df7c83f23a6e636e1cf724c5f8ff165cb32667a1e2",
+        "PHP 7.4-8.3"
+      ]
     }
   ]
 }

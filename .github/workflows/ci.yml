@@ -189,8 +189,8 @@ jobs:
   # Vault dev server, not part of `make ci`: examples/README.md and the KMS
   # spec §5 say the shared-harness examples suite needs a live service
   # container that `make ci`'s environments do not provide. The Vault image is
-  # pinned by the same digest as the Makefile comment above test-examples
-  # (P1-01) -- the "vault" service's image: line below.
+  # pinned by the same digest as the Makefile comment above test-examples --
+  # the "vault" service's image: line below.
   examples:
     name: Examples
     needs: static

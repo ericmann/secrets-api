@@ -145,8 +145,9 @@ never become this project's. Read its README before writing one: a key-managemen
 KMS, Google Cloud KMS) is a `WP_Secrets_Keyring` and takes three methods, while a secret store
 (Secrets Manager, Parameter Store) is a `WP_Secrets_Provider` and takes eight. People routinely
 pick the wrong one and pay for it in per-operation API calls. Two `WP_Secrets_Provider` examples
-ship today, AWS Secrets Manager and HashiCorp Vault KV v2, and `make test-examples` runs both
-against live services.
+ship today, AWS Secrets Manager and HashiCorp Vault KV v2, and `make test-examples` runs the
+Vault example against a live Vault dev server and the AWS naming tests offline, through
+`pre_http_request`.
 
 ## Contributing
 

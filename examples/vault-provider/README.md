@@ -109,9 +109,10 @@ elsewhere on a network. WordPress names are `namespace/key`, one slash, both seg
 Strictly version N-1, never "the newest surviving version below N." Retiring destroys N-1 and
 never promotes N-2 into its place — if it did, `wp_retire_secret_version()`, meant to make a
 compromised credential unreachable, would instead bring back an even older one.
-`test_previous_is_strictly_n_minus_1_even_when_older_versions_survive` proves it: write three
-versions, destroy the middle one directly against Vault, and `PREVIOUS` still reads as `null`
-rather than falling back to version 1.
+`test_previous_is_strictly_n_minus_1_even_when_older_versions_survive` proves it: `max_versions`
+is raised to 10 through the test helper first, so pruning cannot be what's producing the result,
+three versions are written, `retire_previous()` runs through the provider, `PREVIOUS` reads as
+`null`, and version 1 — the older survivor — still reads `200` directly against Vault.
 
 ### 2. The versions the API cannot see
 
@@ -126,8 +127,10 @@ about the version model, not a bug in this example, and goes on the Trac ticket.
 ### 3. Where `needs_rotation` lives
 
 In `custom_metadata.needs_rotation`, as the string `"1"` (set) or `"0"` (cleared) — never omitted,
-because Vault replaces `custom_metadata` wholesale on every write and rejects an empty map, so
-"no flag" and "flag cleared" have to be the same write. This needs Vault 1.9 or later. The value
+because Vault replaces `custom_metadata` wholesale on every write. The flag write merges the
+existing `custom_metadata` (read first, in the same request cycle) with the new flag value before
+posting, so other keys a different tool set survive, and "no flag" and "flag cleared" still have
+to be the same write rather than an omitted key. This needs Vault 1.9 or later. The value
 write and the metadata write are two separate requests, not a transaction: if the value lands and
 the flag write fails, `set()` returns `WP_Error` when the caller asked for the flag (the value is
 stored, but the flag is not, and the interface says a provider must not report an unhonoured flag
@@ -163,8 +166,8 @@ secret; `wp secret get` reports the real fingerprint for one secret at a time.
 [OpenBao](https://openbao.org/) is the Linux Foundation fork of Vault, and implements the same
 KV v2 HTTP API this provider speaks — nothing here is Vault-specific beyond the path shapes above.
 Vault has been under the Business Source License since 1.15, so it is not itself open source; CI
-tests Vault because it is the name hosts will search for, and one manual run against OpenBao is
-recorded as a human check in the phase-6 progress entry rather than run in CI.
+tests Vault because it is the name hosts will search for, and one manual run against OpenBao is a
+human check whose result is recorded in a commit message rather than run in CI.
 
 ## Run the tests
 
@@ -172,11 +175,11 @@ recorded as a human check in the phase-6 progress entry rather than run in CI.
 docker run -d --name secrets-api-vault -p 8201:8200 -e VAULT_DEV_ROOT_TOKEN_ID=dev-root --cap-add=IPC_LOCK hashicorp/vault@sha256:47f14a6acb98f48d798a07df7c83f23a6e636e1cf724c5f8ff165cb32667a1e2
 ```
 
-Then, from inside wp-env:
+Then, from the repository root, inside wp-env:
 
 ```sh
-npx @wordpress/env run --env-cwd=wp-content/plugins/vault-provider tests-cli env VAULT_ADDR=http://host.docker.internal:8201 VAULT_TOKEN=dev-root vendor/bin/phpunit -c phpunit-examples.xml.dist
-npx @wordpress/env run --env-cwd=wp-content/plugins/vault-provider tests-cli env WP_MULTISITE=1 VAULT_ADDR=http://host.docker.internal:8201 VAULT_TOKEN=dev-root vendor/bin/phpunit -c phpunit-examples.xml.dist
+npx @wordpress/env run --env-cwd="wp-content/plugins/$(basename "$PWD")" tests-cli env VAULT_ADDR=http://host.docker.internal:8201 VAULT_TOKEN=dev-root vendor/bin/phpunit -c phpunit-examples.xml.dist
+npx @wordpress/env run --env-cwd="wp-content/plugins/$(basename "$PWD")" tests-cli env WP_MULTISITE=1 VAULT_ADDR=http://host.docker.internal:8201 VAULT_TOKEN=dev-root vendor/bin/phpunit -c phpunit-examples.xml.dist
 ```
 
 `VAULT_ADDR` and `VAULT_TOKEN` tell the test harness (`Vault_Test_Server`) which server to run the

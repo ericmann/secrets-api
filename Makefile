@@ -56,11 +56,11 @@ reference-check: ## Fail if docs/reference/ is stale relative to the source.
 
 ci: lint compat analyse reference-check test test-ms ## Everything CI runs.
 
-# Local Vault dev server for the vault-provider example (pinned digest, from P1-01):
+# Local Vault dev server for the vault-provider example (pinned digest):
 #   docker run -d --name secrets-api-vault -p 8201:8200 -e VAULT_DEV_ROOT_TOKEN_ID=dev-root --cap-add=IPC_LOCK hashicorp/vault@sha256:47f14a6acb98f48d798a07df7c83f23a6e636e1cf724c5f8ff165cb32667a1e2
-# Then, from inside wp-env (see README.md):
-#   npx @wordpress/env run --env-cwd=wp-content/plugins/vault-provider tests-cli env VAULT_ADDR=http://host.docker.internal:8201 VAULT_TOKEN=dev-root vendor/bin/phpunit -c phpunit-examples.xml.dist
-#   npx @wordpress/env run --env-cwd=wp-content/plugins/vault-provider tests-cli env WP_MULTISITE=1 VAULT_ADDR=http://host.docker.internal:8201 VAULT_TOKEN=dev-root vendor/bin/phpunit -c phpunit-examples.xml.dist
+# Then, from the repository root, inside wp-env (see README.md):
+#   npx @wordpress/env run --env-cwd="wp-content/plugins/$(basename "$PWD")" tests-cli env VAULT_ADDR=http://host.docker.internal:8201 VAULT_TOKEN=dev-root vendor/bin/phpunit -c phpunit-examples.xml.dist
+#   npx @wordpress/env run --env-cwd="wp-content/plugins/$(basename "$PWD")" tests-cli env WP_MULTISITE=1 VAULT_ADDR=http://host.docker.internal:8201 VAULT_TOKEN=dev-root vendor/bin/phpunit -c phpunit-examples.xml.dist
 test-examples: ## Run the examples suite against live service containers (not part of ci).
 	$(VENDOR_BIN)/phpunit -c phpunit-examples.xml.dist
 	WP_MULTISITE=1 $(VENDOR_BIN)/phpunit -c phpunit-examples.xml.dist
