@@ -1085,6 +1085,13 @@ Master keys are derived from the root key on demand and never stored:
   differs from the site path, so there is no collision between the two. Identical
   on every blog, so a network secret written on one blog reads on every other.
 
+One unwrapped copy of the root key lives in this object for the rest of the
+request, in memory only, never in the object cache. It is replaced whenever the
+stored wrapped value changes -- a rotation, a re-wrap, a restore -- so it is never
+stale. Callers of get_root_key() still receive a copy and must zero it themselves;
+this object's own copy is not theirs to zero. The practical effect: a remote
+keyring (a KMS or HSM call) is invoked once per request, not once per secret.
+
 **Since:** 7.2.0
 
 **Source:** [`src/wp-includes/class-wp-secrets-key-manager.php`](../../src/wp-includes/class-wp-secrets-key-manager.php)

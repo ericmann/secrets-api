@@ -86,19 +86,23 @@ class Tests_Secrets_ThreeStateContract extends WP_UnitTestCase {
 	}
 
 	/**
-	 * Written under the ambient salt-fallback key (WP_SECRETS_KEY is not yet
-	 * defined), then read back after WP_SECRETS_KEY is defined to something unusable
-	 * -- simulating an operator setting the constant wrong after secrets already
-	 * exist. get_master_key() must fail before decryption is ever attempted, since a
-	 * usable key was never obtained.
+	 * Written under the ambient salt-fallback key, then read back after the stored
+	 * wrapped root key has been corrupted -- simulating the option row being
+	 * damaged after secrets already exist. get_master_key() must fail before
+	 * decryption is ever attempted, since a usable root key was never obtained.
 	 *
-	 * @runInSeparateProcess
-	 * @preserveGlobalState disabled
+	 * The corruption is to the wrapped root key option itself, not to
+	 * WP_SECRETS_KEY: WP_Secrets_Key_Manager now unwraps the root key at most once
+	 * per request for a given wrapped value (see class-wp-secrets-key-manager.php),
+	 * so changing WP_SECRETS_KEY between two calls in the same request -- which is
+	 * what this test used to do -- no longer forces a fresh unwrap attempt. A
+	 * changed wrapped value still does, by design, and that is what is exercised
+	 * here.
 	 */
 	public function test_key_unavailable_is_wp_error_not_null() {
 		wp_set_secret( 'myplugin/api-key', 'value' );
 
-		define( 'WP_SECRETS_KEY', 424242 ); // Defined, but not a usable string.
+		update_site_option( WP_Secrets_Key_Manager::ROOT_KEY_OPTION, 'not-a-valid-wrapped-value' );
 
 		$result = wp_get_secret( 'myplugin/api-key' );
 

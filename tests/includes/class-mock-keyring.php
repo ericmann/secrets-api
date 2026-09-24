@@ -9,10 +9,14 @@ class Mock_Keyring implements WP_Secrets_Keyring {
 
 	const MARKER = 'mock-wrapped:';
 
-	private $fail_wrap   = false;
-	private $fail_unwrap = false;
+	private $fail_wrap    = false;
+	private $fail_unwrap  = false;
+	private $wrap_calls   = 0;
+	private $unwrap_calls = 0;
 
 	public function wrap( $key_material ) {
+		++$this->wrap_calls;
+
 		if ( $this->fail_wrap ) {
 			return new WP_Error( WP_SECRETS_ERROR_KEY_UNAVAILABLE, 'Mock_Keyring: wrap() configured to fail.' );
 		}
@@ -24,6 +28,8 @@ class Mock_Keyring implements WP_Secrets_Keyring {
 	}
 
 	public function unwrap( $wrapped ) {
+		++$this->unwrap_calls;
+
 		if ( $this->fail_unwrap ) {
 			return new WP_Error( WP_SECRETS_ERROR_KEY_UNAVAILABLE, 'Mock_Keyring: unwrap() configured to fail.' );
 		}
@@ -73,5 +79,19 @@ class Mock_Keyring implements WP_Secrets_Keyring {
 		$this->fail_unwrap = $fail;
 
 		return $this;
+	}
+
+	/**
+	 * @return int Number of times wrap() has been called.
+	 */
+	public function wrap_call_count() {
+		return $this->wrap_calls;
+	}
+
+	/**
+	 * @return int Number of times unwrap() has been called.
+	 */
+	public function unwrap_call_count() {
+		return $this->unwrap_calls;
 	}
 }
