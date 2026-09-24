@@ -55,11 +55,11 @@
     },
     {
       "id": "smoke-diagnostics-never-print-stdout",
-      "description": "A TAP diagnostic may show the exit status and a stderr excerpt; it never shows a command's stdout, a value, or a key, because for --reveal that is the plaintext.",
+      "description": "A TAP diagnostic may show the exit status and a stderr excerpt; it never shows a command's stdout, a value, or a key -- including the suite's lower-case locals (v1, v2, vr, vd, old, new, porcelain_out) as well as OUT/VALUE/KEY/OLD/NEW -- because for --reveal that is the plaintext.",
       "paths": ["tests/smoke/smoke.sh"],
-      "pattern": "\\b(not_ok|diag)\\b[^#]*\\$\\{?(OUT|VALUE|KEY|OLD|NEW)[A-Z0-9_]*\\b",
-      "shouldMatch": ["not_ok \"masked\" \"$OUT\"", "diag \"value was ${VALUE_A}\"", "diag \"key $NEW\""],
-      "shouldNotMatch": ["not_ok \"masked\" \"exit $STATUS\"", "diag \"stderr: $(printf '%s' \"$ERR\" | head -n 3)\""]
+      "pattern": "\\b(not_ok|diag)\\b[^#]*\\$\\{?((OUT|VALUE|KEY|OLD|NEW)[A-Z0-9_]*|v1|v2|vr|vd|old|new|porcelain_out)\\b",
+      "shouldMatch": ["not_ok \"masked\" \"$OUT\"", "diag \"value was ${VALUE_A}\"", "diag \"key $NEW\"", "not_ok \"x\" \"$v1\"", "diag \"key was $old\"", "diag \"${new}\"", "not_ok \"porcelain\" \"$porcelain_out\"", "not_ok \"rot\" \"$vr\""],
+      "shouldNotMatch": ["not_ok \"masked\" \"exit $STATUS\"", "diag \"stderr: $(printf '%s' \"$ERR\" | head -n 3)\"", "not_ok \"$desc\" \"output length ${#OUT} did not match expected length ${#expected}: $desc\"", "not_ok \"x\" \"exit status was $STATUS\""]
     },
     {
       "id": "no-wp-env-destroy",

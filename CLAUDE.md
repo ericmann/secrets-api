@@ -83,7 +83,8 @@ Each line that is a single-line pattern is also a rule in `docs/foundry.json` `c
 - No bare `wp` in the smoke scripts; only `"${WP[@]}"` (pinned phar, `--path`, `-d display_errors=stderr`).
 - No `wp-env` or `npx` inside the smoke scripts.
 - The smoke database is never assigned or defaulted to `wordpress_test`.
-- A TAP diagnostic (`not_ok`, `diag`) never interpolates `$OUT`, a `VALUE*`, `KEY*`, `OLD`, or `NEW`.
+- A TAP diagnostic (`not_ok`, `diag`) never interpolates `$OUT`, a `VALUE*`, `KEY*`, `OLD`, `NEW`,
+  or the suite's lower-case locals (`v1`, `v2`, `vr`, `vd`, `old`, `new`, `porcelain_out`).
 - No `wp-env destroy` and no literal `8930`/`8931` in `bin/`, `tests/`, `Makefile`, `.github/`.
 - No `sf publish`, `git tag`, or `git push --tags` in `bin/`, `tests/`, `Makefile`, `ci.yml`.
 - Every `uses:` in `.github/workflows/` is a 40-hex SHA pin.
