@@ -3,7 +3,7 @@ Branch: build/kms-keyring
 Started: 2026-09-24T20:46:16.429Z
 
 ## Tasks
-- [ ] P0-01 Add the keyring conformance suite and make Mock_Keyring pass it
+- [x] P0-01 Add the keyring conformance suite and make Mock_Keyring pass it
 - [ ] P0-02 State the non-determinism requirement in the keyring interface docblock
 - [ ] P0-03 Push phase 0
 - [ ] P1-01 Cache the unwrapped root key in WP_Secrets_Key_Manager for the request
@@ -25,3 +25,29 @@ Started: 2026-09-24T20:46:16.429Z
 
 ## Log
 (one entry per task, appended by implement)
+
+### P0-01 — 62ec7e7
+Added tests/includes/class-wp-secrets-keyring-conformance.php mirroring the
+provider conformance shape: abstract keyring() + 6 tests (round trip,
+non-determinism, garbage/truncated/flipped-byte rejection as WP_Error,
+non-empty get_key_source()). Concrete classes
+Tests_Secrets_ConfigKeyringConformance (WP_Secrets_Config_Key_Provider) and
+Tests_Secrets_MockKeyringConformance (Mock_Keyring) both pass on
+single-site and multisite.
+
+Mock_Keyring rewritten to be non-deterministic with an integrity tag:
+wrap() = MARKER + base64(8-byte nonce + key_material + sha256(nonce+key_material)).
+unwrap() returns WP_SECRETS_ERROR_KEY_UNAVAILABLE for non-string, missing
+marker, failed strict base64 decode, payload < 41 bytes, or hash_equals()
+tag mismatch. configure_fail_wrap()/configure_fail_unwrap() unchanged, so
+existing consumers (test-secrets-extension-points.php,
+test-secrets-provider.php) are unaffected.
+
+bootstrap.php requires the new conformance file after the provider one.
+
+Fixed two phpcs findings post-write: doc-comment capitalization
+("wrap()"/"unwrap()" -> "Wrap()"/"Unwrap()") and an alignment warning on
+the flipped-byte test's assignments.
+
+bin/ci-local.sh --keep and make reference-check both green (468 tests,
+single-site + multisite).
