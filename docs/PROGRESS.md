@@ -4,7 +4,7 @@ Started: 2026-09-24T20:46:16.429Z
 
 ## Tasks
 - [x] P0-01 Add the keyring conformance suite and make Mock_Keyring pass it
-- [ ] P0-02 State the non-determinism requirement in the keyring interface docblock
+- [x] P0-02 State the non-determinism requirement in the keyring interface docblock
 - [ ] P0-03 Push phase 0
 - [ ] P1-01 Cache the unwrapped root key in WP_Secrets_Key_Manager for the request
 - [ ] P1-02 Document root-key caching: examples README, spec page, ADR 0009
@@ -51,3 +51,14 @@ the flipped-byte test's assignments.
 
 bin/ci-local.sh --keep and make reference-check both green (468 tests,
 single-site + multisite).
+
+### P0-02 — 90c4d53
+Added the non-determinism requirement to WP_Secrets_Keyring::wrap()'s
+docblock (exact sentence from the spec, naming
+WP_Secrets_Key_Manager::rotate_site_key() and
+WP_Secrets_Keyring_Conformance) and one sentence on the interface class
+docblock pointing implementers at WP_Secrets_Keyring_Conformance by class
+name only (no test path referenced from src/). No signature/@param/@return
+change. Regenerated docs/reference/classes.md via make reference; diff
+touched only that file. bin/ci-local.sh --keep and make reference-check
+both green.
