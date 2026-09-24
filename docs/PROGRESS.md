@@ -15,7 +15,7 @@ Started: 2026-09-24T20:47:35.233Z
 - [x] P4-02 Load drop-ins through the real loader, with cleanup on exit
 - [x] P4-03 Push phase 4 and record the manual check
 - [x] P5-01 Convert to multisite and run the network pass
-- [ ] P5-02 Wire smoke into make ci, bin/ci-local.sh, and a smoke CI job
+- [x] P5-02 Wire smoke into make ci, bin/ci-local.sh, and a smoke CI job
 - [ ] P5-03 Push phase 5 and record the manual check
 - [ ] P6-01 Prove each historical bug fails the smoke test
 - [ ] P6-02 Push phase 6 and record the manual check
@@ -384,3 +384,21 @@ bin/ci-local.sh --keep (459/459 single-site, 459/459 multisite via
 PHPUnit), make reference-check clean.
 
 No interpretation choices beyond the task's own numbered steps.
+
+### P5-02 — 9822d97
+Makefile: appended smoke to ci: target. bin/ci-local.sh: added an
+"==> smoke" step after test-ms, running bin/smoke-install.sh then
+tests/smoke/smoke.sh in the cli container (never tests-cli, never
+wordpress_test) with a comment explaining why. ci.yml: new smoke job
+after test-multisite, needs: static, matrix php 7.4/8.3, mysql
+service (MYSQL_DATABASE: wordpress_smoke), checkout/setup-php lines
+copied verbatim (SHA pins unchanged), no Composer step, single
+`make smoke DB_HOST=127.0.0.1` run step.
+
+Verified: bin/ci-local.sh --keep ran end to end (lint, compat,
+analyse, test 459/459, test-ms 459/459, smoke 139/139) and printed
+"All green."; make -n ci lists smoke last; ci.yml parses via
+`ruby -ryaml` (PyYAML absent on this host, noted per the task);
+grep -n 'uses:' shows only SHA pins; make reference-check clean.
+
+No interpretation choices; followed the task's snippets directly.
