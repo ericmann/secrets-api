@@ -28,7 +28,7 @@ rather than overclaiming.
 
 ---
 
-## 🟢 Drop-in file loading is not directly covered by an automated test
+## 🟢 Drop-in file loading's uncatchable fatal remains outside automated coverage
 
 `wp_secrets_api_load_dropin()` (in `secrets-api.php`) runs once, during
 `wp_secrets_api_bootstrap()`, which itself runs once per PHP process via `muplugins_loaded`. Both
@@ -36,7 +36,9 @@ that function and `_wp_secrets_get_store()` / `_wp_secrets_get_key_manager()` ca
 in a function-local `static` on first call, with no reset hook. By the time any test method's body
 runs — even in a `@runInSeparateProcess` test — the process's one bootstrap pass has already
 completed, so a drop-in file placed on disk from within a test body arrives too late to affect
-that process's `wp_secrets_api_load_dropin()` call.
+that process's `wp_secrets_api_load_dropin()` call. `tests/smoke/smoke.sh` case D works around this
+the same way a real install does: it writes the drop-in to disk and then invokes a fresh `wp`
+process, so `wp_secrets_api_load_dropin()`'s own `require`-and-`try`/`catch` runs for real.
 
 **What is covered:** the consumption side — `_wp_secrets_get_store()` and
 `_wp_secrets_get_key_manager()` correctly using `$GLOBALS['wp_secrets_store']` /
@@ -44,63 +46,20 @@ that process's `wp_secrets_api_load_dropin()` call.
 `WP_Secrets_Broken_Keyring` when `$GLOBALS['wp_secrets_dropin_broken']` is set — is tested
 directly in `tests/phpunit/test-secrets-extension-points.php` by setting those same globals in an
 isolated process, exactly as a real drop-in would, before the first call that would cache a
-default.
+default. `wp_secrets_api_load_dropin()`'s own `require`-and-`try`/`catch` around an actual drop-in
+file is now exercised through the real loader by `tests/smoke/smoke.sh` case D, which writes each
+of a syntax-error drop-in, a throw-on-load drop-in, a wrong-type provider-global drop-in, and a
+sets-nothing drop-in, and asserts on `wp secret get`'s exit code and `wp secret dropin`'s report
+for each.
 
-**What is not covered:** `wp_secrets_api_load_dropin()`'s own `require`-and-`try`/`catch` around
-an actual drop-in file. That behaviour was verified empirically instead, once, directly against
-the PHP engine on both 7.4.33 and 8.5.7:
-
-- A syntax error in the required file *is* caught as a `ParseError` by `catch ( \Throwable $e )`
-  around the `require` — confirmed on both versions.
-- A class that `implements` an interface but omits a required method is an **uncatchable fatal
-  error**, even inside that same `try`/`catch` — also confirmed on both versions. This is a
-  PHP-engine limitation, not a bug in the catching code: there is no userland way to intercept it.
-
-So a malformed drop-in fails safely for syntax errors and thrown exceptions, but a drop-in whose
-class silently fails to fully implement its interface can still produce a fatal error page. Worth
-another look if a process-spawning integration test is judged worth the complexity later.
-
-
----
-
-## 🟡 CLI dispatch is not covered by any test
-
-Every WP-CLI test in this suite instantiates the command class and calls the method directly. That
-covers the method bodies well and covers **nothing** about how WP-CLI actually reaches them, which
-is a layer with its own rules: flag-name reservations, docblock synopsis parsing, and method-name
-to subcommand-name mapping.
-
-Three real bugs lived there undetected until the commands were run end to end for the first
-time, all with green tests throughout:
-
-- **`--version=previous` silently returned the current value.** WP-CLI consumes `--version` before
-  a subcommand sees it; the synopsis default then filled in `current`. The flag is now `--slot`.
-  This is the worst of the three: no error, just the wrong secret.
-- **`--format` was rejected as an unknown parameter** on all four commands that declare it. WP-CLI
-  will not register a parameter whose synopsis block has no `: description` line, and every
-  `[--format=<format>]` went straight into its `---` YAML.
-- **`wp secret migrate-legacy` did not exist**, despite every document saying it did. WP-CLI
-  derives subcommand names from method names, so `migrate_legacy()` registered as
-  `migrate_legacy`. Fixed with `@subcommand`.
-
-**What would catch this:** a smoke test that shells out to a real `wp` binary against a real
-install and asserts on exit codes and output — the WordPress test suite cannot do this, and
-wp-env can. Not built. Until it is, treat any change to a command's docblock synopsis or method
-name as untested, and run it by hand.
-
-Cheap interim discipline: `wp help secret <subcommand>` shows the synopsis WP-CLI actually built.
-If a flag is missing there, it is missing everywhere.
-
-
----
-
-## 🟢 `wp secret set --stdin`'s own code path is not covered by an automated test
-
-`WP_CLI_Secret_Command::set()` reads `--stdin` via `file_get_contents( 'php://stdin' )`. Faking
-that stream meaningfully from inside a PHPUnit process would need a real pipe (`proc_open`), and
-getting it wrong risks hanging the whole test run waiting on a stream nothing is writing to — not
-worth it for one branch. Every other branch of `set()` (positional value, missing value, the
-shell-history warning, success/porcelain/error reporting) is covered directly.
+**What is not covered:** the one case case D records rather than asserts as desired — a class that
+`implements` an interface but omits a required method is an **uncatchable fatal error**, even
+inside that same `try`/`catch`. This is a PHP-engine limitation, not a bug in the catching code:
+there is no userland way to intercept it, so there is nothing case D's assertions could turn green
+for. Verified empirically, once, directly against the PHP engine on both 7.4.33 and 8.5.7 (before
+case D existed), and confirmed again end to end by case D against the smoke suite's own PHP 7.4.33:
+the run exits non-zero with a PHP fatal on stderr, recorded as expected behaviour rather than
+desired. Worth another look if a future PHP makes this catchable.
 
 
 ---
