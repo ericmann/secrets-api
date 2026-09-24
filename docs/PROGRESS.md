@@ -16,7 +16,7 @@ Started: 2026-09-24T20:47:35.233Z
 - [x] P4-03 Push phase 4 and record the manual check
 - [x] P5-01 Convert to multisite and run the network pass
 - [x] P5-02 Wire smoke into make ci, bin/ci-local.sh, and a smoke CI job
-- [ ] P5-03 Push phase 5 and record the manual check
+- [x] P5-03 Push phase 5 and record the manual check
 - [ ] P6-01 Prove each historical bug fails the smoke test
 - [ ] P6-02 Push phase 6 and record the manual check
 - [ ] P7-01 Update the coverage gaps, the spec pages, and the detailed spec's status
@@ -402,3 +402,13 @@ analyse, test 459/459, test-ms 459/459, smoke 139/139) and printed
 grep -n 'uses:' shows only SHA pins; make reference-check clean.
 
 No interpretation choices; followed the task's snippets directly.
+
+### P5-03 — e3879a6
+Pushed build/cli-smoke to origin (d659ce0..b9280df, fast-forward, no
+force) before this empty task commit; pushed again after. git status
+clean throughout aside from PROGRESS.md's own in-flight state. gh
+not invoked (nothing depends on it).
+
+Manual check: NOT VERIFIED (human): the smoke job is green on PHP
+7.4 and 8.3 in the Actions tab; make smoke on a host without Docker
+passes both passes.
