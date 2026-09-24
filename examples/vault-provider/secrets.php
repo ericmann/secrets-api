@@ -157,7 +157,51 @@ final class Vault_KV2_Provider implements WP_Secrets_Provider {
 	 * @return true|WP_Error
 	 */
 	public function set( $name, $value, $network = false, $needs_rotation = false, $action = null ) {
-		return new WP_Error( WP_SECRETS_ERROR_STORE_UNAVAILABLE, 'Not implemented.' );
+		$vault_path = $this->vault_path( $name, $network );
+		$meta       = $this->read_metadata( $name, $network );
+
+		if ( is_wp_error( $meta ) ) {
+			return $meta;
+		}
+
+		$created = ( null === $meta );
+
+		if ( $created ) {
+			$result = $this->request(
+				'POST',
+				$this->url( 'metadata', $vault_path ),
+				array( 'max_versions' => self::MAX_VERSIONS )
+			);
+
+			if ( is_wp_error( $result ) ) {
+				return $result;
+			}
+		}
+
+		$result = $this->request( 'POST', $this->url( 'data', $vault_path ), array( 'data' => array( 'value' => $value ) ) );
+
+		if ( is_wp_error( $result ) ) {
+			return $result;
+		}
+
+		$this->memo = array();
+
+		/**
+		 * Fires whenever a secret is created, updated, deleted, or imported.
+		 *
+		 * Providers own firing this -- see WP_Secrets_Provider::set().
+		 */
+		do_action(
+			'wp_secret_changed',
+			$name,
+			null !== $action ? $action : ( $created ? 'created' : 'updated' ),
+			get_current_user_id(),
+			time(),
+			'',
+			''
+		);
+
+		return true;
 	}
 
 	/**
@@ -196,7 +240,34 @@ final class Vault_KV2_Provider implements WP_Secrets_Provider {
 	 * @return true|WP_Error
 	 */
 	public function retire_previous( $name, $network = false ) {
-		return new WP_Error( WP_SECRETS_ERROR_STORE_UNAVAILABLE, 'Not implemented.' );
+		$vault_path = $this->vault_path( $name, $network );
+		$meta       = $this->read_metadata( $name, $network );
+
+		if ( is_wp_error( $meta ) ) {
+			return $meta;
+		}
+
+		if ( null === $meta ) {
+			return true;
+		}
+
+		$previous = $this->previous_version( $meta );
+
+		if ( null === $previous ) {
+			return true;
+		}
+
+		$result = $this->request( 'POST', $this->url( 'destroy', $vault_path ), array( 'versions' => array( $previous ) ) );
+
+		if ( is_wp_error( $result ) ) {
+			return $result;
+		}
+
+		$this->memo = array();
+
+		do_action( 'wp_secret_changed', $name, 'retired', get_current_user_id(), time(), '', '' );
+
+		return true;
 	}
 
 	/**
@@ -209,7 +280,61 @@ final class Vault_KV2_Provider implements WP_Secrets_Provider {
 	 * @return array|WP_Error
 	 */
 	public function list_secrets( $name_prefix = '', $network = false ) {
-		return new WP_Error( WP_SECRETS_ERROR_STORE_UNAVAILABLE, 'Not implemented.' );
+		$base = $this->scope_prefix( $network );
+
+		if ( '' !== $name_prefix ) {
+			$namespaces = array( $name_prefix );
+		} else {
+			$keys = $this->list_keys( $this->url( 'metadata', $base, array( 'list' => 'true' ) ) );
+
+			if ( is_wp_error( $keys ) ) {
+				return $keys;
+			}
+
+			if ( null === $keys ) {
+				return array();
+			}
+
+			$namespaces = array();
+
+			foreach ( $keys as $key ) {
+				if ( '/' === substr( $key, -1 ) ) {
+					$namespaces[] = rtrim( $key, '/' );
+				}
+			}
+		}
+
+		$entries = array();
+
+		foreach ( $namespaces as $ns ) {
+			$keys = $this->list_keys( $this->url( 'metadata', "{$base}{$ns}/", array( 'list' => 'true' ) ) );
+
+			if ( is_wp_error( $keys ) ) {
+				return $keys;
+			}
+
+			if ( null === $keys ) {
+				continue;
+			}
+
+			foreach ( $keys as $key ) {
+				if ( '/' === substr( $key, -1 ) ) {
+					continue;
+				}
+
+				$entries[] = array(
+					'name'           => "{$ns}/{$key}",
+					// One LIST per namespace and no data reads: fingerprinting every
+					// entry would mean a read per secret. See README.md question 4.
+					'fingerprint'    => '',
+					'created'        => 0,
+					'has_previous'   => false,
+					'needs_rotation' => false,
+				);
+			}
+		}
+
+		return $entries;
 	}
 
 	/**
@@ -350,6 +475,25 @@ final class Vault_KV2_Provider implements WP_Secrets_Provider {
 	 */
 	private function read_metadata( $name, $network ) {
 		return $this->request( 'GET', $this->url( 'metadata', $this->vault_path( $name, $network ) ) );
+	}
+
+	/**
+	 * Runs a Vault LIST (GET ...?list=true) and returns just the keys.
+	 * Isolated so P4-01's per-secret metadata read does not restructure
+	 * list_secrets() itself.
+	 *
+	 * @param string $url Full LIST URL, including ?list=true.
+	 *
+	 * @return string[]|null|WP_Error
+	 */
+	private function list_keys( $url ) {
+		$result = $this->request( 'GET', $url );
+
+		if ( is_wp_error( $result ) || null === $result ) {
+			return $result;
+		}
+
+		return isset( $result['keys'] ) && is_array( $result['keys'] ) ? $result['keys'] : array();
 	}
 
 	/**
