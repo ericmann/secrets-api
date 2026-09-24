@@ -1,6 +1,6 @@
 # AWS KMS keyring build progress
-Branch: (set by implement)
-Started: (set by implement)
+Branch: build/kms-keyring
+Started: 2026-09-24T20:46:16.429Z
 
 ## Tasks
 - [ ] P0-01 Add the keyring conformance suite and make Mock_Keyring pass it
