@@ -22,6 +22,8 @@ Started: 2026-09-24T20:46:16.429Z
 - [x] P5-02 Update the journal tracking pages, the READMEs, and the index
 - [x] P5-03 Write the dev journal entry
 - [x] P5-04 Push phase 5, remove the Moto container, record the live-KMS check as not verified
+- [ ] R1-01 Restore the misconfigured-WP_SECRETS_KEY scenario in the three-state contract test
+- [ ] R1-02 Correct the published docs: journal finding, worktree-specific wp-env path, ci.md, KMS README CI sentence
 
 ## Log
 (one entry per task, appended by implement)
