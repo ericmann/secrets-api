@@ -461,4 +461,58 @@ class Tests_Vault_Provider extends WP_UnitTestCase {
 
 		$this->assertSame( array( 'acme/two' ), $names );
 	}
+
+	public function test_a_sealed_vault_is_an_error_from_every_method() {
+		$this->provider->set( 'acme/key', 'v1' );
+
+		add_filter(
+			'pre_http_request',
+			static function () {
+				return array(
+					'headers'  => array(),
+					'body'     => wp_json_encode( array( 'errors' => array( 'Vault is sealed' ) ) ),
+					'response' => array( 'code' => 503, 'message' => '' ),
+					'cookies'  => array(),
+					'filename' => null,
+				);
+			}
+		);
+
+		$results = array(
+			$this->provider->get( 'acme/key', WP_Secret_Version::CURRENT ),
+			$this->provider->get( 'acme/key', WP_Secret_Version::PREVIOUS ),
+			$this->provider->set( 'acme/key', 'v2' ),
+			$this->provider->delete( 'acme/key' ),
+			$this->provider->retire_previous( 'acme/key' ),
+			$this->provider->list_secrets(),
+		);
+
+		foreach ( $results as $result ) {
+			$this->assertWPError( $result );
+			$this->assertSame( WP_SECRETS_ERROR_STORE_UNAVAILABLE, $result->get_error_code() );
+			$this->assertStringContainsString( 'Vault is sealed', $result->get_error_message() );
+		}
+	}
+
+	public function test_an_unreachable_vault_is_an_error_not_absence() {
+		$provider = new Vault_KV2_Provider( 'http://127.0.0.1:1', 'x' );
+
+		$this->assertWPError( $provider->get( 'acme/key', WP_Secret_Version::CURRENT ) );
+		$this->assertWPError( $provider->list_secrets() );
+		$this->assertWPError( $provider->delete( 'acme/key' ) );
+	}
+
+	public function test_a_permission_denied_write_is_an_error_from_set() {
+		$this->provider->set( 'acme/key', 'v1' );
+
+		$bad_provider = new Vault_KV2_Provider( $this->server->addr(), 'not-a-real-token', $this->server->mount() );
+
+		$result = $bad_provider->set( 'acme/key', 'v2' );
+		$this->assertWPError( $result );
+		$this->assertSame( WP_SECRETS_ERROR_STORE_UNAVAILABLE, $result->get_error_code() );
+		$this->assertStringContainsString( 'permission denied', $result->get_error_message() );
+
+		$get_result = $bad_provider->get( 'acme/key', WP_Secret_Version::CURRENT );
+		$this->assertWPError( $get_result );
+	}
 }
