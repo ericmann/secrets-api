@@ -45,6 +45,13 @@ final class Vault_Test_Server {
 	}
 
 	/**
+	 * @return Vault_KV2_Provider
+	 */
+	public function provider() {
+		return new Vault_KV2_Provider( $this->addr(), $this->token(), $this->mount() );
+	}
+
+	/**
 	 * @param string     $method HTTP method.
 	 * @param string     $path   Path under /v1/, e.g. 'secret/data/wp/site/1/acme/key'.
 	 * @param array|null $body   Request body, encoded as JSON when non-null.
