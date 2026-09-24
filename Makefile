@@ -59,7 +59,7 @@ smoke: ## Provision the throwaway install and run the WP-CLI smoke test.
 	SMOKE_DB_NAME=$(SMOKE_DB_NAME) DB_USER=$(DB_USER) DB_PASS="$(DB_PASS)" DB_HOST=$(DB_HOST) WP_VERSION=$(WP_VERSION) bin/smoke-install.sh
 	tests/smoke/smoke.sh
 
-ci: lint compat analyse reference-check test test-ms ## Everything CI runs.
+ci: lint compat analyse reference-check test test-ms smoke ## Everything CI runs.
 
 clean: ## Remove generated artefacts.
 	rm -rf vendor coverage .phpunit.result.cache .phpcs.cache
