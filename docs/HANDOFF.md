@@ -137,3 +137,50 @@ one test method restored plus one renamed, and five doc files with wording/comma
 No `src/`, `cli/`, or `examples/*.php` change. `foundry_verify` (all constraints plus
 `bin/ci-local.sh --keep` and `make reference-check`) is green on both commits and on the full
 tree with no files argument.
+
+## Round 2
+
+Branch: `build/kms-keyring`. Base: `1209b5013018`. Head: `19be872`.
+
+Task counts (this round, `R2-*`): 1 total, 1 done, 0 todo, 0 in progress, 0 blocked, 0 skipped.
+Whole-plan counts: 22 total, 22 done, 0 open.
+
+This round fixed the single finding the reviewer queued in round 1's review.
+
+- **R2-01 — correct the Secrets Manager README CI claim and remove Foundry task IDs from
+  published docs.** Four wording fixes, all documentation-only: (1)
+  `examples/aws-secrets-manager/README.md`'s closing sentence claimed Moto was something "CI does
+  not provide by default", which was false — the separate `examples` CI job runs it against a
+  pinned Moto service container, same as `examples/aws-kms-keyring/README.md` already says;
+  replaced with the identical true sentence. (2) `docs/journal/2026-09-24-a-kms-keyring.md` line
+  58 read "P0-01 made it non-deterministic..." — a Foundry task ID leaking into published prose;
+  replaced with "This work made it...", keeping first-person voice and the rest of the sentence
+  unchanged. (3) `docs/journal/test-coverage-gaps.md` line 93 pointed a reader at "the P2-01
+  commit body"; replaced with "the commit that added `--from`", which a reader can actually find
+  without Foundry tooling. (4) `docs/journal/test-coverage-gaps.md` lines 142-143 pointed at "the
+  P4-04 log entry" (i.e. `docs/PROGRESS.md`, which is stripped from `docs/` before merge, per
+  `docs/SPEC.md` section 3 / the parallel-flights note in `CLAUDE.md`-adjacent memory); replaced
+  with the self-contained "has not been run yet". Verified with the exact greps the task
+  specified: `does not provide by default` no longer appears in either AWS example README; the
+  `\b[PR][0-9]-[0-9]{2}\b` pattern no longer appears in any of the ten published-doc paths listed
+  in the task; the corrected "examples CI job" sentence is present. Also verified `git diff
+  --stat` touched only the three named files, journal frontmatter (title/description/date) is
+  intact, `bin/ci-local.sh --keep` (482 tests single-site and multisite, green) and `make
+  reference-check` both pass.
+
+**Interpretation choices this round:** none. The task text gave exact replacement wording (with
+parenthetical examples) for all four spots, and the chosen wording matches the task's own
+suggested phrasing.
+
+**⚠️ ASSUMPTION config keys this round:** none introduced or touched.
+
+**What a human must check by hand this round:** nothing new. The unresolved live-AWS-KMS manual
+run from round 0 (see "For the reviewer" above) remains the only outstanding manual item in this
+flight; R2-01 touched only prose in three doc files and did not touch code that check depends on.
+
+**For the reviewer:** narrowly scoped to the one review finding — a truthful CI claim in one
+example README, plus three Foundry-task-ID references removed from two journal files, one of
+which pointed at a file (`docs/PROGRESS.md`) that will not exist in the published docs tree. No
+`src/`, `cli/`, or `examples/*.php` change. `foundry_verify` (all constraints plus
+`bin/ci-local.sh --keep` and `make reference-check`) is green on the commit and on the full tree
+with no files argument.
