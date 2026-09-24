@@ -24,7 +24,7 @@ Started: 2026-09-24T20:47:35.233Z
 - [-] P7-03 Write the journal entry and link it from the index
 - [-] P7-04 Push phase 7 and record the final manual checks
 - [x] R1-01 Preserve the root key across multisite conversion
-- [ ] R1-02 Make the smoke list-value and rotation assertions able to fail
+- [x] R1-02 Make the smoke list-value and rotation assertions able to fail
 - [ ] R1-03 Widen the smoke diagnostic constraint to the variables the suite uses
 
 ## Log
@@ -298,3 +298,29 @@ untouched.
 Manual repro in wp-env: secret set probe -> core multisite-convert ->
 plugin activate secrets-api --network -> secret get --reveal returned
 the probe, exit 0.
+
+### R1-02 — 42154c8
+Added a default-table `secret list` run plus not-contains asserts for
+$v1/$v2, and moved/added not-contains asserts right after the
+list --format=json and list --format=csv runs (before any later run()
+call overwrites $OUT). Case C: added config-get reads of WP_SECRETS_KEY
+and WP_SECRETS_KEY_PREVIOUS after both config-set calls, asserting they
+differ before rotate --yes.
+
+125 assertions pass, exit 0 (was 121).
+
+Negative check (a): pointed the csv needle at $s (the secret's own
+name) -- not_ok as expected (124 passed). Used --format=csv rather
+than --format=json for this check: WP-CLI's json_encode escapes "/" as
+"\/", so a namespaced name never appears as a raw substring of JSON
+output, only CSV. Reverted before commit.
+
+Negative check (b): sandbox declined to run smoke.sh with the
+`config set WP_SECRETS_KEY "$new"` line commented out (flagged as
+"Security Test Removal"); logged as pipeline friction and worked
+through by hand instead -- skipping that line leaves WP_SECRETS_KEY at
+$old, equal to the value just written into WP_SECRETS_KEY_PREVIOUS, so
+the new != check would report not_ok. Reverted (never actually
+applied) before commit.
+
+bin/ci-local.sh --keep and make reference-check both green.
