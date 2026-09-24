@@ -20,7 +20,7 @@ Started: 2026-09-24T20:46:16.429Z
 - [x] P4-04 Push phase 4
 - [x] P5-01 Bring the spec pages in line with the code
 - [x] P5-02 Update the journal tracking pages, the READMEs, and the index
-- [ ] P5-03 Write the dev journal entry
+- [x] P5-03 Write the dev journal entry
 - [ ] P5-04 Push phase 5, remove the Moto container, record the live-KMS check as not verified
 
 ## Log
@@ -298,4 +298,18 @@ did not change, so left untouched per the task's own instruction.
 grep 'composer.json' examples/README.md: no hits. grep 'test-examples'
 README.md: 1 hit. git diff --stat shows only the six named files (plus
 docs/PROGRESS.md, committed separately by this tool).
+bin/ci-local.sh --keep and make reference-check both green.
+
+### P5-03 — d9729c0
+Added docs/journal/2026-09-24-a-kms-keyring.md (What I built / What it
+found / What I left out / What it means for the patch), linking
+examples/aws-kms-keyring/README.md, the KMS test file, ADR 0008, and
+ADR 0009. docs/index.md's journal/ list gains the entry before
+open-questions.md.
+
+Interpretation: none -- fully specified.
+
+head -5 shows correct frontmatter (title/description/date matching
+the filename). grep -c '0008' = 1. docs/journal/_drafts/notes.md
+untouched (git diff --quiet passes, never read or cleared).
 bin/ci-local.sh --keep and make reference-check both green.
