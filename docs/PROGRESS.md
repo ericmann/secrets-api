@@ -15,7 +15,7 @@ Started: 2026-09-24T20:46:46.009Z
 - [x] P4-02 Multisite isolation, sealed-or-unreachable behaviour, and the timeout measurement
 - [x] P4-03 Push phase 4 and record the manual checks
 - [x] P5-01 Map AWS site scope to `wp/site/<blog_id>/<name>` and test it by capturing the request
-- [ ] P5-02 Push phase 5 and record the manual checks
+- [x] P5-02 Push phase 5 and record the manual checks
 - [ ] P6-01 Write the Vault example README and update the example index, root README, and CI reference
 - [ ] P6-02 Add ADR 0009 and update the spec pages' "As built" sections
 - [ ] P6-03 Update the journal tracking pages, write the journal entry, and index both
@@ -186,3 +186,14 @@ concern, not this task) and did not touch anything else in the file.
 Both examples-suite passes green (67 tests each vs 62 before: +5 new,
 1 skipped off multisite). bin/ci-local.sh --keep and make
 reference-check pass. phpcs clean.
+
+### P5-02 — 7e24067
+Pushed build/vault-provider to origin (f14a32f..bd5782d, then 7e24067 marker
+commit). Confirmed git log shows P5-01 (f8ed035) as a single commit touching
+only examples/aws-secrets-manager/secrets.php, its README.md, its new tests
+file, and phpunit-examples.xml.dist.
+Manual check: NOT VERIFIED (human)
+(1) against live AWS, confirm a secret set on blog 1 appears in the console
+    as `wp/site/1/<name>`
+(2) confirm the rename walkthrough in the README works on a throwaway account
+Push: done (origin/build/vault-provider updated)
