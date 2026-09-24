@@ -57,6 +57,7 @@ reference-check: ## Fail if docs/reference/ is stale relative to the source.
 
 smoke: ## Provision the throwaway install and run the WP-CLI smoke test.
 	SMOKE_DB_NAME=$(SMOKE_DB_NAME) DB_USER=$(DB_USER) DB_PASS="$(DB_PASS)" DB_HOST=$(DB_HOST) WP_VERSION=$(WP_VERSION) bin/smoke-install.sh
+	tests/smoke/smoke.sh
 
 ci: lint compat analyse reference-check test test-ms ## Everything CI runs.
 
