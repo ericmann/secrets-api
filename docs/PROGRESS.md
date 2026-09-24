@@ -20,7 +20,7 @@ Started: 2026-09-24T20:47:35.233Z
 - [x] P6-01 Prove each historical bug fails the smoke test
 - [x] P6-02 Push phase 6 and record the manual check
 - [x] P7-01 Update the coverage gaps, the spec pages, and the detailed spec's status
-- [ ] P7-02 Document make smoke in the README and the CI reference
+- [x] P7-02 Document make smoke in the README and the CI reference
 - [ ] P7-03 Write the journal entry and link it from the index
 - [ ] P7-04 Push phase 7 and record the final manual checks
 - [x] R1-01 Preserve the root key across multisite conversion
@@ -463,3 +463,18 @@ Verified: grep -c '^## ' is 3 on all three spec pages (As proposed/
 As built/Why, in order); "CLI dispatch" and "--stdin" no longer
 appear in test-coverage-gaps.md; bin/ci-local.sh --keep and
 make reference-check both green.
+
+### P7-02 — f1697e9
+README.md: added `make smoke` row to the target table, a sentence in
+"Clone to green" that bin/ci-local.sh now runs the smoke test too,
+and mentioned the smoke job in the Contributing CI sentence.
+docs/reference/ci.md: added `make smoke` to the command list; new
+"The WP-CLI smoke test" section after "Without Docker" (what it is,
+its variables, network requirements, its path through
+bin/ci-local.sh, disposable install); smoke row in the Matrix table
+(7.4/8.3, latest, "WP-CLI end to end, single site then multisite");
+one sentence under Pinning about wp-cli.phar's version+SHA-256 pin.
+
+Verified: grep -n 'make smoke' README.md docs/reference/ci.md shows
+both; bin/ci-local.sh --keep and make reference-check both green
+(ci.md is hand-maintained, correctly untouched by the generator).
