@@ -23,6 +23,9 @@ Started: 2026-09-24T20:47:35.233Z
 - [-] P7-02 Document make smoke in the README and the CI reference
 - [-] P7-03 Write the journal entry and link it from the index
 - [-] P7-04 Push phase 7 and record the final manual checks
+- [ ] R1-01 Preserve the root key across multisite conversion
+- [ ] R1-02 Make the smoke list-value and rotation assertions able to fail
+- [ ] R1-03 Widen the smoke diagnostic constraint to the variables the suite uses
 
 ## Log
 (one entry per task, appended by implement)
