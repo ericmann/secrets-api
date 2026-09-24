@@ -7,7 +7,7 @@ Started: 2026-09-24T20:46:46.009Z
 - [x] P1-02 Add the `examples` CI job with a Vault service container
 - [x] P1-03 Push phase 1 and record the manual checks
 - [x] P2-01 Add the Vault KV v2 provider skeleton with path mapping, HTTP client, `get()`, and `delete()`
-- [ ] P2-02 Implement `set()`, `retire_previous()`, and a minimal `list_secrets()`; run the conformance suite against Vault
+- [x] P2-02 Implement `set()`, `retire_previous()`, and a minimal `list_secrets()`; run the conformance suite against Vault
 - [ ] P2-03 Push phase 2 and record the manual checks
 - [ ] P3-01 Prove strict N-1 and destroy-on-retire against the live server
 - [ ] P3-02 Push phase 3 and record the manual checks
@@ -72,3 +72,16 @@ P2-02; called out here so the reviewer doesn't read it as a defect.
 Vault_Test_Server::provider() added.
 19 offline tests green, both wp-env passes. bin/ci-local.sh --keep
 and make reference-check pass.
+
+### P2-02 — edb78d0
+set() reads metadata first, POSTs max_versions only when created, then
+POSTs the value, then fires wp_secret_changed. retire_previous()
+destroys strictly N-1 (no-op true when nothing to retire), fires
+'retired' only when a version was destroyed. list_secrets() via new
+private list_keys($url) helper: 1 LIST for namespaces (or the literal
+prefix when given), 1 LIST per namespace; fingerprint/created/
+has_previous/needs_rotation are placeholders, filled by P4-01.
+Conformance suite: 14 tests, 13 pass, 1 skipped by the base class
+itself (not overridden/skipped by this class). Tests_Vault_Provider:
+8 tests, all green, both wp-env passes (41 tests total each).
+bin/ci-local.sh --keep and make reference-check pass.
