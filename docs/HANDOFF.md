@@ -97,3 +97,108 @@ to their single home.
   the eventual Trac ticket description (documenting what "previous" means past two versions, and
   that a `BOUNDARY_PROVIDER` provider may still need local key material) — both are recorded in
   `docs/journal/open-questions.md` and the journal entry, not acted on in code.
+
+## Round 1
+
+**Branch:** `build/vault-provider`
+**Base:** `1209b5013018` (main)
+**Head at this round's handoff:** `9743d76` (progress: R1-03 done)
+**Task counts (this round):** 3 fix tasks — 3 done, 0 todo, 0 in progress, 0 blocked, 0 skipped.
+**Task counts (overall):** 20 total — 20 done, 0 open.
+
+Round 1 was three reviewer-queued `R1-*` fix tasks, all completed, none blocked or skipped.
+
+### R1-01 — c2cee99 — preserve custom_metadata, clean docblocks
+
+`Vault_KV2_Provider::write_flag()` now takes the metadata `set()` already read
+(`write_flag( $vault_path, $set, $meta )`) and posts
+`array_merge( existing custom_metadata, array( ROTATION_FLAG => '1'|'0' ) )` instead of a map
+containing only the flag key — a set-with-flag or clear-without-flag call used to silently erase
+every other `custom_metadata` key a different tool had written. Also removed every Foundry
+task-ID reference from `secrets.php`'s docblocks (they cited P2-02, P4-01, P4-02 by number),
+fixed `../README.md` → `README.md` in the file header, and made the `REQUEST_TIMEOUT` docblock
+state the actual measured values (~0.005s refused, ~4s non-routable) instead of citing a task.
+New test `test_setting_and_clearing_the_flag_preserves_other_custom_metadata` seeds an unrelated
+`owner` key via a raw Vault POST and proves it survives both a flagged and an unflagged `set()`.
+`test_an_unreachable_vault_is_an_error_not_absence` now also asserts
+`WP_SECRETS_ERROR_STORE_UNAVAILABLE` for `get()`, `list_secrets()`, and `delete()`, not just
+`assertWPError()`.
+
+### R1-02 — 46eec67 — Vault_Test_Server fails loudly on unreachable/unexpected
+
+The live-Vault test helper used to fold a transport error or an unexpected HTTP status into
+"absent" (`metadata()` → `null`, `list_keys()` → `array()`) or silently ignore it (`wipe()`'s
+DELETE loop), which meant a flaky or misconfigured Vault connection could make a negative
+assertion pass for the wrong reason. `request()` now calls
+`PHPUnit\Framework\Assert::fail()` with the method, URL, and transport error on `WP_Error`;
+`metadata()` and `list_keys()` still treat 404 as real absence but fail on any other unexpected
+code; `wipe_recursive()` fails on a non-204 DELETE. Added an optional constructor argument
+`$addr = null` (falls back to `VAULT_ADDR` then the default; the token still always comes from
+the environment) so a test can point the helper at a deliberately unreachable address. Two new
+`Tests_Vault_Harness` tests construct `Vault_Test_Server( 'http://127.0.0.1:1' )` and expect
+`PHPUnit\Framework\AssertionFailedError`.
+
+### R1-03 — daa6292 — doc corrections + a new mechanical guard
+
+Corrected several doc claims that had drifted from the code, and added a `docs/foundry.json`
+constraint (`no-foundry-task-ids-in-shipped-files`, pattern `[PR][0-9]+-[0-9]{2}\b`) so this
+class of leak — a Foundry task ID surviving into a shipped file — fails `foundry_verify`
+mechanically from now on, across `examples/`, `Makefile`, `.github/`, `README.md`,
+`docs/journal/`, `docs/decisions/`, `docs/spec/`, `docs/reference/`, `src/`, `plugin/`, `cli/`,
+`tests/`, `bin/`. Doc fixes: the Vault README's and Makefile's `--env-cwd` example now uses
+`"wp-content/plugins/$(basename \"$PWD\")"` instead of the worktree-specific
+`wp-content/plugins/vault-provider`; README question 1 now describes
+`test_previous_is_strictly_n_minus_1_even_when_older_versions_survive`'s actual body
+(`max_versions` raised via the test helper, `retire_previous()` run through the provider) rather
+than a "destroy directly against Vault" account that doesn't match the test; README question 3
+drops the false "Vault rejects an empty map" claim and describes the R1-01 merge; the OpenBao
+section and `docs/journal/test-coverage-gaps.md` say "recorded in a commit message" instead of
+pointing at a phase-6 progress entry that no longer exists as a live reference; the
+unreachable-Vault description in `test-coverage-gaps.md` now says "a closed local port" instead
+of "a non-routable address" (matching R1-01's own strengthened test and this round's harness
+change); the root `README.md`'s Platform bindings sentence now says the Vault example runs
+against a live dev server while the AWS naming tests run offline through `pre_http_request`,
+instead of claiming both run "against live services"; the `(P1-01)` / `(pinned digest, from
+P1-01)` asides are gone from the `Makefile` and `ci.yml` comments.
+
+### Interpretation choices this round
+
+- **R1-01**: `write_flag()` reuses the `$meta` `set()` already read before the value write,
+  rather than issuing a fresh metadata GET, since the data write in between cannot change
+  `custom_metadata`. Documented as equivalent-but-cheaper in the method's docblock, along with
+  the pre-existing read-then-write-is-not-atomic caveat.
+- No other round-1 task required a judgment call beyond what its own Design constraints
+  specified.
+
+### ⚠️ ASSUMPTION config keys
+
+Unchanged this round — `Vault_KV2_Provider::REQUEST_TIMEOUT = 5` and
+`Vault_KV2_Provider::MAX_VERSIONS = 2` remain as set in earlier phases; R1-01 only rewrote the
+`REQUEST_TIMEOUT` docblock's wording (measured values instead of a task citation), not the
+value.
+
+### What a human must check by hand
+
+1. **The `examples` CI job on GitHub Actions is green** with these changes — verified locally
+   via `bin/ci-local.sh --keep` (single-site + multisite core suite) and via direct wp-env runs
+   of `phpunit-examples.xml.dist` against the pinned Vault dev container (both passes, 70/70,
+   including all new tests), but never on a hosted runner this round.
+2. **A reviewer re-reads `examples/vault-provider/README.md`'s "The four questions" section**
+   against the corrected question 1 and question 3 text and confirms each still reads as
+   accurate, not just internally consistent.
+3. **`no-foundry-task-ids-in-shipped-files` is worth spot-checking against a real task-ID-bearing
+   diff** the next time a task is added to a file under its `paths` — the regex is deliberately
+   narrow (`[PR]` immediately followed by digits, a hyphen, then exactly two digits) to avoid
+   false positives like version ranges (`PHP 7.4-8.3`) or hex digests; if a future task ID format
+   changes shape, the pattern will need revisiting.
+
+### Anything else a reviewer should know
+
+- The local `secrets-api-vault` Docker container used to verify R1-02's harness tests and
+  R1-01's/R1-03's examples-suite runs was created and removed within this round
+  (`docker run ... hashicorp/vault@sha256:47f14a6...` then `docker rm -f secrets-api-vault`); it
+  did not exist before this round started and does not exist after.
+- All three round-1 commits (`c2cee99`, `46eec67`, `daa6292`) are independent and touch only the
+  files their own task named; none required touching `src/`, `plugin/`, or `cli/`.
+- Every `bin/ci-local.sh --keep` and `make reference-check` run across all three fix tasks was
+  green, including the newly added constraint; nothing in `docs/foundry.json` was relaxed.
