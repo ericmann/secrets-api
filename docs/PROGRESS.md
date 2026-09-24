@@ -17,7 +17,7 @@ Started: 2026-09-24T20:46:16.429Z
 - [x] P4-01 Write the AWS KMS keyring example and run the keyring conformance suite against Moto
 - [x] P4-02 Prove the KMS keyring end to end: round trip, one Decrypt per request, the adoption error, and adoption via rotate --from=config
 - [x] P4-03 Write the AWS KMS keyring README with the adoption walkthrough
-- [ ] P4-04 Push phase 4
+- [x] P4-04 Push phase 4
 - [ ] P5-01 Bring the spec pages in line with the code
 - [ ] P5-02 Update the journal tracking pages, the READMEs, and the index
 - [ ] P5-03 Write the dev journal entry
@@ -254,3 +254,12 @@ Interpretation: none.
 grep -c 'rotate --from=config' = 3 (>= 2 required). One relative link,
 to ../../docs/decisions/0009-root-key-cached-for-the-request.md, and it
 resolves. bin/ci-local.sh --keep and make reference-check both green.
+
+### P4-04 — 38f06eb
+Pushed build/kms-keyring to origin (adds empty commit 38f06eb carrying
+the phase-4 push/log task; Files touched is PROGRESS.md only, no code
+change). Verified git status clean.
+
+Manual check: NOT VERIFIED (human) -- live KMS: fresh site, adoption
+with rotate --from=config, one KMS call for a request reading ten
+secrets.
