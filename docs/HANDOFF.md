@@ -81,3 +81,59 @@ tasks or `⚠️ ASSUMPTION` markers anywhere in this work.
 - **The one thing this flight could not close:** the live-AWS-KMS manual run. Everything else
   named in `examples/aws-kms-keyring/SPEC.md` "Done when" is done; that one item needs a human
   with a throwaway AWS account, per the README's "IAM permissions" section.
+
+## Round 1
+
+Branch: `build/kms-keyring`. Base: `1209b5013018`. Head: `0ceb68b`.
+
+Task counts (this round, `R1-*`): 2 total, 2 done, 0 todo, 0 in progress, 0 blocked, 0 skipped.
+Whole-plan counts: 21 total, 21 done, 0 open.
+
+This round fixed the two findings the reviewer queued in round 0's review.
+
+- **R1-01 — restore the misconfigured-`WP_SECRETS_KEY` scenario.** P1-01 had replaced
+  `test_key_unavailable_is_wp_error_not_null`'s original end-to-end scenario (an unusable
+  `WP_SECRETS_KEY` constant defined after secrets exist) with a different one (a corrupted wrapped
+  root-key option), losing coverage of the original finding. Restored the original scenario
+  verbatim per the task text — writes through a hand-built
+  `WP_Secrets_Libsodium_Provider( new WP_Secrets_Option_Store(), new WP_Secrets_Key_Manager( new
+  WP_Secrets_Config_Key_Provider() ) )` so the write bypasses `_wp_secrets_get_key_manager()`'s
+  request-scoped root-key cache (ADR 0009), then `define( 'WP_SECRETS_KEY', 424242 )`, then
+  asserts `wp_get_secret()` is `WP_Error` with `WP_SECRETS_ERROR_KEY_UNAVAILABLE`, never null. The
+  corrupted-option scenario moved, assertions unchanged, to a new
+  `test_a_corrupted_wrapped_root_key_is_wp_error_not_null`. No interpretation needed — the task
+  text fully specified the restored body. Verified 11/11 tests in
+  `Tests_Secrets_ThreeStateContract` pass single-site and multisite (filtered run), plus the full
+  `bin/ci-local.sh --keep` (482 tests, single-site and multisite) and `make reference-check`.
+- **R1-02 — correct five published doc statements.** All were made false by earlier work in this
+  flight: (1) the journal entry's `Mock_Keyring` paragraph claimed it was "weaker than the
+  contract" for not being a network call and claimed the gap was "recorded in open-questions.md",
+  which it was not — replaced with the real finding (it was deterministic and returned `false` on
+  a failed decode, which P0-01 fixed with non-determinism and `WP_Error`); (2) three READMEs
+  (`examples/README.md`, `examples/aws-kms-keyring/README.md`,
+  `examples/aws-secrets-manager/README.md`) hard-coded `--env-cwd=wp-content/plugins/kms-keyring`,
+  which breaks in any other checkout — replaced with
+  `--env-cwd="wp-content/plugins/$(basename "$PWD")"`, run from the repository root, matching how
+  `bin/ci-local.sh` derives `CONTAINER_CWD`; (3) `docs/reference/ci.md`'s Moto sentence named only
+  the AWS Secrets Manager example, though the `examples` job's Moto container also serves the KMS
+  keyring's conformance and integration tests — both are now named; (4)
+  `examples/aws-kms-keyring/README.md`'s final paragraph claimed Moto was something "CI does not
+  provide by default" though a separate `examples` CI job runs it against a pinned Moto service
+  container — corrected. Verified with the exact greps the task specified (all pass, all zero or
+  matching as required), `git diff --stat` touching only the five named files, plus
+  `bin/ci-local.sh --keep` and `make reference-check`.
+
+**Interpretation choices this round:** none beyond what each task text fully specified; both R1-01
+and R1-02 named exact scenarios, wording, and file lists, leaving no open reading.
+
+**⚠️ ASSUMPTION config keys this round:** none introduced or touched.
+
+**What a human must check by hand this round:** nothing new. The unresolved live-AWS-KMS manual
+run from round 0 (see "For the reviewer" above) is still the only outstanding manual item in this
+flight; neither R1-01 nor R1-02 touched code that check depends on.
+
+**For the reviewer:** both fixes are narrowly scoped to what the review flagged — one test file,
+one test method restored plus one renamed, and five doc files with wording/command corrections.
+No `src/`, `cli/`, or `examples/*.php` change. `foundry_verify` (all constraints plus
+`bin/ci-local.sh --keep` and `make reference-check`) is green on both commits and on the full
+tree with no files argument.
