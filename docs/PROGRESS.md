@@ -16,7 +16,7 @@ Started: 2026-09-24T20:46:16.429Z
 - [x] P3-03 Push phase 3
 - [x] P4-01 Write the AWS KMS keyring example and run the keyring conformance suite against Moto
 - [x] P4-02 Prove the KMS keyring end to end: round trip, one Decrypt per request, the adoption error, and adoption via rotate --from=config
-- [ ] P4-03 Write the AWS KMS keyring README with the adoption walkthrough
+- [x] P4-03 Write the AWS KMS keyring README with the adoption walkthrough
 - [ ] P4-04 Push phase 4
 - [ ] P5-01 Bring the spec pages in line with the code
 - [ ] P5-02 Update the journal tracking pages, the READMEs, and the index
@@ -237,3 +237,20 @@ Interpretation: none -- fully specified.
 30 tests green via wp-env tests-cli phpunit-examples.xml.dist.
 bin/ci-local.sh --keep (481 tests single+multisite) and make
 reference-check both green.
+
+### P4-03 — 01fed46
+Added examples/aws-kms-keyring/README.md mirroring the AWS Secrets
+Manager README's structure plus the KMS-specific sections: Where the
+credentials go, Install the drop-in (wp secret dropin --verbose expected
+output showing Keyring class: AWS_KMS_Keyring), IAM permissions
+(kms:Encrypt/kms:Decrypt, noting Decrypt is sensitive), Adopting an
+existing site (3-step walkthrough with the fail-closed warning box and
+sample failure output), How often KMS is called (links ADR 0009), Design
+points (all five from the detailed spec), Known limits, Prove it
+conforms, Run it against an emulator.
+
+Interpretation: none.
+
+grep -c 'rotate --from=config' = 3 (>= 2 required). One relative link,
+to ../../docs/decisions/0009-root-key-cached-for-the-request.md, and it
+resolves. bin/ci-local.sh --keep and make reference-check both green.
