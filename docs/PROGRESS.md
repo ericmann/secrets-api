@@ -12,7 +12,7 @@ Started: 2026-09-24T20:46:46.009Z
 - [x] P3-01 Prove strict N-1 and destroy-on-retire against the live server
 - [x] P3-02 Push phase 3 and record the manual checks
 - [x] P4-01 Store `needs_rotation` in `custom_metadata` and fill in listing metadata
-- [ ] P4-02 Multisite isolation, sealed-or-unreachable behaviour, and the timeout measurement
+- [x] P4-02 Multisite isolation, sealed-or-unreachable behaviour, and the timeout measurement
 - [ ] P4-03 Push phase 4 and record the manual checks
 - [ ] P5-01 Map AWS site scope to `wp/site/<blog_id>/<name>` and test it by capturing the request
 - [ ] P5-02 Push phase 5 and record the manual checks
@@ -134,3 +134,22 @@ listed key; a 404 between LIST and GET is skipped, not an error.
 9 tests added to Tests_Vault_Provider, all green, both wp-env passes
 (56 tests, 1 skipped by conformance base class).
 bin/ci-local.sh --keep and make reference-check pass.
+
+### P4-02 — 8e8e2ae
+Tests_Vault_Provider_Multisite (3 tests, multisite-gated: site scope
+isolated per blog, network scope shared, deleting on one blog leaves
+the other). 3 tests added to Tests_Vault_Provider: sealed vault is
+WP_Error from get/set/delete/retire_previous/list_secrets; unreachable
+Vault (127.0.0.1:1) is WP_Error not absence; a bad token's set() is
+WP_Error with "permission denied" and its get() is WP_Error (never
+null).
+Measurement (REQUEST_TIMEOUT kept at 5): connection refused 0.0051s;
+non-routable address 4.035s (bounded near/under 5s, timeout honoured);
+examples suite single-site pass ~1.5s for 62 tests. No change to
+secrets.php.
+Both wp-env passes green (62 tests each; single-site skips the 3
+multisite tests + 1 conformance skip = 4; multisite skips only the 1
+conformance skip).
+bin/ci-local.sh --keep and make reference-check pass.
+Note: activated the vault-provider plugin in wp-env (was inactive)
+to run the wp eval timeout measurements; left active.
