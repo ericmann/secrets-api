@@ -173,7 +173,7 @@ final class WP_Secrets_Key_Manager {
 	 * @return string|WP_Error 32 raw bytes on success. WP_Error on failure.
 	 */
 	public function get_root_key() {
-		$wrapped = get_site_option( self::ROOT_KEY_OPTION );
+		$wrapped = $this->get_wrapped_root_key();
 
 		if ( false === $wrapped ) {
 			return $this->generate_root_key();
@@ -204,7 +204,7 @@ final class WP_Secrets_Key_Manager {
 	 * @return true|WP_Error
 	 */
 	public function rotate_site_key( WP_Secrets_Keyring $old_keyring, WP_Secrets_Keyring $new_keyring ) {
-		$wrapped = get_site_option( self::ROOT_KEY_OPTION );
+		$wrapped = $this->get_wrapped_root_key();
 
 		if ( ! is_string( $wrapped ) ) {
 			return new WP_Error(
@@ -243,6 +243,42 @@ final class WP_Secrets_Key_Manager {
 		}
 
 		return true;
+	}
+
+	/**
+	 * Returns the wrapped root key, adopting a pre-conversion copy if needed.
+	 *
+	 * A single site converted to multisite keeps its wrapped root key in its own
+	 * (now main site's) options row: `update_site_option()` only starts writing to
+	 * sitemeta once `is_multisite()` is true, and the conversion process does not
+	 * move existing option rows. Without this, a network's first read would find no
+	 * sitemeta row and mint a brand new root key, stranding every secret written
+	 * before conversion.
+	 *
+	 * @since 7.2.0
+	 *
+	 * @return string|false The wrapped root key, or false if none exists anywhere.
+	 */
+	private function get_wrapped_root_key() {
+		$wrapped = get_site_option( self::ROOT_KEY_OPTION );
+
+		if ( false !== $wrapped || ! is_multisite() ) {
+			return $wrapped;
+		}
+
+		$main_site_id = get_main_site_id();
+		$legacy       = get_blog_option( $main_site_id, self::ROOT_KEY_OPTION );
+
+		if ( ! is_string( $legacy ) ) {
+			return false;
+		}
+
+		if ( add_site_option( self::ROOT_KEY_OPTION, $legacy ) ) {
+			delete_blog_option( $main_site_id, self::ROOT_KEY_OPTION );
+		}
+
+		// Re-read: handles a concurrent request that already adopted it.
+		return get_site_option( self::ROOT_KEY_OPTION );
 	}
 
 	/**

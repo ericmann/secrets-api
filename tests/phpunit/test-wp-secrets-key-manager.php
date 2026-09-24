@@ -168,6 +168,90 @@ class Tests_Secrets_WPSecretsKeyManager extends WP_UnitTestCase {
 		$this->assertNotSame( $site_key_on_blog_1, $site_key_on_blog_2 );
 	}
 
+	/**
+	 * Simulates single-site-to-multisite conversion: moves the wrapped root key
+	 * from its main-site option row into sitemeta, the way a fresh
+	 * WP_Secrets_Key_Manager finds it after `wp core multisite-convert`.
+	 *
+	 * Requires the multisite suite; skips under single-site since sitemeta and
+	 * the main site's options are the same table there.
+	 */
+	public function test_get_root_key_adopts_a_pre_conversion_root_key() {
+		if ( ! is_multisite() ) {
+			$this->markTestSkipped( 'Requires multisite: proves the main-site option row is adopted.' );
+		}
+
+		$manager  = new WP_Secrets_Key_Manager();
+		$root_key = $manager->get_root_key();
+
+		$main_site_id = get_main_site_id();
+		$wrapped      = get_site_option( WP_Secrets_Key_Manager::ROOT_KEY_OPTION );
+
+		delete_site_option( WP_Secrets_Key_Manager::ROOT_KEY_OPTION );
+		update_blog_option( $main_site_id, WP_Secrets_Key_Manager::ROOT_KEY_OPTION, $wrapped );
+
+		$fresh_manager = new WP_Secrets_Key_Manager();
+		$adopted_key   = $fresh_manager->get_root_key();
+
+		$this->assertTrue( hash_equals( $root_key, $adopted_key ) );
+		$this->assertNotFalse( get_site_option( WP_Secrets_Key_Manager::ROOT_KEY_OPTION ) );
+		$this->assertFalse( get_blog_option( $main_site_id, WP_Secrets_Key_Manager::ROOT_KEY_OPTION ) );
+	}
+
+	/**
+	 * Requires the multisite suite; skips under single-site for the same reason
+	 * as the adoption test above.
+	 */
+	public function test_secret_written_before_conversion_still_decrypts() {
+		if ( ! is_multisite() ) {
+			$this->markTestSkipped( 'Requires multisite: proves secrets survive conversion.' );
+		}
+
+		$main_site_id = get_main_site_id();
+
+		$this->assertTrue( wp_set_secret( 'secrets-api/pre-conversion', 'shh' ) );
+
+		$wrapped = get_site_option( WP_Secrets_Key_Manager::ROOT_KEY_OPTION );
+		delete_site_option( WP_Secrets_Key_Manager::ROOT_KEY_OPTION );
+		update_blog_option( $main_site_id, WP_Secrets_Key_Manager::ROOT_KEY_OPTION, $wrapped );
+
+		$secret = wp_get_secret( 'secrets-api/pre-conversion' );
+
+		$this->assertNotWPError( $secret );
+		$this->assertSame( 'shh', $secret->reveal() );
+	}
+
+	/**
+	 * Requires the multisite suite; skips under single-site for the same reason
+	 * as the adoption test above.
+	 */
+	public function test_rotate_site_key_works_after_conversion_before_any_read() {
+		if ( ! is_multisite() ) {
+			$this->markTestSkipped( 'Requires multisite: proves rotation adopts a pre-conversion key too.' );
+		}
+
+		$main_site_id  = get_main_site_id();
+		$right_keyring = new WP_Secrets_Config_Key_Provider();
+		$manager       = new WP_Secrets_Key_Manager( $right_keyring );
+
+		$manager->get_root_key();
+		$master_before = $manager->get_master_key( 'site' );
+
+		$wrapped = get_site_option( WP_Secrets_Key_Manager::ROOT_KEY_OPTION );
+		delete_site_option( WP_Secrets_Key_Manager::ROOT_KEY_OPTION );
+		update_blog_option( $main_site_id, WP_Secrets_Key_Manager::ROOT_KEY_OPTION, $wrapped );
+
+		$fresh_manager = new WP_Secrets_Key_Manager( $right_keyring );
+		$rotated       = $fresh_manager->rotate_site_key( $right_keyring, $right_keyring );
+
+		$this->assertNotWPError( $rotated );
+		$this->assertTrue( $rotated );
+
+		$master_after = $fresh_manager->get_master_key( 'site' );
+
+		$this->assertSame( $master_before, $master_after );
+	}
+
 	public function test_rotate_fails_when_no_root_key_exists() {
 		$manager = new WP_Secrets_Key_Manager();
 		$keyring = new WP_Secrets_Config_Key_Provider();
