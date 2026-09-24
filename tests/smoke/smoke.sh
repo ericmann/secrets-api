@@ -314,6 +314,118 @@ case_b_behaviour() {
 	' -- "$json_file"
 	assert_out_eq "$s" "get --format=json decodes to exactly one row named $s"
 	rm -f "$json_file"
+
+	# 1. list: a second namespace, JSON/CSV/fields/namespace filters, and
+	# never a value.
+	run "${WP[@]}" secret set "${NS}-b/other" "$v1"
+	assert_status 0 "set ${NS}-b/other exits 0"
+
+	run "${WP[@]}" secret list --format=json
+	assert_status 0 "list --format=json exits 0"
+	json_file="$(mktemp)"
+	printf '%s' "$OUT" >"$json_file"
+	run php -r 'exit( null === json_decode( file_get_contents( $argv[1] ), true ) ? 1 : 0 );' -- "$json_file"
+	assert_status 0 "list --format=json is valid JSON"
+	rm -f "$json_file"
+
+	run "${WP[@]}" secret list --format=csv
+	assert_status 0 "list --format=csv exits 0"
+	case "$OUT" in
+		name,*) ok "list --format=csv starts with a name column" ;;
+		*) not_ok "list --format=csv starts with a name column" "first bytes of output did not start with name," ;;
+	esac
+
+	run "${WP[@]}" secret list --fields=name,fingerprint --format=csv
+	assert_status 0 "list --fields=name,fingerprint --format=csv exits 0"
+	local first_line
+	first_line=$(printf '%s\n' "$OUT" | head -n 1)
+	if [ "$first_line" = "name,fingerprint" ]; then
+		ok "list --fields=name,fingerprint --format=csv header matches exactly"
+	else
+		not_ok "list --fields=name,fingerprint --format=csv header matches exactly" "header line did not match name,fingerprint"
+	fi
+
+	run "${WP[@]}" secret list --namespace="$NS" --format=ids
+	assert_status 0 "list --namespace=$NS --format=ids exits 0"
+	assert_out_contains "$s" "list --namespace returns names in the namespace"
+	assert_out_not_contains "${NS}-b/other" "list --namespace filters on the namespace prefix"
+	assert_out_not_contains "$v1" "list never shows a value"
+	assert_out_not_contains "$v2" "list never shows a value (second value)"
+
+	# 2. retire.
+	run "${WP[@]}" secret retire "$s" --yes
+	assert_status 0 "retire $s --yes exits 0"
+	run "${WP[@]}" secret get "$s" --slot=previous
+	assert_status 1 "get --slot=previous exits 1 after retire"
+	run "${WP[@]}" secret get "$s"
+	assert_status 0 "get $s still exits 0 after retire"
+
+	# 3. delete.
+	run "${WP[@]}" secret delete "$s" --yes
+	assert_status 0 "delete $s --yes exits 0"
+	run "${WP[@]}" secret get "$s"
+	assert_status 1 "get exits 1 after delete"
+
+	# 4. absence and caller error.
+	run "${WP[@]}" secret get "${NS}/never-set"
+	assert_status 1 "get of a name never set exits 1"
+
+	run "${WP[@]}" secret set "${NS}/no-value"
+	if [ "$STATUS" -ne 0 ]; then
+		ok "set with no value exits non-zero"
+	else
+		not_ok "set with no value exits non-zero" "exit status was 0"
+	fi
+
+	# 5. generate-key.
+	run "${WP[@]}" secret generate-key
+	assert_status 0 "generate-key exits 0"
+	if [ "${#OUT}" -eq 44 ]; then
+		ok "generate-key prints 44 characters"
+	else
+		not_ok "generate-key prints 44 characters" "output length was ${#OUT}, expected 44"
+	fi
+	run php -r 'echo strlen( (string) base64_decode( $argv[1], true ) );' -- "$OUT"
+	assert_out_eq "32" "generate-key decodes to exactly 32 bytes"
+
+	# 6. health and dropin.
+	run "${WP[@]}" secret health --format=json
+	assert_status 0 "health --format=json exits 0"
+	json_file="$(mktemp)"
+	printf '%s' "$OUT" >"$json_file"
+	run php -r 'exit( null === json_decode( file_get_contents( $argv[1] ), true ) ? 1 : 0 );' -- "$json_file"
+	assert_status 0 "health --format=json is valid JSON"
+	rm -f "$json_file"
+
+	run "${WP[@]}" secret dropin
+	assert_status 0 "dropin exits 0"
+	assert_out_contains "Drop-in active: no" "dropin reports no drop-in"
+
+	# 7. import-option: copy, not move.
+	local opt_name="smoke_${$}_opt"
+	run "${WP[@]}" option add "$opt_name" "$v2"
+	assert_status 0 "option add $opt_name exits 0"
+	run "${WP[@]}" secret import-option "$opt_name" "${NS}/imported"
+	assert_status 0 "import-option exits 0"
+	run "${WP[@]}" secret get "${NS}/imported" --reveal --field=value
+	assert_out_eq "$v2" "import-option copies the option's value into the secret"
+	run "${WP[@]}" option get "$opt_name"
+	assert_status 0 "the source option is left in place after import-option"
+	run "${WP[@]}" option delete "$opt_name"
+	assert_status 0 "option delete $opt_name exits 0"
+
+	# 8. migrate-legacy.
+	run "${WP[@]}" secret migrate-legacy --dry-run
+	assert_status 0 "migrate-legacy --dry-run exits 0 with no prototype rows"
+
+	# 9. single-site refusal (case E's last bullet, checked here).
+	run "${WP[@]}" network-secret get "${NS}/anything"
+	if [ "$STATUS" -ne 0 ]; then
+		ok "network-secret refuses on a single-site install"
+	else
+		not_ok "network-secret refuses on a single-site install" "exit status was 0"
+	fi
+	assert_err_contains "multisite" "network-secret's refusal explains why"
 }
 
 # --- case C: rotation ---
