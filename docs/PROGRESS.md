@@ -19,7 +19,7 @@ Started: 2026-09-24T20:46:16.429Z
 - [x] P4-03 Write the AWS KMS keyring README with the adoption walkthrough
 - [x] P4-04 Push phase 4
 - [x] P5-01 Bring the spec pages in line with the code
-- [ ] P5-02 Update the journal tracking pages, the READMEs, and the index
+- [x] P5-02 Update the journal tracking pages, the READMEs, and the index
 - [ ] P5-03 Write the dev journal entry
 - [ ] P5-04 Push phase 5, remove the Moto container, record the live-KMS check as not verified
 
@@ -281,3 +281,21 @@ accurate from P1-02, nothing false found to fix.
 Heading grep confirms As proposed / As built / Why in order on all four
 touched pages. bin/ci-local.sh --keep and make reference-check both
 green.
+
+### P5-02 — 3d72861
+Updated the five docs files: open-questions.md ("What has been built"
+names the KMS keyring example + src/CLI changes + automated Moto run;
+"What is still open" trimmed), test-coverage-gaps.md (--from checked by
+hand sentence + new "Examples run against an emulator, not live AWS"
+entry), proposal-questions.md (question 5 gains one sentence),
+examples/README.md ("Examples in this directory" + "Run the examples
+suite" sections, Dependencies corrected), README.md (make test-examples
+row + one sentence pointing at aws-kms-keyring/).
+
+Interpretation: docs/index.md's test-coverage-gaps.md description text
+did not change, so left untouched per the task's own instruction.
+
+grep 'composer.json' examples/README.md: no hits. grep 'test-examples'
+README.md: 1 hit. git diff --stat shows only the six named files (plus
+docs/PROGRESS.md, committed separately by this tool).
+bin/ci-local.sh --keep and make reference-check both green.
