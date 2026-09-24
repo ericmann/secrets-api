@@ -138,4 +138,108 @@ class Tests_Vault_Provider extends WP_UnitTestCase {
 	public function test_list_on_an_empty_mount_is_an_empty_array() {
 		$this->assertSame( array(), $this->provider->list_secrets() );
 	}
+
+	public function test_retiring_does_not_resurrect_an_older_version() {
+		$this->provider->set( 'acme/key', 'v1' );
+		$this->provider->set( 'acme/key', 'v2' );
+		$this->provider->set( 'acme/key', 'v3' );
+
+		$this->provider->retire_previous( 'acme/key' );
+
+		$previous = $this->provider->get( 'acme/key', WP_Secret_Version::PREVIOUS );
+		$this->assertNotWPError( $previous );
+		$this->assertNull( $previous );
+
+		$this->provider->set( 'acme/key', 'v4' );
+
+		$this->assertSame( 'v3', $this->provider->get( 'acme/key', WP_Secret_Version::PREVIOUS )->reveal() );
+		$this->assertSame( 'v4', $this->provider->get( 'acme/key', WP_Secret_Version::CURRENT )->reveal() );
+	}
+
+	public function test_only_two_versions_are_kept_in_vault_itself() {
+		$path = 'wp/site/1/acme/key';
+
+		$this->provider->set( 'acme/key', 'v1' );
+		$this->provider->set( 'acme/key', 'v2' );
+		$this->provider->set( 'acme/key', 'v3' );
+
+		$this->assertSame( 404, $this->server->read_version( $path, 1 ) );
+
+		$meta = $this->server->metadata( $path );
+
+		$this->assertArrayNotHasKey( '1', $meta['versions'] );
+		$this->assertSame( 2, $meta['oldest_version'] );
+		$this->assertSame( 200, $this->server->read_version( $path, 2 ) );
+		$this->assertSame( 200, $this->server->read_version( $path, 3 ) );
+	}
+
+	public function test_previous_is_strictly_n_minus_1_even_when_older_versions_survive() {
+		$path = 'wp/site/1/acme/key';
+
+		$this->server->create_metadata( $path, 10 );
+
+		$this->provider->set( 'acme/key', 'v1' );
+		$this->provider->set( 'acme/key', 'v2' );
+		$this->provider->set( 'acme/key', 'v3' );
+
+		$this->provider->retire_previous( 'acme/key' );
+
+		$this->assertNull( $this->provider->get( 'acme/key', WP_Secret_Version::PREVIOUS ) );
+		$this->assertSame( 200, $this->server->read_version( $path, 1 ) );
+	}
+
+	public function test_a_soft_deleted_n_minus_1_reads_as_absent() {
+		$path = 'wp/site/1/acme/key';
+
+		$this->provider->set( 'acme/key', 'v1' );
+		$this->provider->set( 'acme/key', 'v2' );
+
+		$this->server->soft_delete_versions( $path, array( 1 ) );
+
+		$this->assertNull( $this->provider->get( 'acme/key', WP_Secret_Version::PREVIOUS ) );
+		$this->assertSame( 'v2', $this->provider->get( 'acme/key', WP_Secret_Version::CURRENT )->reveal() );
+	}
+
+	public function test_a_soft_deleted_current_reads_as_absent_not_error() {
+		$path = 'wp/site/1/acme/key';
+
+		$this->provider->set( 'acme/key', 'v1' );
+		$this->server->soft_delete_versions( $path, array( 1 ) );
+
+		$result = $this->provider->get( 'acme/key', WP_Secret_Version::CURRENT );
+
+		$this->assertNull( $result );
+		$this->assertNotWPError( $result );
+	}
+
+	public function test_retire_clears_the_memo() {
+		$this->provider->set( 'acme/key', 'v1' );
+		$this->provider->set( 'acme/key', 'v2' );
+
+		$this->assertSame( 'v1', $this->provider->get( 'acme/key', WP_Secret_Version::PREVIOUS )->reveal() );
+
+		$this->provider->retire_previous( 'acme/key' );
+
+		$this->assertNull( $this->provider->get( 'acme/key', WP_Secret_Version::PREVIOUS ) );
+	}
+
+	public function test_retire_is_idempotent() {
+		$this->provider->set( 'acme/key', 'v1' );
+		$this->provider->set( 'acme/key', 'v2' );
+
+		$fired = array();
+		add_action(
+			'wp_secret_changed',
+			static function ( $name, $action ) use ( &$fired ) {
+				$fired[] = $action;
+			},
+			10,
+			2
+		);
+
+		$this->assertTrue( $this->provider->retire_previous( 'acme/key' ) );
+		$this->assertTrue( $this->provider->retire_previous( 'acme/key' ) );
+
+		$this->assertSame( array( 'retired' ), $fired );
+	}
 }
