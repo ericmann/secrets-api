@@ -21,7 +21,7 @@ Started: 2026-09-24T20:46:16.429Z
 - [x] P5-01 Bring the spec pages in line with the code
 - [x] P5-02 Update the journal tracking pages, the READMEs, and the index
 - [x] P5-03 Write the dev journal entry
-- [ ] P5-04 Push phase 5, remove the Moto container, record the live-KMS check as not verified
+- [x] P5-04 Push phase 5, remove the Moto container, record the live-KMS check as not verified
 
 ## Log
 (one entry per task, appended by implement)
@@ -313,3 +313,12 @@ head -5 shows correct frontmatter (title/description/date matching
 the filename). grep -c '0008' = 1. docs/journal/_drafts/notes.md
 untouched (git diff --quiet passes, never read or cleared).
 bin/ci-local.sh --keep and make reference-check both green.
+
+### P5-04 — f4801c8
+Removed the secrets-api-moto-kms container (docker rm -f; image left
+in place). Pushed build/kms-keyring to origin (adds empty commit
+f4801c8; Files touched is PROGRESS.md only, no code change). git status
+clean; docker ps -a --filter name=secrets-api-moto-kms is empty.
+
+Manual check: NOT VERIFIED (human) -- live KMS run per
+examples/aws-kms-keyring/SPEC.md "Done when".
