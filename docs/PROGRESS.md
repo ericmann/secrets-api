@@ -14,7 +14,7 @@ Started: 2026-09-24T20:46:46.009Z
 - [x] P4-01 Store `needs_rotation` in `custom_metadata` and fill in listing metadata
 - [x] P4-02 Multisite isolation, sealed-or-unreachable behaviour, and the timeout measurement
 - [x] P4-03 Push phase 4 and record the manual checks
-- [ ] P5-01 Map AWS site scope to `wp/site/<blog_id>/<name>` and test it by capturing the request
+- [x] P5-01 Map AWS site scope to `wp/site/<blog_id>/<name>` and test it by capturing the request
 - [ ] P5-02 Push phase 5 and record the manual checks
 - [ ] P6-01 Write the Vault example README and update the example index, root README, and CI reference
 - [ ] P6-02 Add ADR 0009 and update the spec pages' "As built" sections
@@ -166,3 +166,23 @@ Manual check: NOT VERIFIED (human)
 (3) on a real site, confirm `wp secret health` shows the flagged secret after
     `wp secret import-option`
 Push: done (origin/build/vault-provider updated)
+
+### P5-01 — f8ed035
+Added private scope_prefix( $network ) on AWS_Secrets_Manager_Provider:
+'wp-network/' or 'wp/site/' . get_current_blog_id() . '/'; both aws_name()
+and wp_name() delegate to it so mapping stays symmetric. Read at call time
+(not cached) so mid-request switch_to_blog() is honoured, matching Vault.
+Tests: examples/aws-secrets-manager/tests/test-aws-secrets-manager-naming.php
+(new), offline via pre_http_request, same fake_response shape as the Vault
+paths test: site-scope includes blog id, network-scope unchanged, set() uses
+the same site-scoped name, listing maps site-scoped names back and ignores
+flat/foreign names, multisite-gated blog-id-at-call-time test (skipped off
+multisite). phpunit-examples.xml.dist gained the new tests dir.
+README: rewrote Naming section; added "Upgrading from an earlier copy of
+this example" (AWS-side rename wp/<name> -> wp/site/1/<name>, no
+compat read before 1.0, one-sentence why).
+Left the 'site' fingerprint scope for network secrets alone (P6-03's
+concern, not this task) and did not touch anything else in the file.
+Both examples-suite passes green (67 tests each vs 62 before: +5 new,
+1 skipped off multisite). bin/ci-local.sh --keep and make
+reference-check pass. phpcs clean.
