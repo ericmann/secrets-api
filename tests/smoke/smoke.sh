@@ -23,6 +23,23 @@ WP=( php -d display_errors=stderr -d log_errors=0 "$SMOKE_DIR/wp-cli.phar" --pat
 NS="smoke-$$"
 DROPIN="$SMOKE_DIR/wordpress/wp-content/secrets.php"
 
+# One row per subcommand, "sub:flags". A new flag without a row fails the
+# run, and so does a flag that vanishes from the synopsis: the comparison
+# below is an exact set match in both directions, not a subset check.
+EXPECTED_FLAGS="
+set:--stdin --porcelain
+get:--slot --reveal --field --format
+delete:--yes
+list:--namespace --fields --field --format
+retire:--yes
+import-option:
+migrate-legacy:--dry-run --name --map --namespace --format
+rotate:--yes
+generate-key:
+health:--format
+dropin:--verbose
+"
+
 N=0
 PASS=0
 FAIL=0
@@ -121,6 +138,28 @@ assert_err_contains() {
 	esac
 }
 
+# normalize_flags "<flags>": one space-separated set of --flag tokens,
+# sorted and de-duplicated, for an exact-set comparison.
+normalize_flags() {
+	printf '%s' "$1" | tr ' ' '\n' | sed '/^$/d' | sort -u | tr '\n' ' ' | sed 's/ $//'
+}
+
+# synopsis_flags <sub>: runs `wp help secret <sub>`, keeps only the lines
+# between the SYNOPSIS header and the next header line (a line starting
+# with an upper-case letter in column 1 -- WP-CLI word-wraps long
+# synopses onto indented continuation lines, so every line in the section
+# is taken), extracts --flag tokens, and prints them normalised.
+synopsis_flags() {
+	local sub="$1" section
+	run "${WP[@]}" help secret "$sub"
+	section=$(printf '%s\n' "$OUT" | awk '
+		/^SYNOPSIS/ { in_section = 1; next }
+		in_section && /^[A-Z]/ { exit }
+		in_section { print }
+	')
+	printf '%s' "$(printf '%s\n' "$section" | grep -o -- '--[a-zA-Z][a-zA-Z-]*' | sort -u | tr '\n' ' ' | sed 's/ $//' || true)"
+}
+
 # finish: EXIT trap. Prints the TAP plan and summary, and exits non-zero if
 # anything failed. P4-02 extends this same trap to remove any drop-in left
 # behind by a failed case D run.
@@ -150,6 +189,42 @@ case_a_registration() {
 			assert_status 0 "$cmd $sub is registered"
 		done
 	done
+
+	# Flag table: checked for `secret` only, as the detailed spec words it.
+	# Exact-set comparison in both directions, so a new flag without a row
+	# fails loudly and a flag that vanishes from the synopsis fails loudly
+	# too.
+	local row expected_sub expected_flags actual_flags
+	local saved_ifs="$IFS"
+	IFS='
+'
+	for row in $EXPECTED_FLAGS; do
+		[ -n "$row" ] || continue
+		expected_sub="${row%%:*}"
+		expected_flags="${row#*:}"
+		actual_flags=$(synopsis_flags "$expected_sub")
+		if [ "$(normalize_flags "$actual_flags")" = "$(normalize_flags "$expected_flags")" ]; then
+			ok "secret $expected_sub synopsis flags match the table"
+		else
+			not_ok "secret $expected_sub synopsis flags match the table" \
+				"expected [$(normalize_flags "$expected_flags")] got [$(normalize_flags "$actual_flags")]"
+		fi
+	done
+	IFS="$saved_ifs"
+
+	# Pin bug 1's cause, not only its fix: `--version=previous` is not
+	# accepted as the slot selector, because WP-CLI's own global --version
+	# flag swallows it before the subcommand ever sees it. This is already
+	# implied by the exact-set check above (`get`'s row has no --version),
+	# stated here explicitly and end to end.
+	run "${WP[@]}" secret set "${NS}/slotpin" "smoke-value-a-$$"
+	assert_status 0 "set ${NS}/slotpin to value a"
+	run "${WP[@]}" secret set "${NS}/slotpin" "smoke-value-b-$$"
+	assert_status 0 "set ${NS}/slotpin to value b"
+	run "${WP[@]}" secret get "${NS}/slotpin" --version=previous --reveal --field=value
+	assert_out_not_contains "smoke-value-a-$$" "--version=previous does not select the previous slot"
+	run "${WP[@]}" secret delete "${NS}/slotpin" --yes
+	assert_status 0 "delete ${NS}/slotpin"
 }
 
 # --- case B: behaviour and exit codes ---
