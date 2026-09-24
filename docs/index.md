@@ -64,6 +64,7 @@ directory holds everything longer than that.
 - [`0006-record-format-v2-not-read-compatible.md`](decisions/0006-record-format-v2-not-read-compatible.md) — a future record format bumps `v` rather than widening v1.
 - [`0007-fail-closed-on-a-broken-drop-in.md`](decisions/0007-fail-closed-on-a-broken-drop-in.md) — one provider per request, and a broken drop-in never falls back to the default.
 - [`0008-the-trac-ticket-replaces-thread-confirmation.md`](decisions/0008-the-trac-ticket-replaces-thread-confirmation.md) — additions are reviewed on the Trac ticket, after two more examples and a CLI smoke test.
+- [`0009-root-key-cached-for-the-request.md`](decisions/0009-root-key-cached-for-the-request.md) — the key manager unwraps the root key once per request instead of once per secret.
 
 ### journal/
 - [`2026-09-04-0-1-0-is-public.md`](journal/2026-09-04-0-1-0-is-public.md) — devlog: what 0.1.0 shipped, what it left out, and the road to 7.2.

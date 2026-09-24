@@ -37,8 +37,10 @@ about as small as a useful integration gets:
 
 What you get is what most hosts are actually after: **key custody moves to the KMS and nothing
 else changes.** Secrets stay in the options tables. The libsodium envelope is untouched. Rotating
-the site key still re-wraps one value, and the KMS gets called once per request at most instead of
-once per secret.
+the site key still re-wraps one value. `WP_Secrets_Key_Manager` unwraps the root key once per
+request and keeps it in memory for the rest of that request, so a KMS is called once per request,
+not once per secret. That was not true before the caching change described in
+[ADR 0009](../docs/decisions/0009-root-key-cached-for-the-request.md).
 
 ## When you need a provider instead
 
