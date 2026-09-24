@@ -10,7 +10,7 @@ Started: 2026-09-24T20:47:35.233Z
 - [x] P2-03 Push phase 2 and record the manual check
 - [x] P3-01 Cover set and get, masking, stdin, porcelain, slots, and JSON
 - [x] P3-02 Cover list filters, retire, delete, absence, keys, health, dropin, import, migrate, and the single-site refusal
-- [ ] P3-03 Push phase 3 and record the manual check
+- [x] P3-03 Push phase 3 and record the manual check
 - [ ] P4-01 Rotate the site key end to end
 - [ ] P4-02 Load drop-ins through the real loader, with cleanup on exit
 - [ ] P4-03 Push phase 4 and record the manual check
@@ -140,3 +140,13 @@ and make reference-check both green.
 
 Rotation (C), drop-ins (D), multisite (E), and CI wiring remain out of
 scope, per the task.
+
+### P3-03 — 7b1acc3
+Pushed build/cli-smoke to origin. No code changes.
+
+Push: done (origin/build/cli-smoke).
+Manual check: NOT VERIFIED (human)
+- Read the full TAP output by eye for any line showing a value or
+  key: every case-B run this phase passed cleanly (92/92), so no
+  not_ok diagnostic ever printed; passing lines are descriptions
+  only, never OUT.
