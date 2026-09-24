@@ -5,7 +5,7 @@ Started: 2026-09-24T20:47:35.233Z
 ## Tasks
 - [x] P1-01 Provision the throwaway install with a pinned WP-CLI
 - [x] P1-02 Push phase 1 and record the manual check
-- [ ] P2-01 Create smoke.sh with the TAP helpers and the has-command matrix
+- [x] P2-01 Create smoke.sh with the TAP helpers and the has-command matrix
 - [ ] P2-02 Check the flag table exactly and pin the --version cause
 - [ ] P2-03 Push phase 2 and record the manual check
 - [ ] P3-01 Cover set and get, masking, stdin, porcelain, slots, and JSON
@@ -63,3 +63,20 @@ Manual check: NOT VERIFIED (human)
   as needed, provisions the install.
 - The WP-CLI pin (2.12.0, SHA256 ce34ddd8...20d85c) matches the release
   page by eye.
+
+### P2-01 — d57c943
+tests/smoke/smoke.sh created with the exact layout markers, helper
+contract (ok/not_ok/diag/run/assert_*), finish() EXIT trap (P4-02 will
+extend it for drop-in cleanup), and case_a_registration covering all
+11 subcommands under secret and network-secret via `wp cli
+has-command`. Empty stubs added for case_b/c/d, convert_to_multisite,
+case_e, called in order from main().
+
+Verified inside wp-env cli container against a fresh
+bin/smoke-install.sh run: 22 ok lines, 1..22, passed 22/failed 0, exit
+0. Sanity-probed the harness itself with a temporary not_ok, confirmed
+23 lines / failed 1 / exit 1, then reverted (never committed).
+
+`wp cli has-command` worked directly; the help-based contingency in
+the task was not needed. Makefile's smoke recipe now runs
+bin/smoke-install.sh then tests/smoke/smoke.sh.
