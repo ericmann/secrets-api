@@ -1,146 +1,88 @@
 # Review: HashiCorp Vault KV v2 provider example
-Round: 1
+Round: 2
 
-**Branch:** `build/vault-provider` (base `1209b50`, head `3be654e` at review start)
-**Verdict:** CHANGES REQUESTED
+**Branch:** `build/vault-provider` (base `1209b50`, head `3d9d3c4` at review start)
+**Verdict:** APPROVED
 
 ## How this was reviewed
 
-- Read HANDOFF.md, PROGRESS.md, CLAUDE.md, docs/SPEC.md, `examples/vault-provider/SPEC.md`, and
-  PLAN.md in full, then every task commit with `git show`.
-- `foundry_verify`: all 12 constraints pass (no fixture failures, no hits). `bin/ci-local.sh --keep`
-  and `make reference-check` are green.
-- Checked the constraints CLAUDE.md leaves to a reader: `git diff main..HEAD --stat -- src plugin cli`
-  is empty. `.wp-env.override.json` is not tracked. Every `docs/spec/*.md` still has exactly As
-  proposed / As built / Why. `tests/` gained only `tests/bootstrap-examples.php`, and nothing was
-  deleted. The tracking pages, `examples/README.md`, and `docs/index.md` changed by addition only
-  (`--word-diff`). The Vault digest is identical in `Makefile`, `ci.yml`, and the README. `$value`
-  does not reach any `WP_Error`, `error_log()`, or listing in either example.
-- Started a Vault dev container from the pinned digest (it reports version 2.1.1) and ran the
-  examples suite myself: single site 67 tests / 5 skipped, multisite 67 / 1 skipped, both green.
-  I removed the container afterwards.
-- Mutation sampling. `foundry_mutate` cannot see the examples suite, because no configured verify
-  command runs it (feedback logged). A mutation to `previous_version()` "survived" for that reason
-  alone. So I applied each mutation to a *copy* of the drop-in inside the tests-cli container
-  (`/tmp`, not the mounted tree) and ran the real examples suite against it. All 14 mutations were
-  killed by the test that names the mechanic: the deleted/destroyed N-1 check, `max_versions` on
-  create, 403/503 read as absent, clear writing "1", a requested flag failure returning true,
-  retire soft-deleting instead of destroying, `has_previous`, `flag_is_set()`, Vault site scope
-  without the blog id (multisite), AWS flat `wp/` naming, AWS blog id fixed at 1 (multisite), the
-  retire memo, the namespace header, and the list prefix.
-- Probed Vault 2.1.1 directly with curl to check the `custom_metadata` claims in the code and
-  README (see finding 1).
+- Read HANDOFF.md (including its Round 1 section), PROGRESS.md, CLAUDE.md, docs/SPEC.md, the
+  relevant parts of `examples/vault-provider/SPEC.md`, the round-1 REVIEW.md, and PLAN.md's
+  "Review fixes (round 1)". Then read every round-1 fix commit with `git show` (`c2cee99` R1-01,
+  `46eec67` R1-02, `daa6292` R1-03). The phase tasks P1-01 through P6-04 were reviewed commit by
+  commit in round 1. Since then, only the ten files those three fix commits name have changed
+  (`git diff --stat 3be654e..HEAD`, excluding Foundry files). I re-read the whole-branch diff stat
+  and the boundary checks below against HEAD.
+- `foundry_verify`: all 13 constraints pass with no fixture failures and no hits. That includes
+  the new `no-foundry-task-ids-in-shipped-files`. `bin/ci-local.sh --keep` is green for single
+  site (456 tests) and multisite (456), and `make reference-check` is green.
+- Reader-checked constraints:
+  - `git diff main..HEAD --stat -- src plugin cli` is empty.
+  - `.wp-env.override.json` is untracked.
+  - `tests/` gained only `tests/bootstrap-examples.php`.
+  - In `test-coverage-gaps.md`, the round-1 edit stays inside this flight's own section. It also
+    removes the doubled blank line before that section, as R1-03 asked.
+  - The Vault digest is still identical in the Makefile, `ci.yml`, and the README.
+  - `$value` still reaches no `WP_Error`, `error_log()`, or listing.
+  - `write_flag()` adds only metadata keys, never the value.
+- Started the pinned Vault dev container (it reports 2.1.1) and ran the examples suite myself.
+  Single site: 70 tests, 5 skipped. Multisite: 70 tests, 1 skipped. Both green. I removed the
+  container afterwards.
+- Mutation sampling. `foundry_mutate` cannot reach the examples suite; this was logged in
+  round 1. So, as in round 1, I applied each mutation to a copy of the tree in the tests-cli
+  container's `/tmp`, never to the working tree, and ran the real examples suite in both modes:
+  - **Killed:** `write_flag()` posts only the flag, without `array_merge` with the existing
+    `custom_metadata`. This fails exactly
+    `test_setting_and_clearing_the_flag_preserves_other_custom_metadata`, in both modes.
+  - **Killed:** `request()`'s transport-error code changed from
+    `WP_SECRETS_ERROR_STORE_UNAVAILABLE`. This fails the strengthened
+    `test_an_unreachable_vault_is_an_error_not_absence` and
+    `test_a_transport_failure_is_store_unavailable`.
+  - **Covered by overlapping checks:** `Vault_Test_Server::request()` returning silently on a
+    transport error. `metadata()`'s and `list_keys()`'s own non-200 checks still fail the harness
+    tests loudly, so both checks guard the same behaviour. See Notes.
+  - **Survived:** `wipe_recursive()`'s non-204 DELETE check deleted. See Notes. This check is
+    defensive, and R1-02 named no test for it.
+- Checked the round-1 findings one by one. The merge in finding 1 is fixed and tested. The helper
+  collapse in finding 2 now fails loudly: in my flaky local runs the failure messages name the
+  failing URL and cURL error at the point of failure, not three tests later. The unreachable test
+  in finding 3 asserts the error code. Every item in finding 4 is corrected. `git grep` finds no
+  `plugins/vault-provider`, `progress entry`, `empty map`, or task ID in any shipped file.
 
 ## Findings
 
-### 1. Category 5 (behaviour the spec does not authorise; wrong docblock and README answer): writing the rotation flag erases every other `custom_metadata` key
-`examples/vault-provider/secrets.php:613-621` (`write_flag()`), docblock at `:601-607`;
-`examples/vault-provider/README.md:128-130`.
-
-`write_flag()` POSTs `{"custom_metadata":{"needs_rotation":"0|1"}}`. A metadata POST replaces
-`custom_metadata` wholesale. Against the pinned Vault 2.1.1, seeding `{"owner":"ops","needs_rotation":"1"}`
-and then posting `{"needs_rotation":"0"}` leaves only `{"needs_rotation":"0"}`. The docblock claims the
-"0" write exists to avoid "destroying every other custom_metadata key a different tool may have
-set". It does the opposite: every set or clear destroys those keys. The stated premise is also
-false. Vault accepts an empty map (`{}` and even `[]` both return 204), so it is not true that
-Vault "rejects an empty map", as the docblock and README question 3 say.
-**What breaks:** any operator tag, owner, or ticket reference in a secret's `custom_metadata` is
-silently wiped the first time WordPress sets or clears the flag. The published answer to question 3
-is wrong. `max_versions` is unaffected (verified).
-**Minimal fix:** `set()` already holds `$meta` from its first read, so merge
-`$meta['custom_metadata']` (when it is an array) with the flag key before posting. Correct the
-docblock and README to say that the merge preserves other keys, and why "0" is still written
-rather than removing the key. Mention the read-then-write race in a comment. It is the same
-non-transaction the file header already names.
-**Task:** P4-01 (fix R1-01).
-
-### 2. Category 3 (tests): the Vault test helper turns "unreachable" into "absent", so the suite cascades and negative assertions can pass vacuously
-`examples/vault-provider/tests/includes/class-vault-test-server.php:76-78, 101-109, 156-164, 183-193`.
-
-`request()` maps a transport failure to `code 0, body null`. `metadata()` then returns `null`, which
-is the same as a 404. `list_keys()` returns `array()`. `wipe()` ignores the result of every LIST
-and DELETE. This is the three-state collapse CLAUDE.md forbids, moved into the test harness. I ran
-the unmutated suite eight times against the local container, and it failed in about half of the
-runs. The root cause is environmental: 1 in 300 TCP connects to `host.docker.internal:8201`
-timed out. But the symptoms land far from that cause. A `wipe()` that silently failed left state
-behind, so a later test saw `updated` instead of `created`, `custom_metadata` was null instead of
-`'0'`, and `list_secrets()` was a `WP_Error` at an array index. The same collapse lets assertions
-such as `assertNull( $this->server->metadata( "wp/site/{$blog}/acme/key" ) )` in
-`Tests_Vault_Provider_Multisite::test_network_scope_is_shared_across_blogs` and
-`Tests_Vault_Harness::test_wipe_removes_everything_under_wp` pass when Vault was never reached.
-**What breaks:** CI or local failures that point at the wrong test, and negative assertions that
-cannot tell "absent" from "never asked".
-**Minimal fix:** the helper fails the running test loudly (`PHPUnit\Framework\Assert::fail()` with
-the URL and transport error) on a transport failure. `metadata()` and `list_keys()` treat only 404
-as absent and fail on any other non-2xx. `wipe()` fails if a LIST or DELETE does not succeed.
-Add an optional `$addr` constructor argument (defaulting to the env var) so a harness test can
-aim the helper at a closed port.
-**Task:** P1-01 (fix R1-02).
-
-### 3. Category 3 (tests): the unreachable-Vault test does not assert the error code the plan specifies
-`examples/vault-provider/tests/test-vault-provider.php:497-503`.
-
-P4-02 asks that `get( CURRENT )` on `http://127.0.0.1:1` be a `WP_Error` *with code
-`WP_SECRETS_ERROR_STORE_UNAVAILABLE`*. The test asserts only `assertWPError()`, for `get()`,
-`list_secrets()`, and `delete()`. If the transport branch of `request()` returned any other code,
-it would still pass, and the detailed spec's "Errors" rule requires "reads as unreachable".
-**Minimal fix:** assert the code on all three results. This strengthens the test and weakens
-nothing.
-**Task:** P4-02 (folded into fix R1-01, which already touches this file).
-
-### 4. Category 5 (docs that do not match the code or the repository), grouped
-- `examples/vault-provider/README.md:178-179` and `Makefile:62-63`: the test commands hard-code
-  `--env-cwd=wp-content/plugins/vault-provider`, which is this worktree's directory name. On `main`
-  the checkout is `secrets-management`, so the documented commands fail for anyone outside this
-  worktree once the branch merges. `bin/ci-local.sh` already derives the name with `basename "$PWD"`.
-  Use `--env-cwd="wp-content/plugins/$(basename "$PWD")"`.
-- `examples/vault-provider/README.md:112-114`: question 1 says the proving test "destroy[s] the
-  middle one directly against Vault". The test (`test-vault-provider.php:188-201`) sets
-  `max_versions: 10` through the helper, writes three versions, retires through the *provider*,
-  and then checks that version 1 still reads 200. The pruning-cannot-be-the-cause detail is the
-  whole point of that test, and the README leaves it out.
-- `examples/vault-provider/README.md:167` and `docs/journal/test-coverage-gaps.md:141`: both say the
-  OpenBao run is "recorded ... in the phase-6 progress entry". `docs/PROGRESS.md` is a Foundry
-  file that is stripped before merge, so this is a dangling reference in published docs. The
-  detailed spec says the run is recorded in a commit message.
-- `docs/journal/test-coverage-gaps.md:139-140`: "the test points the provider at a non-routable
-  address". It uses `http://127.0.0.1:1`, a closed local port, so the connection is refused
-  rather than timing out.
-- `README.md:147-149`: "`make test-examples` runs both against live services". The AWS tests are
-  offline through `pre_http_request`, and only Vault runs against a live server.
-- Foundry task IDs are left in shipped files: `examples/vault-provider/secrets.php:48, 151, 269,
-  309, 534` ("Measured in P4-02", "Completed in P2-02", "Isolated so P4-01's ..."),
-  `Makefile:59` ("from P1-01"), `.github/workflows/ci.yml:193` ("(P1-01)"). They mean nothing
-  once the flight's files are stripped. `secrets.php:18` also points at `../README.md` for the
-  four questions. The README is beside the file, and `../README.md` is `examples/README.md`.
-
-**Tasks:** P6-01, P6-03, P1-01, P1-02, P2-02, P4-01. The `secrets.php` items belong to fix R1-01
-and the rest to fix R1-03, which adds a constraint so task IDs cannot come back.
+None.
 
 ## Interpretation choices (HANDOFF.md)
 
-- **P5-01 `scope_prefix()` read at call time:** the reading most consistent with the detailed spec
-  (Deliverable 3, "as Vault does"). Mutation-verified on multisite.
-- **P6-01 ADR 0009 link dangling for one commit:** harmless, and it resolves at HEAD.
-
-The PLAN decision that "clear writes '0' because Vault rejects `[]`" rests on a false premise (see
-finding 1). Writing "0" is still a fine encoding. The problem is the wholesale replace, not the
-"0".
+- **P5-01, `scope_prefix()` reads the blog id at call time:** accepted in round 1 and unchanged.
+- **P6-01, the ADR 0009 link dangled for one commit:** harmless, and it resolves at HEAD.
+- **R1-01, `write_flag()` reuses the `$meta` that `set()` already read:** consistent with PLAN,
+  which proposed exactly this signature. The data write between that read and the flag write does
+  not touch `custom_metadata`. For a new secret `$meta` is null, and the merge starts from
+  `array()`. The docblock states that the read-then-write sequence is not atomic, as R1-01
+  required.
 
 ## Blocked and skipped tasks
 
-None.
+None. 20 of 20 tasks are done.
 
 ## Spec issues
 
-- None in `docs/SPEC.md` or the detailed spec that affect this verdict. Two PLAN-level inaccuracies,
-  recorded here rather than as findings. First, P1-03's manual check asks that the pinned digest
-  resolve "to a current 1.x release", but the pinned image is Vault 2.1.1. Second, PLAN
-  Conventions state that Vault rejects an empty `custom_metadata` map, which Vault 2.1.1 does not.
+- None in `docs/SPEC.md` or the detailed spec. The two PLAN-level inaccuracies recorded in round 1
+  still stand as history:
+  - P1-03's "current 1.x release": the pinned image is 2.1.1.
+  - PLAN Conventions' "Vault rejects an empty map". The code and README no longer repeat this.
 
 ## Manual checks still owed
 
 From HANDOFF.md:
+
+**Phase 2 / Phase 3 (from PROGRESS.md)**
+1. On a real wp-env site, the drop-in reports `Provider: Vault_KV2_Provider`, and
+   `set`/`get --reveal` round-trip.
+2. The sequence `set`/`set`/`retire`/`get --slot=previous` reports absence, and
+   `vault kv metadata get` shows the destroyed version.
 
 **Phase 4**
 1. The `examples` job is green on GitHub Actions, single site and multisite.
@@ -150,33 +92,54 @@ From HANDOFF.md:
 
 **Phase 5**
 1. Against live AWS, a secret set on blog 1 appears in the console as `wp/site/1/<name>`.
-2. The README's "Upgrading from an earlier copy of this example" rename walkthrough works on a
-   throwaway AWS account.
+2. The rename walkthrough in the README's "Upgrading from an earlier copy of this example" works
+   on a throwaway AWS account.
 
 **Phase 6**
 1. An OpenBao run: start `openbao/openbao` in dev mode on another port, point `VAULT_ADDR` at it,
-   run the examples suite, and record the result.
-2. The `examples` CI job is green on GitHub Actions (hosted runner, never verified).
-3. `npm run docs:build` in `site/` renders the README-linked pages, ADR 0009, and the journal entry,
-   with the journal sidebar sorted by `date`.
-4. A reviewer reads `examples/vault-provider/README.md`'s "The four questions" against the detailed
-   spec. Questions 1 and 3 need corrections first (findings 1 and 4).
+   run the examples suite, and record the result in a commit message.
+2. The `examples` CI job is green on GitHub Actions. It has never been verified on a hosted
+   runner.
+3. `npm run docs:build` in `site/` renders the pages the README links to, ADR 0009, and the
+   journal entry, with the journal sidebar sorted by `date`.
+4. A reviewer reads `examples/vault-provider/README.md`'s "The four questions" against the
+   detailed spec (see the Note on question 3's wording).
 
-Earlier phases, from PROGRESS.md: the drop-in on a real wp-env site reports
-`Provider: Vault_KV2_Provider`, and `set`/`get --reveal` round-trip (P2-03). The
-`set`/`set`/`retire`/`get --slot=previous` sequence reports absence, and `vault kv metadata get`
-shows the destroyed version (P3-02).
+**Round 1**
+1. The `examples` CI job is green on a hosted runner with the round-1 changes.
+2. The next time a task touches a file under the paths of `no-foundry-task-ids-in-shipped-files`,
+   spot-check that rule against a real diff that carries a task ID.
 
 ## Notes
 
-- `.gitignore` gained `.foundry/implement.lock` and lost its trailing blank line in Foundry's own
-  `chore: start implementation run` commit, not in a task. Strip it with the other Foundry files
-  before merge.
-- The local examples suite is flaky against `host.docker.internal:8201` on this machine (about 1
-  in 300 connects time out). That is an environment property, not a code defect. Finding 2 makes
-  it fail where it happens rather than three tests later.
-- `examples/vault-provider/secrets.php`'s install block leaves `$mount` and `$namespace` in
-  whatever scope the drop-in is included from. The AWS example passes its constants straight to
-  the constructor and creates no locals. This is harmless, and inlining the two ternaries would
-  match the AWS example.
-- `docs/journal/test-coverage-gaps.md:130` has a doubled blank line before the new `---`.
+- **README question 3's reasoning doesn't quite follow.** In
+  `examples/vault-provider/README.md:129-133`, the text says the flag is "never omitted, because
+  Vault replaces `custom_metadata` wholesale". Now that the write merges, the merge could drop the
+  key just as easily. The real reason for writing `"0"` is simply the chosen encoding, since
+  `flag_is_set()` reads exactly `"1"`. The `write_flag()` docblock's "re-deriving the rest of the
+  map" explanation is similarly thin. Every factual claim is now correct: other keys survive, the
+  flag is `"1"`/`"0"`, Vault 1.9+ is required, and the two requests are not a transaction. This
+  is phrasing, not a defect. It is worth one tightening pass when a human does the Phase 6
+  read-through.
+- **Two helper checks have no dedicated test.**
+  - `Vault_Test_Server::wipe_recursive()`'s non-204 DELETE check has no test. Removing it passes
+    the suite, because an unreachable server fails earlier, at the LIST. The dev server never
+    answers a metadata DELETE with anything but 204.
+  - `request()`'s `Assert::fail()` is not tested on its own, because the status checks behind it
+    catch the same condition.
+
+  R1-02 named its two tests, and both exist and pass. These are extra safety checks, not missing
+  coverage of a spec mechanic.
+- **Local runs are still flaky, now with clear failure messages.** On this machine the
+  examples suite still fails intermittently: 2 of 4 back-to-back single-site runs. The cause is
+  `cURL error 28: Failed to connect to host.docker.internal port 8201 after ~5200 ms`, which is the
+  Docker Desktop port-forward environment property round 1 described. Since R1-02, the helper's
+  failures name the URL and cURL error where the connection fails. When the provider's own request
+  is the one that times out, it surfaces as that test's `WP_Error`. I reproduced both failing tests
+  green in isolation (12 of 14 runs; the other 2 failures were the same connect timeout). CI's
+  service container is on localhost and should not see this.
+- Carried over from round 1 and still true: `.gitignore`'s change came from Foundry's own
+  `chore: start implementation run` commit, not from a task. Strip it with the other Foundry files
+  before merge. `CLAUDE.md`'s Foundry section and `docs/SPEC.md` still hard-code
+  `--env-cwd=wp-content/plugins/vault-provider`. That is correct for this worktree, and both are
+  Foundry files.
