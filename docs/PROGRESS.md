@@ -3,7 +3,7 @@ Branch: build/cli-smoke
 Started: 2026-09-24T20:47:35.233Z
 
 ## Tasks
-- [ ] P1-01 Provision the throwaway install with a pinned WP-CLI
+- [x] P1-01 Provision the throwaway install with a pinned WP-CLI
 - [ ] P1-02 Push phase 1 and record the manual check
 - [ ] P2-01 Create smoke.sh with the TAP helpers and the has-command matrix
 - [ ] P2-02 Check the flag table exactly and pin the --version cause
@@ -26,3 +26,28 @@ Started: 2026-09-24T20:47:35.233Z
 
 ## Log
 (one entry per task, appended by implement)
+
+### P1-01 — e1e7676
+Implemented bin/smoke-install.sh exactly per spec: pinned wp-cli 2.12.0
+(SHA256 ce34ddd8...20d85c, resolved+verified against the release's own
+checksum file today). WP array matches the plan's shared vocabulary
+verbatim; only WP-CLI calls use it. mysqli DB create/drop mirrors
+install_db()'s host:port/socket split, args passed via $argv.
+
+Verified inside this worktree's wp-env cli container: script exit 0,
+core is-installed / plugin is-active exit 0, config get WP_SECRETS_KEY
+prints 44 chars (32 bytes), second run idempotent (exit 0, single-site,
+no drop-in), checksum-mismatch path exits 1 with expected/actual
+digests. `wp config set ... --quiet` was required to stop WP-CLI's own
+success line from echoing the generated key in plaintext.
+
+Environment note (not a script defect): this container's php.ini caps
+memory_limit at 128M, and `wp core download`'s extraction needs more
+regardless of how wp-cli is invoked (reproduced with the container's
+own preinstalled `wp` binary too). Verified full correctness by
+temporarily bumping memory_limit for that one manual check only; the
+committed script is untouched from the plan's exact WP array.
+
+bin/ci-local.sh --keep and make reference-check both green. phpcs.xml
+.smoke exclude confirmed (`vendor/bin/phpcs .` clean, no symlink
+cycle).
