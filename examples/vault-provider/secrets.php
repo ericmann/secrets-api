@@ -15,7 +15,7 @@
  * (1, 2, 3, ...), not the two named slots this API exposes. This provider
  * makes Vault a two-slot store by setting `max_versions: 2` when it creates a
  * secret and by defining "previous" as strictly version N-1 -- never an older
- * survivor. See ../README.md for the four questions this translation answers.
+ * survivor. See README.md for the four questions this translation answers.
  *
  * A secret's data and its metadata (max_versions, custom_metadata) are two
  * separate Vault requests, not a transaction: a write can succeed on one and
@@ -45,7 +45,8 @@ final class Vault_KV2_Provider implements WP_Secrets_Provider {
 	/**
 	 * ⚠️ ASSUMPTION: seconds to wait for a Vault response -- long enough for a
 	 * cold TLS handshake to a remote Vault, short enough that an outage fails a
-	 * page in seconds rather than tying up PHP workers. Measured in P4-02.
+	 * page in seconds rather than tying up PHP workers. Measured against a
+	 * refused connection (about 0.005 s) and a non-routable address (about 4 s).
 	 *
 	 * @var int
 	 */
@@ -148,7 +149,7 @@ final class Vault_KV2_Provider implements WP_Secrets_Provider {
 	 * self::MAX_VERSIONS before the value is written, so Vault is a two-slot
 	 * store from its very first version. A secret created outside this
 	 * provider keeps whatever max_versions it already has -- see ADR 0009.
-	 * The rotation flag is written in a separate metadata request (P4-01).
+	 * The rotation flag is written in a separate metadata request.
 	 *
 	 * @param string      $name           Secret name.
 	 * @param string      $value          Plaintext value.
@@ -211,7 +212,7 @@ final class Vault_KV2_Provider implements WP_Secrets_Provider {
 		$had    = $this->flag_is_set( $meta );
 
 		if ( $wanted !== $had ) {
-			$flag = $this->write_flag( $vault_path, $wanted );
+			$flag = $this->write_flag( $vault_path, $wanted, $meta );
 
 			if ( is_wp_error( $flag ) ) {
 				if ( $wanted ) {
@@ -266,7 +267,7 @@ final class Vault_KV2_Provider implements WP_Secrets_Provider {
 
 	/**
 	 * Destroys the secret's version N-1, so a retired value can never be
-	 * un-deleted. Completed in P2-02.
+	 * un-deleted.
 	 *
 	 * @param string $name    Secret name.
 	 * @param bool   $network Whether this is a network-scope secret.
@@ -306,7 +307,6 @@ final class Vault_KV2_Provider implements WP_Secrets_Provider {
 
 	/**
 	 * Lists secret names and metadata under a namespace, never values.
-	 * Completed in P2-02 and P4-01.
 	 *
 	 * @param string $name_prefix Restrict to names beginning with this prefix.
 	 * @param bool   $network     Whether to list network-scope secrets.
@@ -531,8 +531,8 @@ final class Vault_KV2_Provider implements WP_Secrets_Provider {
 
 	/**
 	 * Runs a Vault LIST (GET ...?list=true) and returns just the keys.
-	 * Isolated so P4-01's per-secret metadata read does not restructure
-	 * list_secrets() itself.
+	 * Isolated so the per-secret metadata read in list_secrets() does not
+	 * restructure this helper.
 	 *
 	 * @param string $url Full LIST URL, including ?list=true.
 	 *
@@ -600,21 +600,30 @@ final class Vault_KV2_Provider implements WP_Secrets_Provider {
 
 	/**
 	 * Writes the rotation flag. Vault replaces custom_metadata wholesale on
-	 * every POST and rejects an empty map, so clearing the flag writes "0"
-	 * rather than omitting the key -- there is no way to send "no custom
-	 * metadata at all" without also destroying every other custom_metadata
-	 * key a different tool may have set.
+	 * every POST, so this merges the flag into the custom_metadata already
+	 * read by the caller and posts the merged map -- preserving any other
+	 * custom_metadata keys a different tool may have set. Clearing the flag
+	 * writes "0" rather than omitting the key, since dropping it would also
+	 * mean re-deriving the rest of the map correctly on every write. This
+	 * read-then-write is not atomic (see the file docblock): a change made
+	 * by another tool between the read and this write can be overwritten.
 	 *
-	 * @param string $vault_path Path under the mount.
-	 * @param bool   $set        Whether to set (true) or clear (false).
+	 * @param string     $vault_path Path under the mount.
+	 * @param bool       $set        Whether to set (true) or clear (false).
+	 * @param array|null $meta       Metadata already read by the caller (the
+	 *                               'data' object from GET secret/metadata/<path>).
 	 *
 	 * @return true|WP_Error
 	 */
-	private function write_flag( $vault_path, $set ) {
+	private function write_flag( $vault_path, $set, $meta ) {
+		$existing = ( null !== $meta && isset( $meta['custom_metadata'] ) && is_array( $meta['custom_metadata'] ) )
+			? $meta['custom_metadata']
+			: array();
+
 		$result = $this->request(
 			'POST',
 			$this->url( 'metadata', $vault_path ),
-			array( 'custom_metadata' => array( self::ROTATION_FLAG => $set ? '1' : '0' ) )
+			array( 'custom_metadata' => array_merge( $existing, array( self::ROTATION_FLAG => $set ? '1' : '0' ) ) )
 		);
 
 		return is_wp_error( $result ) ? $result : true;

@@ -278,6 +278,32 @@ class Tests_Vault_Provider extends WP_UnitTestCase {
 		$this->assertFalse( $listing[0]['needs_rotation'] );
 	}
 
+	public function test_setting_and_clearing_the_flag_preserves_other_custom_metadata() {
+		$path = 'wp/site/1/acme/key';
+
+		$this->provider->set( 'acme/key', 'v1' );
+
+		$this->server->request(
+			'POST',
+			"secret/metadata/{$path}",
+			array( 'custom_metadata' => array( 'owner' => 'ops' ) )
+		);
+
+		$this->assertTrue( $this->provider->set( 'acme/key', 'v2', false, true ) );
+
+		$custom_metadata = $this->server->metadata( $path )['custom_metadata'];
+		$this->assertSame( 'ops', $custom_metadata['owner'] );
+		$this->assertSame( '1', $custom_metadata['needs_rotation'] );
+
+		$this->assertTrue( $this->provider->set( 'acme/key', 'v3' ) );
+
+		$metadata        = $this->server->metadata( $path );
+		$custom_metadata = $metadata['custom_metadata'];
+		$this->assertSame( 'ops', $custom_metadata['owner'] );
+		$this->assertSame( '0', $custom_metadata['needs_rotation'] );
+		$this->assertSame( Vault_KV2_Provider::MAX_VERSIONS, $metadata['max_versions'] );
+	}
+
 	public function test_the_flag_is_written_on_create_when_requested() {
 		$seen = array();
 
@@ -497,9 +523,17 @@ class Tests_Vault_Provider extends WP_UnitTestCase {
 	public function test_an_unreachable_vault_is_an_error_not_absence() {
 		$provider = new Vault_KV2_Provider( 'http://127.0.0.1:1', 'x' );
 
-		$this->assertWPError( $provider->get( 'acme/key', WP_Secret_Version::CURRENT ) );
-		$this->assertWPError( $provider->list_secrets() );
-		$this->assertWPError( $provider->delete( 'acme/key' ) );
+		$get = $provider->get( 'acme/key', WP_Secret_Version::CURRENT );
+		$this->assertWPError( $get );
+		$this->assertSame( WP_SECRETS_ERROR_STORE_UNAVAILABLE, $get->get_error_code() );
+
+		$list = $provider->list_secrets();
+		$this->assertWPError( $list );
+		$this->assertSame( WP_SECRETS_ERROR_STORE_UNAVAILABLE, $list->get_error_code() );
+
+		$delete = $provider->delete( 'acme/key' );
+		$this->assertWPError( $delete );
+		$this->assertSame( WP_SECRETS_ERROR_STORE_UNAVAILABLE, $delete->get_error_code() );
 	}
 
 	public function test_a_permission_denied_write_is_an_error_from_set() {
