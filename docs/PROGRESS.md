@@ -15,14 +15,14 @@ Started: 2026-09-24T20:47:35.233Z
 - [x] P4-02 Load drop-ins through the real loader, with cleanup on exit
 - [x] P4-03 Push phase 4 and record the manual check
 - [!] P5-01 Convert to multisite and run the network pass
-- [ ] P5-02 Wire smoke into make ci, bin/ci-local.sh, and a smoke CI job
-- [ ] P5-03 Push phase 5 and record the manual check
-- [ ] P6-01 Prove each historical bug fails the smoke test
-- [ ] P6-02 Push phase 6 and record the manual check
-- [ ] P7-01 Update the coverage gaps, the spec pages, and the detailed spec's status
-- [ ] P7-02 Document make smoke in the README and the CI reference
-- [ ] P7-03 Write the journal entry and link it from the index
-- [ ] P7-04 Push phase 7 and record the final manual checks
+- [-] P5-02 Wire smoke into make ci, bin/ci-local.sh, and a smoke CI job
+- [-] P5-03 Push phase 5 and record the manual check
+- [-] P6-01 Prove each historical bug fails the smoke test
+- [-] P6-02 Push phase 6 and record the manual check
+- [-] P7-01 Update the coverage gaps, the spec pages, and the detailed spec's status
+- [-] P7-02 Document make smoke in the README and the CI reference
+- [-] P7-03 Write the journal entry and link it from the index
+- [-] P7-04 Push phase 7 and record the final manual checks
 
 ## Log
 (one entry per task, appended by implement)
@@ -246,3 +246,27 @@ out of scope for this task and this flight's touched-files list; needs
 routing to whichever flight owns src/wp-includes/class-wp-secrets-key-manager.php
 (kms-keyring or vault-provider per the parallel-flights split) or a
 PLAN update authorizing a src/ fix here.
+
+### P5-02 — skipped
+SKIPPED: depends on P5-01
+
+### P5-03 — skipped
+SKIPPED: depends on P5-02
+
+### P6-01 — skipped
+SKIPPED: depends on P5-02
+
+### P6-02 — skipped
+SKIPPED: depends on P6-01
+
+### P7-01 — skipped
+SKIPPED: depends on P6-01
+
+### P7-02 — skipped
+SKIPPED: depends on P7-01
+
+### P7-03 — skipped
+SKIPPED: depends on P7-02
+
+### P7-04 — skipped
+SKIPPED: depends on P7-03
