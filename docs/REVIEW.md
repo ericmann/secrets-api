@@ -1,105 +1,81 @@
 # Review: build/kms-keyring
-Round: 2
+Round: 3
 
-**Verdict: CHANGES REQUESTED**
+**Verdict: APPROVED**
 
-I reviewed `1209b5013018..7ffc9b7` against `docs/SPEC.md`, `examples/aws-kms-keyring/SPEC.md`
-and `docs/PLAN.md`. I read the two round-1 fix commits (`387d21d` R1-01 and `936d773` R1-02) line
-by line. I re-read the code this flight added to `src/`, `cli/` and `examples/aws-kms-keyring/`.
-The only changes since round 1's head (`80a3c94`) are the R1 test file, five docs files, and
-Foundry bookkeeping. No `src/`, `cli/` or `examples/*.php` file changed.
+I reviewed the whole branch, `1209b5013018..3c690b0`, against `docs/SPEC.md`,
+`examples/aws-kms-keyring/SPEC.md` and `docs/PLAN.md`. Since round 2, the only change is the R2-01
+commit (`19be872`), which touched three documentation files, plus Foundry bookkeeping. No file
+under `src/`, `cli/`, `tests/` or `examples/*.php` changed. I read R2-01 line by line. I also
+re-read the full diff for `src/`, `cli/`, `tests/includes/`, the two bootstraps, `Makefile`,
+`phpunit-examples.xml.dist`, the KMS keyring and its two test files, and the journal entry.
 
 What I ran myself:
 
-- **`foundry_verify`:**
-  - All 13 constraints pass, with no fixture failures and no hits.
-  - `bin/ci-local.sh --keep` is green: 482 tests single-site and 482 multisite. That is one
-    more than round 1, from the new
-    `test_a_corrupted_wrapped_root_key_is_wp_error_not_null`.
+- **`foundry_verify` (no files argument):**
+  - All 13 constraints pass. No fixture failures, no hits.
+  - `bin/ci-local.sh --keep` is green: 482 tests single-site and 482 multisite.
   - `make reference-check` is green.
 - **The examples suite:**
-  - I ran it against a Moto container started from the digest pinned in `ci.yml`
-    (`sha256:91fd602a…ae32c`), then removed the container.
-  - Result: 30 tests, 93 assertions, 1 skip (the read-only-provider test).
-  - I used the README's new command,
-    `--env-cwd="wp-content/plugins/$(basename "$PWD")"`, so it works as published.
-- **`foundry_mutate`:**
-  - **Libsodium provider.** Changed `get()` to return `null` when `get_master_key()` returns a
-    `WP_Error`. **Killed.** It failed three tests, including the restored
-    `test_key_unavailable_is_wp_error_not_null` at line 113. So R1-01's scenario really reaches
-    the fresh request-scoped unwrap under the unusable constant. It does not pass by accident.
-  - **CLI `--from=config`.** Changed the drop-in guard's `instanceof` check to a class that can
-    never match. **Killed** by
-    `test_rotate_from_config_refuses_when_the_active_keyring_is_the_config_keyring`.
-  - My first CLI attempt used `if ( false )`. phpcs caught it (`UnconditionalIfStatement`)
-    before any test ran, so I replaced it with the `instanceof` variant above.
-  - Round 1 already mutation-sampled the key manager, the rotate path and `Mock_Keyring`. None
-    of that code has changed since.
-- **Reader-checked constraints, all confirmed:**
-  - `KeyId` is sent on `Decrypt`.
+  - I started Moto from the digest pinned in `ci.yml` (`sha256:91fd602a…ae32c`) as
+    `secrets-api-moto-kms-review3` on port 5051.
+  - I ran the suite with the README's command, `--env-cwd="wp-content/plugins/$(basename "$PWD")"`.
+  - Result: 30 tests, 93 assertions, 1 skip (the read-only-provider test the suite skips itself
+    for a writable provider).
+  - I removed the container afterwards.
+- **`foundry_mutate`, one mechanic per module. All three were killed:**
+  - **Key manager (`src/`).** Deleted the cache hit in `get_root_key()`. Killed by 6 tests,
+    including `test_unwrap_is_called_once_across_repeated_master_key_derivations` (10 unwraps
+    instead of 1) and `test_unwrap_is_called_once_across_many_secret_reads` (11 instead of 1).
+  - **CLI (`cli/`).** Made the identical-constants refusal for `--from=config-previous` impossible
+    to trigger. Killed by `test_rotate_from_config_previous_refuses_when_both_constants_are_identical`.
+    Round 2 already killed the `--from=config` drop-in guard mutation.
+  - **Test double (`tests/includes/`).** Disabled `Mock_Keyring`'s integrity-tag check. Killed by
+    `Tests_Secrets_MockKeyringConformance::test_unwrap_of_a_value_with_one_flipped_byte_is_a_wp_error`.
+  - `examples/` is out of reach of `foundry_mutate`, because no verify command runs the examples
+    suite (see Spec issues). Instead I read the KMS tests against the code. The adoption-error test
+    would fail without the `kms1:` prefix check, because Moto's error would not say
+    `rotate --from=config`. The ten-reads test would see 11 `Decrypt` calls without the cache. And
+    the `health` assertion is not vacuous, because a `critical` result calls `WP_CLI::halt( 1 )`.
+- **R2-01's own acceptance greps, all clean:**
+  - `does not provide by default` appears in neither AWS README.
+  - The `\b[PR][0-9]-[0-9]{2}\b` task-ID pattern appears in none of the published paths:
+    `docs/journal`, `docs/spec`, `docs/reference`, `docs/decisions`, `docs/index.md`, the three
+    example READMEs and `README.md`.
+  - The corrected "examples CI job" sentence is in `examples/aws-secrets-manager/README.md:152-153`.
+  - I also grepped for `PROGRESS.md`, `HANDOFF.md`, `PLAN.md`, `REVIEW.md`, `Foundry` and
+    `plugins/kms-keyring` across the same published paths. There are no hits.
+- **Constraints checked by reading, all confirmed:**
+  - `KeyId` is sent on `Decrypt` (`examples/aws-kms-keyring/secrets.php:161`).
   - The encryption context is the fixed class constant.
   - `.wp-env.override.json` is not tracked.
-  - `make ci` does not include `test-examples`.
-  - `CLAUDE.md`'s original section is unchanged (this branch removes no lines from it).
-  - No test was weakened: R1-01 restores the scenario round 1 found missing and keeps the
-    corrupted-option scenario under a new name.
+  - The `ci:` target does not include `test-examples`.
+  - This branch removes no line from `CLAUDE.md`.
+  - `--from` has a `: description` line.
+  - No plaintext or key material reaches any `WP_Error` message or CLI line.
+  - No test was deleted or weakened. The only removed test lines are two I checked:
+    - R1-01 restored the three-state scenario and kept the corrupted-option case under a new
+      name.
+    - In the key manager rotate test, the final assertion now uses a fresh manager built with
+      the old keyring. It still states "the old keyring alone is no longer sufficient".
 
-R1-01 is fixed. R1-02 fixed the five statements it named. Two statements of the same kind
-remain.
+Categories 1 to 3 are clean across the branch. No task is blocked or skipped.
 
 ## Findings
 
-### 1. Spec drift: published docs still contain a false statement and dead references (R2-01)
-
-**Category:** 5, spec drift. `docs/SPEC.md` §2 requires the documentation to match the code.
-
-**a. `examples/aws-secrets-manager/README.md:152-153` claims CI has no Moto.** From task P3-01.
-
-- The text says `make test-examples` "needs Moto running, which CI does not provide by
-  default".
-- P3-02 added the `examples` CI job, which runs this suite against a pinned Moto service
-  container.
-- This is the same false sentence round 1 found in the KMS README (finding 2d). R1-02 fixed
-  only the KMS copy, because the task named only that file. This copy is still wrong.
-- **What would break:** a reader of the published Secrets Manager README concludes the suite
-  never runs in CI and treats it as untested.
-
-**b. Published pages cite Foundry task IDs as if readers can look them up.** From tasks P5-02 and
-P5-03 (the P0-01 wording came from R1-02's own task text).
-
-- `docs/journal/2026-09-24-a-kms-keyring.md:58`: "P0-01 made it non-deterministic…".
-- `docs/journal/test-coverage-gaps.md:93`: "the output is recorded in the P2-01 commit body".
-- `docs/journal/test-coverage-gaps.md:142-143`: "recorded in the P4-04 log entry as not yet
-  verified".
-- The P4-04 "log entry" is in `docs/PROGRESS.md`, a Foundry pipeline file that is removed from
-  `docs/` before merge. After merge the reference points at nothing. This is the class of error
-  round 1 flagged: a public page pointing to a record that does not exist.
-- "P0-01" and "P2-01" mean nothing to a reader of the published site.
-- **What would break:** readers are sent to a log that is gone, or to IDs they cannot resolve.
-
-**Minimal fix (one docs-only task):**
-
-- In the Secrets Manager README, replace the false clause with the sentence the KMS README now
-  uses: `make ci` does not include the suite, and the separate `examples` CI job runs it against
-  a pinned Moto service container.
-- Rewrite the three task-ID references so they stand on their own:
-  - "This work made it non-deterministic…"
-  - "recorded in the commit that added `--from`"
-  - "has not been run yet; it is listed as a manual check in the README"
-
-**Task:** R2-01 (fixes P3-01, P5-02, P5-03).
+None.
 
 ## Spec issues
 
-These carry over from round 1 and are unchanged:
+These carry over from rounds 1 and 2, unchanged:
 
 - **Where the live-AWS result is recorded.** The detailed spec §5 says it "goes in the commit
-  message". `docs/SPEC.md` §1 says human steps are logged `NOT VERIFIED (human)`. PLAN correctly
-  resolves this in favour of `docs/SPEC.md` on process. Whoever does the live run will need
-  somewhere other than an existing commit to record it.
-- **The examples suite has no automated gate.** It needs wp-env plus Moto, and no existing make
-  target starts both. So no `extraVerify` gate runs it, and no reviewer mutation reaches
-  `examples/`. Both rounds' reviewers ran it by hand. A later flight could add a make target that
+  message", but `docs/SPEC.md` §1 says human steps are logged `NOT VERIFIED (human)`. PLAN
+  correctly follows `docs/SPEC.md` on process. Whoever does the live run needs somewhere other
+  than an existing commit to record the result.
+- **The examples suite has no automated gate.** It needs wp-env and Moto together, and no make
+  target starts both. So no `extraVerify` gate runs it, and `foundry_mutate` cannot reach
+  `examples/`. All three review rounds ran it by hand. A later flight could add a make target that
   starts Moto and runs the suite, so it can be wired into `extraVerify`.
 
 ## Manual checks still owed
@@ -108,27 +84,33 @@ Copied from HANDOFF.md:
 
 - **Phase 3:** the `examples` CI job going green on the PR. It runs only on a pull request or a
   push to `main`, so nobody has seen it run yet. `NOT VERIFIED (human)`.
-- **Phases 4 and 5:** the live AWS KMS run from `examples/aws-kms-keyring/SPEC.md` "Done when".
-  It covers a fresh site, adopting an existing site with `wp secret rotate --from=config`, and a
-  count of KMS calls for a request that reads ten secrets (expected: 1). `NOT VERIFIED (human)`.
-- **Phase 5:** the local Moto container `secrets-api-moto-kms` was removed. The image was kept.
-  The container I started for this review, `secrets-api-moto-kms-review2`, was also removed.
+- **Phases 4 and 5:** the live AWS KMS run from `examples/aws-kms-keyring/SPEC.md` "Done when": a
+  fresh site, adopting an existing site with `wp secret rotate --from=config`, and a count of KMS
+  calls for a request that reads ten secrets (expected: 1). `NOT VERIFIED (human)`.
+- **Phase 5:** the local Moto container `secrets-api-moto-kms` was removed and the image kept. The
+  container I started for this review, `secrets-api-moto-kms-review3`, is also removed.
 
 ## Notes
 
-The first three are round 1 notes that still apply. None of them blocks approval.
+None of these blocks approval.
 
-- **The signing comment gives the wrong reason.** `examples/aws-kms-keyring/secrets.php:210-215`,
-  and the same block in the Secrets Manager example, say the signed host must match "or the
-  emulator's own signature check fails". Moto does not verify SigV4 by default, which
-  `test-coverage-gaps.md` states correctly. The code is right; only the stated reason is wrong.
-- **One assertion adds nothing.**
-  `test_rotate_from_config_previous_refuses_when_both_constants_are_identical` asserts
-  `'WP_SECRETS_KEY'` as a substring after already asserting `'WP_SECRETS_KEY_PREVIOUS'`, so the
-  second check cannot fail on its own.
-- **`KeyId` pinning on `Decrypt` is present but untested.** A test could wrap under key A and
-  unwrap with a keyring pinned to key B, if Moto enforces `KeyId` on `Decrypt`.
-- **The rotate cache behaves correctly with memzero.** `rotate_site_key()` assigns
-  `$root_key` to the cache and then zeroes it. `sodium_memzero()` only wipes a buffer it owns
-  exclusively (refcount 1), and `wp_secrets_memzero()` then resets the local variable, so the
-  cached copy survives. The existing rotate-then-read tests confirm this.
+- **Wrong reason in the signing comment** (carried over).
+  `examples/aws-kms-keyring/secrets.php:210-215`, and the same block in the Secrets Manager
+  example, say the signed host must match "or the emulator's own signature check fails". Moto does
+  not verify SigV4 by default. The code is right; only the stated reason is wrong.
+- **An assertion that adds nothing** (carried over).
+  `test_rotate_from_config_previous_refuses_when_both_constants_are_identical` asserts the
+  substring `'WP_SECRETS_KEY'` after already asserting `'WP_SECRETS_KEY_PREVIOUS'`, so the second
+  check cannot fail on its own.
+- **`KeyId` pinning on `Decrypt` is present but untested** (carried over). A test could wrap
+  under key A and unwrap with a keyring pinned to key B, if Moto enforces `KeyId` on `Decrypt`.
+- **The conformance test gives a different reason for non-determinism.** The docblock on
+  `test_two_wraps_of_the_same_bytes_return_different_strings` justifies it by ciphertext
+  comparison. The interface docblock and the journal give the load-bearing reason:
+  `rotate_site_key()` and `update_site_option()` treat an unchanged value as a failure. Both
+  reasons are true. Only the second is the one the key manager depends on.
+- **Two R2-01 lines are over-long.** R2-01 left `docs/journal/2026-09-24-a-kms-keyring.md:58` and
+  `docs/journal/test-coverage-gaps.md:93` longer than the surrounding wrap width. Markdown renders
+  them the same.
+- **A convention slip in R2-01's commit body.** It carries a `Manual check:` line, which the
+  commit convention reserves for phase push tasks. This is bookkeeping only.
