@@ -9,6 +9,34 @@
 # This script never touches wp-env's own wp-content: it only ever reaches
 # into .smoke/, the install the install script owns.
 #
+# Regression proof (P6-01): each of the three historical CLI dispatch bugs
+# was reintroduced by hand in cli/class-wp-cli-secret-command.php, run
+# against this suite, confirmed to fail, and reverted (git checkout --).
+# Nothing below is a standing test for the bug's absence beyond the
+# assertions already in cases A and B; this block records which of those
+# assertions is the one that catches each bug.
+#
+#   1. Renaming get()'s `[--slot=<slot>]` synopsis entry (and the
+#      $assoc_args['slot'] reads) to `[--version=<version>]` -- reproducing
+#      the original defect, where WP-CLI's own global --version flag
+#      swallows --version=previous before the subcommand sees it. Caught by
+#      "secret get synopsis flags match the table" (case A) and by
+#      "get --slot=previous exits 0" / "get --slot=previous returns the
+#      demoted value (bug 1, end to end)" (case B).
+#   2. Deleting the `: Render output in a particular format.` description
+#      line under list()'s `[--format=<format>]` -- WP-CLI drops a
+#      parameter that has no description. Caught by "secret list synopsis
+#      flags match the table" (case A) and by every list --format=*
+#      assertion in case B (json, csv, fields, namespace/ids), since the
+#      flag no longer registers at all.
+#   3. Deleting the `@subcommand migrate-legacy` tag -- the method reverts
+#      to WP-CLI's default subcommand name derived from the PHP method name
+#      (migrate_legacy, with an underscore). Caught by "secret migrate-legacy
+#      is registered" and "network-secret migrate-legacy is registered"
+#      (case A registration loop), by "secret migrate-legacy synopsis flags
+#      match the table" (case A), and by "migrate-legacy --dry-run exits 0
+#      with no prototype rows" (case B).
+#
 set -euo pipefail
 cd "$(dirname "$0")/../.."
 
