@@ -10,7 +10,7 @@ Started: 2026-09-24T20:46:46.009Z
 - [x] P2-02 Implement `set()`, `retire_previous()`, and a minimal `list_secrets()`; run the conformance suite against Vault
 - [x] P2-03 Push phase 2 and record the manual checks
 - [x] P3-01 Prove strict N-1 and destroy-on-retire against the live server
-- [~] P3-02 Push phase 3 and record the manual checks
+- [x] P3-02 Push phase 3 and record the manual checks
 - [ ] P4-01 Store `needs_rotation` in `custom_metadata` and fill in listing metadata
 - [ ] P4-02 Multisite isolation, sealed-or-unreachable behaviour, and the timeout measurement
 - [ ] P4-03 Push phase 4 and record the manual checks
@@ -112,3 +112,12 @@ cli-smoke running in parallel worktrees) -- not a code defect,
 confirmed by an immediate clean rerun passing. Both wp-env passes
 green (48 tests, 1 skipped by conformance base class).
 bin/ci-local.sh --keep and make reference-check pass.
+
+### P3-02 — e68982c
+Push: git push origin build/vault-provider succeeded.
+Manual check: NOT VERIFIED (human)
+1. The `examples` job is green.
+2. On a real site with the drop-in installed, `wp secret set`,
+   `wp secret set` again, `wp secret retire --yes`, then
+   `wp secret get --slot=previous` reports absence, and
+   `vault kv metadata get` shows the retired version destroyed.
