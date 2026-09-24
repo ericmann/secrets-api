@@ -18,7 +18,7 @@ Started: 2026-09-24T20:46:16.429Z
 - [x] P4-02 Prove the KMS keyring end to end: round trip, one Decrypt per request, the adoption error, and adoption via rotate --from=config
 - [x] P4-03 Write the AWS KMS keyring README with the adoption walkthrough
 - [x] P4-04 Push phase 4
-- [ ] P5-01 Bring the spec pages in line with the code
+- [x] P5-01 Bring the spec pages in line with the code
 - [ ] P5-02 Update the journal tracking pages, the READMEs, and the index
 - [ ] P5-03 Write the dev journal entry
 - [ ] P5-04 Push phase 5, remove the Moto container, record the live-KMS check as not verified
@@ -263,3 +263,21 @@ change). Verified git status clean.
 Manual check: NOT VERIFIED (human) -- live KMS: fresh site, adoption
 with rotate --from=config, one KMS call for a request reading ten
 secrets.
+
+### P5-01 — 33994e1
+Updated extension-points.md (wrap() non-determinism requirement +
+reason, unwrap() WP_Error contract, WP_Secrets_Keyring_Conformance
+paragraph naming Mock_Keyring and examples/aws-kms-keyring/ on Moto),
+rotation.md ("Rotating the site key" rewritten for
+--from=config-previous|config, same-configuration refusal, one Why
+sentence), envelope-encryption.md (one sentence on request-scoped
+root-key caching linking providers-and-keyrings.md).
+
+Interpretation: scope.md's WP-CLI mention lists rotate's name only, no
+flags, so left untouched per the task text's own fallback instruction.
+providers-and-keyrings.md re-read (out of scope for edits); already
+accurate from P1-02, nothing false found to fix.
+
+Heading grep confirms As proposed / As built / Why in order on all four
+touched pages. bin/ci-local.sh --keep and make reference-check both
+green.
