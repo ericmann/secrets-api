@@ -15,7 +15,7 @@ DB_PASS ?=
 DB_HOST ?= 127.0.0.1
 
 .DEFAULT_GOAL := help
-.PHONY: help install lint lint-fix compat analyse test test-ms coverage reference reference-check ci clean
+.PHONY: help install lint lint-fix compat analyse test test-ms coverage reference reference-check ci clean test-examples
 
 help: ## Show this help.
 	@grep -hE '^[a-zA-Z_-]+:.*?## ' $(MAKEFILE_LIST) \
@@ -55,6 +55,15 @@ reference-check: ## Fail if docs/reference/ is stale relative to the source.
 	php bin/gen-reference.php --check
 
 ci: lint compat analyse reference-check test test-ms ## Everything CI runs.
+
+# Local Vault dev server for the vault-provider example (pinned digest, from P1-01):
+#   docker run -d --name secrets-api-vault -p 8201:8200 -e VAULT_DEV_ROOT_TOKEN_ID=dev-root --cap-add=IPC_LOCK hashicorp/vault@sha256:47f14a6acb98f48d798a07df7c83f23a6e636e1cf724c5f8ff165cb32667a1e2
+# Then, from inside wp-env (see README.md):
+#   npx @wordpress/env run --env-cwd=wp-content/plugins/vault-provider tests-cli env VAULT_ADDR=http://host.docker.internal:8201 VAULT_TOKEN=dev-root vendor/bin/phpunit -c phpunit-examples.xml.dist
+#   npx @wordpress/env run --env-cwd=wp-content/plugins/vault-provider tests-cli env WP_MULTISITE=1 VAULT_ADDR=http://host.docker.internal:8201 VAULT_TOKEN=dev-root vendor/bin/phpunit -c phpunit-examples.xml.dist
+test-examples: ## Run the examples suite against live service containers (not part of ci).
+	$(VENDOR_BIN)/phpunit -c phpunit-examples.xml.dist
+	WP_MULTISITE=1 $(VENDOR_BIN)/phpunit -c phpunit-examples.xml.dist
 
 clean: ## Remove generated artefacts.
 	rm -rf vendor coverage .phpunit.result.cache .phpcs.cache
