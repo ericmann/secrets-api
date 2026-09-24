@@ -23,7 +23,7 @@ Started: 2026-09-24T20:47:35.233Z
 - [-] P7-02 Document make smoke in the README and the CI reference
 - [-] P7-03 Write the journal entry and link it from the index
 - [-] P7-04 Push phase 7 and record the final manual checks
-- [ ] R1-01 Preserve the root key across multisite conversion
+- [x] R1-01 Preserve the root key across multisite conversion
 - [ ] R1-02 Make the smoke list-value and rotation assertions able to fail
 - [ ] R1-03 Widen the smoke diagnostic constraint to the variables the suite uses
 
@@ -273,3 +273,28 @@ SKIPPED: depends on P7-02
 
 ### P7-04 — skipped
 SKIPPED: depends on P7-03
+
+### R1-01 — fe08d2a
+Added private get_wrapped_root_key() helper to WP_Secrets_Key_Manager,
+used by both get_root_key() and rotate_site_key(). On a get_site_option()
+miss under is_multisite(), it falls back to get_blog_option(main_site_id,
+ROOT_KEY_OPTION), adopts it via add_site_option(), deletes the main-site
+copy only on successful adoption, and re-reads get_site_option() to
+handle a concurrent adopter. Public signatures unchanged; single-site
+path unchanged (is_multisite() short-circuits).
+
+Tests added (multisite-gated, markTestSkipped on single site):
+test_get_root_key_adopts_a_pre_conversion_root_key,
+test_secret_written_before_conversion_still_decrypts,
+test_rotate_site_key_works_after_conversion_before_any_read. All three
+confirmed failing pre-fix, passing post-fix. Full suite green
+single-site and multisite (21/21 this file, 459/459 overall via
+bin/ci-local.sh --keep). make reference-check clean.
+
+docs/spec/network.md: added two sentences to "As built" Key derivation
+describing the conversion adoption; still exactly 3 sections, Why
+untouched.
+
+Manual repro in wp-env: secret set probe -> core multisite-convert ->
+plugin activate secrets-api --network -> secret get --reveal returned
+the probe, exit 0.
