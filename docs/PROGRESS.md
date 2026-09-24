@@ -7,7 +7,7 @@ Started: 2026-09-24T20:46:16.429Z
 - [x] P0-02 State the non-determinism requirement in the keyring interface docblock
 - [x] P0-03 Push phase 0
 - [x] P1-01 Cache the unwrapped root key in WP_Secrets_Key_Manager for the request
-- [ ] P1-02 Document root-key caching: examples README, spec page, ADR 0009
+- [x] P1-02 Document root-key caching: examples README, spec page, ADR 0009
 - [ ] P1-03 Push phase 1
 - [ ] P2-01 Generalise wp secret rotate with --from and re-wrap under the active keyring
 - [ ] P2-02 Push phase 2
@@ -95,3 +95,19 @@ the designed effect of this task):
   request/cache).
 
 bin/ci-local.sh --keep and make reference-check green, 475 tests.
+
+### P1-02 — f666293
+Updated examples/README.md's KMS keyring section to state the accurate
+per-request unwrap behavior and link ADR 0009 (only that one claim
+touched). Added "Root-key caching." to providers-and-keyrings.md's As
+built (cache keying, memory-only, error-not-cached, generation/rotation
+priming, caller-owned copy, test file named) and "One unwrap per
+request." to Why (no round-trip-volume discussion in the proposal, the
+KMS-round-trip cost, why the fix lives in the key manager). Added ADR
+0009 in the 0008 style (frontmatter, number/date/status table, context/
+decision/consequences). Added the 0009 line to docs/index.md's
+decisions/ list.
+
+grep -n '^## ' shows exactly As proposed/As built/Why in order; grep -c
+'once per request' examples/README.md is 1. bin/ci-local.sh --keep and
+make reference-check both green.
