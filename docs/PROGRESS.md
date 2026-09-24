@@ -1,6 +1,6 @@
 # WP-CLI smoke test build progress
-Branch: (set by implement)
-Started: (set by implement)
+Branch: build/cli-smoke
+Started: 2026-09-24T20:47:35.233Z
 
 ## Tasks
 - [ ] P1-01 Provision the throwaway install with a pinned WP-CLI
