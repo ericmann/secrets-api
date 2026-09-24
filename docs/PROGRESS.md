@@ -14,7 +14,7 @@ Started: 2026-09-24T20:47:35.233Z
 - [x] P4-01 Rotate the site key end to end
 - [x] P4-02 Load drop-ins through the real loader, with cleanup on exit
 - [x] P4-03 Push phase 4 and record the manual check
-- [ ] P5-01 Convert to multisite and run the network pass
+- [x] P5-01 Convert to multisite and run the network pass
 - [ ] P5-02 Wire smoke into make ci, bin/ci-local.sh, and a smoke CI job
 - [ ] P5-03 Push phase 5 and record the manual check
 - [ ] P6-01 Prove each historical bug fails the smoke test
@@ -367,3 +367,20 @@ Skipped only as a dependent of P5-01, which is unblocked this round. Note: per d
 
 ### P7-04 — unblocked (round 2)
 Skipped only as a dependent of P5-01, which is unblocked this round.
+
+### P5-01 — 53619ee
+Implemented convert_to_multisite (multisite-convert, network-activate,
+site create --slug=smoke2, exports SITE2_ID/SITE2_URL) and
+case_e_multisite (network-secret round-trip, network scope visible
+from site 2, site-scope secret invisible from site 1 / visible from
+site 2 with --url, network-secret health --format=json valid JSON).
+14 new assertions, 139 total, 0 failed.
+
+Verified against a live wp-env install: ran bin/smoke-install.sh then
+smoke.sh (139/139, exit 0), reran bin/smoke-install.sh (confirms it
+restores single-site) and smoke.sh again (139/139, exit 0) -- both
+runs pass, as required. foundry_verify green: all constraints,
+bin/ci-local.sh --keep (459/459 single-site, 459/459 multisite via
+PHPUnit), make reference-check clean.
+
+No interpretation choices beyond the task's own numbered steps.
