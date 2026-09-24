@@ -22,7 +22,7 @@ Started: 2026-09-24T20:46:16.429Z
 - [x] P5-02 Update the journal tracking pages, the READMEs, and the index
 - [x] P5-03 Write the dev journal entry
 - [x] P5-04 Push phase 5, remove the Moto container, record the live-KMS check as not verified
-- [ ] R1-01 Restore the misconfigured-WP_SECRETS_KEY scenario in the three-state contract test
+- [x] R1-01 Restore the misconfigured-WP_SECRETS_KEY scenario in the three-state contract test
 - [ ] R1-02 Correct the published docs: journal finding, worktree-specific wp-env path, ci.md, KMS README CI sentence
 
 ## Log
@@ -324,3 +324,18 @@ clean; docker ps -a --filter name=secrets-api-moto-kms is empty.
 
 Manual check: NOT VERIFIED (human) -- live KMS run per
 examples/aws-kms-keyring/SPEC.md "Done when".
+
+### R1-01 — 387d21d
+Restored test_key_unavailable_is_wp_error_not_null to its original end-to-end
+scenario: writes via a hand-built WP_Secrets_Libsodium_Provider (bypassing the
+static _wp_secrets_get_key_manager()'s request-scoped root-key cache, ADR
+0009), then defines WP_SECRETS_KEY = 424242 and asserts wp_get_secret() is
+WP_Error with WP_SECRETS_ERROR_KEY_UNAVAILABLE (never null). @runInSeparateProcess
+/ @preserveGlobalState disabled kept.
+Moved the corrupted-wrapped-root-key body (update_site_option on
+WP_Secrets_Key_Manager::ROOT_KEY_OPTION) to a new
+test_a_corrupted_wrapped_root_key_is_wp_error_not_null with its own docblock,
+assertions unchanged.
+Verified: 11/11 tests in Tests_Secrets_ThreeStateContract pass single-site and
+multisite; full bin/ci-local.sh --keep green; make reference-check clean.
+No src/ changes.
