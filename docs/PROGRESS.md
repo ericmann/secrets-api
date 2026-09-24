@@ -26,7 +26,7 @@ Started: 2026-09-24T20:47:35.233Z
 - [x] R1-01 Preserve the root key across multisite conversion
 - [x] R1-02 Make the smoke list-value and rotation assertions able to fail
 - [x] R1-03 Widen the smoke diagnostic constraint to the variables the suite uses
-- [ ] R2-01 Make the smoke diagnostic rule catch any key- or value-holding variable
+- [x] R2-01 Make the smoke diagnostic rule catch any key- or value-holding variable
 
 ## Log
 (one entry per task, appended by implement)
@@ -511,3 +511,28 @@ checkout with a local MySQL; (2) the CI smoke job green on 7.4 and
 8.3; (3) npm run docs:build renders the new journal entry in the
 sidebar in date order; (4) a read of the journal entry for voice and
 for anything private.
+
+### R2-01 — 504ff07
+Extended docs/foundry.json's smoke-diagnostics-never-print-stdout
+pattern with two case-insensitive alternatives
+([A-Za-z0-9_]*[Kk][Ee][Yy][A-Za-z0-9_]* and the same for "value")
+plus the exact names VN and VS, alongside the existing alternation.
+Added 5 shouldMatch fixtures (current_key, previous_key, VN, VS,
+some_value) and 2 shouldNotMatch fixtures copied verbatim from the
+real file ($desc/$STATUS/$expected and $expected_sub). All prior
+fixtures kept and pass. baseBranch, branchPrefix, permissionMode,
+and both verify commands (with timeouts) untouched.
+
+CLAUDE.md: updated only the one Constraints bullet describing this
+rule; the "# Working in this repository" heading and every other
+line untouched (confirmed via git diff CLAUDE.md).
+
+Re-read tests/smoke/smoke.sh for any new plaintext/key variable
+since P5-01: none beyond current_key/previous_key (R1-02) and
+VN/VS (P5-01), none interpolated inside an existing not_ok/diag
+call -- real-tree scan still zero hits.
+
+Verified: foundry_verify -- the rule self-tests green (fixture
+null, hits []), every other constraint unchanged/green,
+bin/ci-local.sh --keep green (139/139 smoke), make reference-check
+clean.
