@@ -8,7 +8,7 @@ Started: 2026-09-24T20:46:46.009Z
 - [x] P1-03 Push phase 1 and record the manual checks
 - [x] P2-01 Add the Vault KV v2 provider skeleton with path mapping, HTTP client, `get()`, and `delete()`
 - [x] P2-02 Implement `set()`, `retire_previous()`, and a minimal `list_secrets()`; run the conformance suite against Vault
-- [ ] P2-03 Push phase 2 and record the manual checks
+- [~] P2-03 Push phase 2 and record the manual checks
 - [ ] P3-01 Prove strict N-1 and destroy-on-retire against the live server
 - [ ] P3-02 Push phase 3 and record the manual checks
 - [ ] P4-01 Store `needs_rotation` in `custom_metadata` and fill in listing metadata
