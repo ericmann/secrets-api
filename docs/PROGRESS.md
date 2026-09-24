@@ -24,6 +24,7 @@ Started: 2026-09-24T20:46:16.429Z
 - [x] P5-04 Push phase 5, remove the Moto container, record the live-KMS check as not verified
 - [x] R1-01 Restore the misconfigured-WP_SECRETS_KEY scenario in the three-state contract test
 - [x] R1-02 Correct the published docs: journal finding, worktree-specific wp-env path, ci.md, KMS README CI sentence
+- [ ] R2-01 Correct the Secrets Manager README CI claim and remove Foundry task IDs from published docs
 
 ## Log
 (one entry per task, appended by implement)
