@@ -47,6 +47,13 @@ record format version, stored as `v` in every record and checked by
 two value slots. `docs/decisions/0006-record-format-v2-not-read-compatible.md` covers what a future
 bump would mean.
 
+**A backend with more than two versions.** `examples/vault-provider/secrets.php` is the first
+provider whose backend keeps more than two versions of its own: Vault's KV v2 engine numbers
+versions 1, 2, 3, and so on. `Vault_KV2_Provider` translates that into the two-slot shape by
+setting `max_versions: 2` on every secret it creates and by defining `PREVIOUS` as strictly
+version N-1 in `previous_version()`, never the newest surviving version below N. See
+[ADR 0009](../decisions/0009-cap-a-many-version-backend-to-two-slots.md).
+
 ## Why
 
 [proposal]: https://make.wordpress.org/core/2026/08/25/proposal-a-secrets-api-for-wordpress-7-2/

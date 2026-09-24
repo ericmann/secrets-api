@@ -31,7 +31,9 @@ old value.
 `retire_previous()`, which removes the `previous` slot, writes the record, and fires
 `wp_secret_changed` with `retired`. When there is no previous slot, or no secret, it returns `true`:
 the requested state already holds. `wp secret retire <name> [--yes]` in
-`cli/class-wp-cli-secret-command.php` wraps it.
+`cli/class-wp-cli-secret-command.php` wraps it. `examples/vault-provider/secrets.php` implements
+`retire_previous()` as a Vault `destroy` of exactly version N-1, rather than a soft delete, since a
+soft-deleted version can still be undeleted and retiring is meant to make it gone for good.
 
 **Rotating the site key.** `wp secret rotate [--yes]` in `cli/class-wp-cli-secret-command.php`
 requires `WP_SECRETS_KEY_PREVIOUS` to be defined and calls
