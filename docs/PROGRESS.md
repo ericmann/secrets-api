@@ -22,7 +22,7 @@ Started: 2026-09-24T20:46:46.009Z
 - [x] P6-04 Push phase 6, remove the Vault container, and record the manual checks
 - [x] R1-01 Preserve other custom_metadata keys when writing the rotation flag, and tighten the Vault provider's docblocks and unreachable test
 - [x] R1-02 Make Vault_Test_Server fail loudly when Vault is unreachable instead of reporting absence
-- [ ] R1-03 Correct the Vault README, tracking page, root README, Makefile and ci.yml comments, and guard against leaked task IDs
+- [x] R1-03 Correct the Vault README, tracking page, root README, Makefile and ci.yml comments, and guard against leaked task IDs
 
 ## Log
 (one entry per task, appended by implement)
@@ -322,3 +322,30 @@ comment) and ran phpunit-examples.xml.dist both single-site and
 multisite via wp-env -- 70/70 green each pass, including new tests.
 bin/ci-local.sh --keep and make reference-check green. Removed the
 Vault container afterward (it did not exist before this task).
+
+### R1-03 — daa6292
+Added docs/foundry.json constraint no-foundry-task-ids-in-shipped-files
+([PR][0-9]+-[0-9]{2}\b) over examples/, Makefile, .github/, README.md,
+docs/journal/, docs/decisions/, docs/spec/, docs/reference/, src/,
+plugin/, cli/, tests/, bin/. Verified green including this new rule.
+
+Doc fixes: (a) --env-cwd generalized to
+wp-content/plugins/$(basename "$PWD") in Vault README + Makefile
+comment, run-from-repo-root noted; (b) README question 1 now matches
+test_previous_is_strictly_n_minus_1_even_when_older_versions_survive's
+real body (max_versions raised via helper, retire_previous() through
+provider, not a direct Vault delete); (c) question 3 drops the false
+"rejects an empty map" claim, describes the R1-01 merge; (d) OpenBao
+section + test-coverage-gaps.md say "recorded in a commit message"
+instead of "the phase-6 progress entry"; (e) unreachable-Vault
+description in test-coverage-gaps.md now says closed local port
+(127.0.0.1:1), doubled blank line before that section's --- removed;
+(f) root README Platform bindings sentence: Vault live, AWS offline via
+pre_http_request; (g) removed "(P1-01)"/"(pinned digest, from P1-01)"
+from ci.yml and Makefile comments.
+
+Verified by hand: grep for 'plugins/vault-provider', 'progress entry',
+'rejects an empty map' all empty; pinned digest identical across
+README/Makefile/ci.yml; the one relative link in
+examples/vault-provider/README.md resolves. bin/ci-local.sh --keep and
+make reference-check green.
