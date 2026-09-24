@@ -1,0 +1,15 @@
+{
+  "verify": [
+    {
+      "cmd": "bin/ci-local.sh --keep",
+      "timeoutMs": 1800000
+    },
+    {
+      "cmd": "make reference-check",
+      "timeoutMs": 120000
+    }
+  ],
+  "baseBranch": "main",
+  "branchPrefix": "build/",
+  "permissionMode": "auto"
+}
