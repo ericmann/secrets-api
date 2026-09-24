@@ -15,7 +15,7 @@ Started: 2026-09-24T20:46:16.429Z
 - [x] P3-02 Add the examples CI job with a pinned Moto service container
 - [x] P3-03 Push phase 3
 - [x] P4-01 Write the AWS KMS keyring example and run the keyring conformance suite against Moto
-- [ ] P4-02 Prove the KMS keyring end to end: round trip, one Decrypt per request, the adoption error, and adoption via rotate --from=config
+- [x] P4-02 Prove the KMS keyring end to end: round trip, one Decrypt per request, the adoption error, and adoption via rotate --from=config
 - [ ] P4-03 Write the AWS KMS keyring README with the adoption walkthrough
 - [ ] P4-04 Push phase 4
 - [ ] P5-01 Bring the spec pages in line with the code
@@ -214,4 +214,26 @@ Interpretation: none -- fully specified in the task text.
 
 22 tests green via wp-env tests-cli phpunit-examples.xml.dist (1 expected
 skip). bin/ci-local.sh --keep (481 tests single+multisite) and make
+reference-check both green.
+
+### P4-02 — 534c455
+Added examples/aws-kms-keyring/tests/test-aws-kms-keyring.php:
+Tests_AWS_KMS_Keyring extends WP_UnitTestCase, set_up_before_class()
+creates one Moto key, keyring()/seed_root_key()/
+provider_under_config_keyring()/all_wp_cli_output() helpers. Decrypt
+counting via an http_api_debug action added/removed per test.
+
+All 7 named acceptance tests present and passing, plus the install-guard
+test carried over in spirit from P4-01's conformance class. Isolated-
+process tests seed WP_Secrets_Key_Manager::ROOT_KEY_OPTION directly via
+update_site_option() before setting $GLOBALS['wp_secrets_keyring'],
+matching the pattern in tests/phpunit/test-wp-secrets-key-manager.php.
+The adoption test reuses cli/class-wp-cli-secret-command.php's existing
+`rotate --from=config` (already generalised in an earlier phase) and
+`health` subcommands directly.
+
+Interpretation: none -- fully specified.
+
+30 tests green via wp-env tests-cli phpunit-examples.xml.dist.
+bin/ci-local.sh --keep (481 tests single+multisite) and make
 reference-check both green.
