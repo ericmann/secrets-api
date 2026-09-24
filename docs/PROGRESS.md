@@ -14,7 +14,7 @@ Started: 2026-09-24T20:47:35.233Z
 - [x] P4-01 Rotate the site key end to end
 - [x] P4-02 Load drop-ins through the real loader, with cleanup on exit
 - [x] P4-03 Push phase 4 and record the manual check
-- [ ] P5-01 Convert to multisite and run the network pass
+- [!] P5-01 Convert to multisite and run the network pass
 - [ ] P5-02 Wire smoke into make ci, bin/ci-local.sh, and a smoke CI job
 - [ ] P5-03 Push phase 5 and record the manual check
 - [ ] P6-01 Prove each historical bug fails the smoke test
@@ -203,3 +203,46 @@ Manual check: NOT VERIFIED (human)
   8.5.10 and it fataled as expected (assertion 116), but the task
   calls for a human to do this check explicitly against whichever PHP
   versions the project targets.
+
+### P5-01 — blocked
+BLOCKED: Tried: implemented convert_to_multisite and case_e_multisite exactly as the task
+describes (multisite-convert, network-activate, site create --slug=smoke2,
+network-secret round trip, site-scope invisibility across sites,
+network-secret health --format=json). 130 of 131 assertions pass; the last
+one (network-secret health --format=json exits 0) fails because health
+halts with exit 1 (a "critical: Some secrets cannot be decrypted" row).
+
+What fails: every site-scope secret created in cases A-D (before
+multisite-convert) becomes permanently undecryptable the moment the
+install converts to multisite -- not "would need re-encryption", but
+genuinely lost. Verified directly: `_wp_secrets_root_key` lives in
+wp_options pre-conversion; `wp core multisite-convert` never migrates
+that row into wp_sitemeta, so WP_Secrets_Key_Manager::get_root_key()'s
+`get_site_option()` call finds nothing post-conversion and silently
+calls generate_root_key(), creating a brand-new root key (confirmed: a
+second, different `_wp_secrets_root_key` row appears in wp_sitemeta
+while the original wp_options row is orphaned). Every master key
+derived from the old root key is gone with it.
+
+This directly contradicts docs/spec/network.md's own "Why" section:
+"converting a single site into a network does not strand its secrets."
+As built, it does. This is a src/ defect (no migration hook exists
+anywhere for `_wp_secrets_root_key` across `wp core multisite-convert`;
+grepped secrets-api.php and all of src/ for any multisite-convert or
+wpmu_new_blog handling -- there is none), not a smoke-test defect, and
+this task's Files touched is tests/smoke/smoke.sh only, so I can't fix
+it here. Retiring/deleting the pre-conversion secrets in smoke.sh
+before the health check would make the assertion pass but would hide a
+real, spec-contradicting data-loss bug rather than surface it, which is
+exactly what this smoke suite exists to catch.
+
+What I think the fix is: on activation/upgrade (or via an explicit
+`wp secret migrate-root-key`-style step), copy `_wp_secrets_root_key`
+from `wp_options` into `wp_sitemeta` (site_id = 1) before or during
+`wp core multisite-convert`, or have `get_root_key()` fall back to
+`get_option()` before generating a new one when `is_multisite()` and
+`get_site_option()` returns false. That's a src/wp-includes change,
+out of scope for this task and this flight's touched-files list; needs
+routing to whichever flight owns src/wp-includes/class-wp-secrets-key-manager.php
+(kms-keyring or vault-provider per the parallel-flights split) or a
+PLAN update authorizing a src/ fix here.
