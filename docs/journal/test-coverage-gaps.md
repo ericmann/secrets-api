@@ -90,7 +90,7 @@ name as untested, and run it by hand.
 
 Cheap interim discipline: `wp help secret <subcommand>` shows the synopsis WP-CLI actually built.
 If a flag is missing there, it is missing everywhere. `--from` on `wp secret rotate` was checked
-this way by hand when it was generalised; the output is recorded in the P2-01 commit body.
+this way by hand when it was generalised; the output is recorded in the body of the commit that added `--from`.
 
 
 ---
@@ -139,5 +139,4 @@ against [Moto](https://github.com/getmoto/moto), which is what runs in CI and on
 machine. Moto does not verify SigV4 signatures or IAM permissions the way real AWS does, so a
 signing bug that happens to produce a request Moto accepts anyway, or a policy missing a
 permission the example actually needs, is invisible to this suite. The live run against real AWS
-is the manual step named in `examples/aws-kms-keyring/README.md` and recorded in the P4-04 log
-entry as not yet verified.
+is the manual step named in `examples/aws-kms-keyring/README.md` and has not been run yet.

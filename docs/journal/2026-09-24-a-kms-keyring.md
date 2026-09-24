@@ -55,7 +55,7 @@ discover them fresh. All three held:
 What only building the example showed, rather than what was predicted going in: `Mock_Keyring`,
 the test double the conformance suite and dozens of other tests lean on, was deterministic and
 returned `false` on a failed decode, so it failed the keyring contract the new conformance suite
-checks. P0-01 made it non-deterministic with an integrity tag and `WP_Error` on every failure, and
+checks. This work made it non-deterministic with an integrity tag and `WP_Error` on every failure, and
 it now passes the suite it stands in for.
 
 ## What I left out

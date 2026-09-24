@@ -149,5 +149,5 @@ resolves to the plugin's directory name:
 npx @wordpress/env run --env-cwd="wp-content/plugins/$(basename "$PWD")" tests-cli vendor/bin/phpunit -c phpunit-examples.xml.dist
 ```
 
-or, without wp-env, `make test-examples`. Not part of `make ci`: it needs Moto running, which CI
-does not provide by default.
+or, without wp-env, `make test-examples`. Not part of `make ci`: it needs Moto running, and the
+separate examples CI job runs it against a pinned Moto service container.
