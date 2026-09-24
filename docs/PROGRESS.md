@@ -4,7 +4,7 @@ Started: 2026-09-24T20:47:35.233Z
 
 ## Tasks
 - [x] P1-01 Provision the throwaway install with a pinned WP-CLI
-- [ ] P1-02 Push phase 1 and record the manual check
+- [x] P1-02 Push phase 1 and record the manual check
 - [ ] P2-01 Create smoke.sh with the TAP helpers and the has-command matrix
 - [ ] P2-02 Check the flag table exactly and pin the --version cause
 - [ ] P2-03 Push phase 2 and record the manual check
@@ -51,3 +51,15 @@ committed script is untouched from the plan's exact WP array.
 bin/ci-local.sh --keep and make reference-check both green. phpcs.xml
 .smoke exclude confirmed (`vendor/bin/phpcs .` clean, no symlink
 cycle).
+
+### P1-02 — c964e29
+Pushed build/cli-smoke to origin (new branch, PR link printed by GitHub).
+No code changes; this task only carries the phase-1 push and manual
+check record.
+
+Push: done (origin/build/cli-smoke).
+Manual check: NOT VERIFIED (human)
+- make smoke on a host without Docker, MySQL on 127.0.0.1, DB_PASS set
+  as needed, provisions the install.
+- The WP-CLI pin (2.12.0, SHA256 ce34ddd8...20d85c) matches the release
+  page by eye.
