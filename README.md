@@ -144,7 +144,9 @@ Nothing there is loaded by the plugin, and it's excluded from `make ci` so those
 never become this project's. Read its README before writing one: a key-management service (AWS
 KMS, Google Cloud KMS) is a `WP_Secrets_Keyring` and takes three methods, while a secret store
 (Secrets Manager, Parameter Store) is a `WP_Secrets_Provider` and takes eight. People routinely
-pick the wrong one and pay for it in per-operation API calls.
+pick the wrong one and pay for it in per-operation API calls. Two `WP_Secrets_Provider` examples
+ship today, AWS Secrets Manager and HashiCorp Vault KV v2, and `make test-examples` runs both
+against live services.
 
 ## Contributing
 
@@ -162,7 +164,8 @@ stores credentials, and a flaw in it is a flaw in the thing protecting everythin
 
 CI (`.github/workflows/ci.yml`) is a thin wrapper around the `make` targets above, running on
 github.com's hosted runners: static analysis gates a PHP 7.4/8.0/8.3 × WordPress latest/trunk
-matrix plus a multisite job. See [`docs/reference/ci.md`](docs/reference/ci.md).
+matrix plus a multisite job, plus an `examples` job that runs the platform bindings against a
+Vault service container. See [`docs/reference/ci.md`](docs/reference/ci.md).
 
 ## License
 

@@ -19,11 +19,19 @@ and the two map to different interfaces:
 | **AWS Secrets Manager** | secrets | `WP_Secrets_Provider` | 8 methods |
 | **Google Secret Manager** | secrets | `WP_Secrets_Provider` | 8 methods |
 | **AWS Parameter Store** | secrets | `WP_Secrets_Provider` | 8 methods |
+| **HashiCorp Vault KV v2** | secrets | `WP_Secrets_Provider` | 8 methods |
 
 The mistake to avoid is reaching for KMS and writing a `WP_Secrets_Provider`. You'll make one KMS
 call per secret read, hit the 4,096-byte payload ceiling on anything bigger than a token, and pay
 per operation for work WordPress already does locally. AWS says as much in its own `Encrypt`
 documentation: *"You don't need to use the `Encrypt` operation to encrypt a data key."*
+
+## In this directory
+
+- [`aws-secrets-manager/`](aws-secrets-manager/README.md) — a `WP_Secrets_Provider` for AWS
+  Secrets Manager.
+- [`vault-provider/`](vault-provider/README.md) — a `WP_Secrets_Provider` for HashiCorp Vault's
+  KV v2 secrets engine.
 
 ## Start with a KMS keyring
 
