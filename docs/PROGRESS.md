@@ -13,7 +13,7 @@ Started: 2026-09-24T20:46:46.009Z
 - [x] P3-02 Push phase 3 and record the manual checks
 - [x] P4-01 Store `needs_rotation` in `custom_metadata` and fill in listing metadata
 - [x] P4-02 Multisite isolation, sealed-or-unreachable behaviour, and the timeout measurement
-- [ ] P4-03 Push phase 4 and record the manual checks
+- [x] P4-03 Push phase 4 and record the manual checks
 - [ ] P5-01 Map AWS site scope to `wp/site/<blog_id>/<name>` and test it by capturing the request
 - [ ] P5-02 Push phase 5 and record the manual checks
 - [ ] P6-01 Write the Vault example README and update the example index, root README, and CI reference
@@ -153,3 +153,16 @@ conformance skip).
 bin/ci-local.sh --keep and make reference-check pass.
 Note: activated the vault-provider plugin in wp-env (was inactive)
 to run the wp eval timeout measurements; left active.
+
+### P4-03 — 78c104f
+Pushed build/vault-provider to origin (dfdeb21..f14a32f, then 78c104f marker commit).
+No code/docs changes beyond the push; phase 4 (needs_rotation metadata, multisite
+isolation, sealed/unreachable vault handling, timeout measurement) is complete and
+green locally.
+Manual check: NOT VERIFIED (human)
+(1) confirm the `examples` job is green on single site and multisite in CI
+(2) against a real sealed Vault (`vault operator seal` on a non-dev server), confirm
+    `wp secret get` reports an error rather than absence
+(3) on a real site, confirm `wp secret health` shows the flagged secret after
+    `wp secret import-option`
+Push: done (origin/build/vault-provider updated)
