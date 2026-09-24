@@ -8,7 +8,7 @@ Started: 2026-09-24T20:46:46.009Z
 - [x] P1-03 Push phase 1 and record the manual checks
 - [x] P2-01 Add the Vault KV v2 provider skeleton with path mapping, HTTP client, `get()`, and `delete()`
 - [x] P2-02 Implement `set()`, `retire_previous()`, and a minimal `list_secrets()`; run the conformance suite against Vault
-- [~] P2-03 Push phase 2 and record the manual checks
+- [x] P2-03 Push phase 2 and record the manual checks
 - [ ] P3-01 Prove strict N-1 and destroy-on-retire against the live server
 - [ ] P3-02 Push phase 3 and record the manual checks
 - [ ] P4-01 Store `needs_rotation` in `custom_metadata` and fill in listing metadata
@@ -85,3 +85,13 @@ Conformance suite: 14 tests, 13 pass, 1 skipped by the base class
 itself (not overridden/skipped by this class). Tests_Vault_Provider:
 8 tests, all green, both wp-env passes (41 tests total each).
 bin/ci-local.sh --keep and make reference-check pass.
+
+### P2-03 — c6931ac
+Push: git push origin build/vault-provider succeeded.
+Manual check: NOT VERIFIED (human)
+1. The `examples` job is green on GitHub Actions.
+2. The drop-in installed on a real wp-env site with the four
+   constants set makes `wp secret dropin` report
+   `Provider: Vault_KV2_Provider` and
+   `Protected by: HashiCorp Vault (...)`, and `wp secret set`/
+   `get --reveal` round-trip through the dev server.
