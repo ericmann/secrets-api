@@ -50,6 +50,7 @@ require_once __DIR__ . '/includes/class-mock-store.php';
 require_once __DIR__ . '/includes/class-mock-keyring.php';
 require_once __DIR__ . '/includes/class-legacy-fixture-writer.php';
 require_once __DIR__ . '/includes/class-wp-secrets-provider-conformance.php';
+require_once __DIR__ . '/includes/class-wp-secrets-keyring-conformance.php';
 
 /*
  * The migrator loads under WP-CLI only, which the mock above satisfies. The

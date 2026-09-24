@@ -1,8 +1,9 @@
 <?php
 /**
  * Configurable WP_Secrets_Keyring test double. Not real cryptography -- a
- * deterministic, reversible marker transform, useful for exercising code that
- * consumes a keyring without needing that code to also exercise libsodium.
+ * non-deterministic transform with an integrity tag, just enough to stand in for
+ * a real keyring under the conformance suite without needing that code to also
+ * exercise libsodium.
  */
 class Mock_Keyring implements WP_Secrets_Keyring {
 
@@ -16,7 +17,10 @@ class Mock_Keyring implements WP_Secrets_Keyring {
 			return new WP_Error( WP_SECRETS_ERROR_KEY_UNAVAILABLE, 'Mock_Keyring: wrap() configured to fail.' );
 		}
 
-		return self::MARKER . base64_encode( $key_material );
+		$nonce = random_bytes( 8 );
+		$tag   = hash( 'sha256', $nonce . $key_material, true );
+
+		return self::MARKER . base64_encode( $nonce . $key_material . $tag );
 	}
 
 	public function unwrap( $wrapped ) {
@@ -28,7 +32,21 @@ class Mock_Keyring implements WP_Secrets_Keyring {
 			return new WP_Error( WP_SECRETS_ERROR_KEY_UNAVAILABLE, 'Mock_Keyring: not a value this keyring wrapped.' );
 		}
 
-		return base64_decode( substr( $wrapped, strlen( self::MARKER ) ), true );
+		$decoded = base64_decode( substr( $wrapped, strlen( self::MARKER ) ), true );
+
+		if ( false === $decoded || strlen( $decoded ) < 41 ) {
+			return new WP_Error( WP_SECRETS_ERROR_KEY_UNAVAILABLE, 'Mock_Keyring: wrapped value is malformed.' );
+		}
+
+		$nonce        = substr( $decoded, 0, 8 );
+		$key_material = substr( $decoded, 8, -32 );
+		$tag          = substr( $decoded, -32 );
+
+		if ( ! hash_equals( hash( 'sha256', $nonce . $key_material, true ), $tag ) ) {
+			return new WP_Error( WP_SECRETS_ERROR_KEY_UNAVAILABLE, 'Mock_Keyring: integrity tag mismatch.' );
+		}
+
+		return $key_material;
 	}
 
 	public function get_key_source() {
