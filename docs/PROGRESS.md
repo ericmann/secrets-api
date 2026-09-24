@@ -5,7 +5,7 @@ Started: 2026-09-24T20:46:16.429Z
 ## Tasks
 - [x] P0-01 Add the keyring conformance suite and make Mock_Keyring pass it
 - [x] P0-02 State the non-determinism requirement in the keyring interface docblock
-- [ ] P0-03 Push phase 0
+- [x] P0-03 Push phase 0
 - [ ] P1-01 Cache the unwrapped root key in WP_Secrets_Key_Manager for the request
 - [ ] P1-02 Document root-key caching: examples README, spec page, ADR 0009
 - [ ] P1-03 Push phase 1
@@ -62,3 +62,8 @@ name only (no test path referenced from src/). No signature/@param/@return
 change. Regenerated docs/reference/classes.md via make reference; diff
 touched only that file. bin/ci-local.sh --keep and make reference-check
 both green.
+
+### P0-03 — 54972f8
+Pushed build/kms-keyring to origin (new branch, tracking set up).
+Manual check: none required by SPEC. No manual check needed for phase 0
+per docs/SPEC.md §8 phase 1.
