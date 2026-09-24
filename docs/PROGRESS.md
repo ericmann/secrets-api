@@ -13,7 +13,7 @@ Started: 2026-09-24T20:47:35.233Z
 - [x] P3-03 Push phase 3 and record the manual check
 - [x] P4-01 Rotate the site key end to end
 - [x] P4-02 Load drop-ins through the real loader, with cleanup on exit
-- [ ] P4-03 Push phase 4 and record the manual check
+- [x] P4-03 Push phase 4 and record the manual check
 - [ ] P5-01 Convert to multisite and run the network pass
 - [ ] P5-02 Wire smoke into make ci, bin/ci-local.sh, and a smoke CI job
 - [ ] P5-03 Push phase 5 and record the manual check
@@ -191,3 +191,15 @@ Manual trap check done as specified: inserted `exit 3` after the
 first write_dropin, reran, confirmed the drop-in file was removed and
 exit status was non-zero, reverted (diff-verified byte-identical to
 pre-edit).
+
+### P4-03 — 5948fe9
+Push: pushed to origin/build/cli-smoke (3578368..5948fe9).
+
+Manual check: NOT VERIFIED (human)
+- Run the uncatchable-fatal drop-in row (a class implementing
+  WP_Secrets_Keyring with no methods) on a PHP newer than 8.3 and
+  confirm it is still a fatal, not a catchable TypeError/Error. Note:
+  this run's own smoke pass already exercised that row under PHP
+  8.5.10 and it fataled as expected (assertion 116), but the task
+  calls for a human to do this check explicitly against whichever PHP
+  versions the project targets.
