@@ -19,7 +19,7 @@ Started: 2026-09-24T20:47:35.233Z
 - [x] P5-03 Push phase 5 and record the manual check
 - [x] P6-01 Prove each historical bug fails the smoke test
 - [x] P6-02 Push phase 6 and record the manual check
-- [ ] P7-01 Update the coverage gaps, the spec pages, and the detailed spec's status
+- [x] P7-01 Update the coverage gaps, the spec pages, and the detailed spec's status
 - [ ] P7-02 Document make smoke in the README and the CI reference
 - [ ] P7-03 Write the journal entry and link it from the index
 - [ ] P7-04 Push phase 7 and record the final manual checks
@@ -442,3 +442,24 @@ failures).
 
 Manual check: NOT VERIFIED (human): a reader confirms the commit
 message evidence matches the detailed spec's three bugs one to one.
+
+### P7-01 — c2f259c
+Removed the "CLI dispatch" and "set --stdin" sections from
+test-coverage-gaps.md whole (with their --- separators); narrowed
+"Drop-in file loading" to cover only the uncatchable-fatal gap, now
+that smoke.sh case D exercises syntax-error/throw/wrong-type/
+sets-nothing through the real loader. Added one sentence each to
+scope.md (WP-CLI paragraph), extension-points.md (the drop-in gap
+paragraph), and retrieval.md (Fail closed paragraph) pointing at the
+smoke coverage. tests/smoke/SPEC.md Status: planned -> built, with a
+forward reference to docs/journal/2026-09-24-testing-the-cli-for-real.md
+(P7-03's entry; today's date used per the task's fallback rule).
+
+open-questions.md and proposal-questions.md: reviewed, no change
+needed -- no interface changed and no statement in either file is
+now false.
+
+Verified: grep -c '^## ' is 3 on all three spec pages (As proposed/
+As built/Why, in order); "CLI dispatch" and "--stdin" no longer
+appear in test-coverage-gaps.md; bin/ci-local.sh --keep and
+make reference-check both green.
