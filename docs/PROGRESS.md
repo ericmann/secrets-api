@@ -9,7 +9,7 @@ Started: 2026-09-24T20:46:46.009Z
 - [x] P2-01 Add the Vault KV v2 provider skeleton with path mapping, HTTP client, `get()`, and `delete()`
 - [x] P2-02 Implement `set()`, `retire_previous()`, and a minimal `list_secrets()`; run the conformance suite against Vault
 - [x] P2-03 Push phase 2 and record the manual checks
-- [ ] P3-01 Prove strict N-1 and destroy-on-retire against the live server
+- [x] P3-01 Prove strict N-1 and destroy-on-retire against the live server
 - [ ] P3-02 Push phase 3 and record the manual checks
 - [ ] P4-01 Store `needs_rotation` in `custom_metadata` and fill in listing metadata
 - [ ] P4-02 Multisite isolation, sealed-or-unreachable behaviour, and the timeout measurement
@@ -95,3 +95,20 @@ Manual check: NOT VERIFIED (human)
    `Provider: Vault_KV2_Provider` and
    `Protected by: HashiCorp Vault (...)`, and `wp secret set`/
    `get --reveal` round-trip through the dev server.
+
+### P3-01 — df7e762
+7 tests added to Tests_Vault_Provider, all pass against the live
+server: retiring never resurrects an older version;
+max_versions: 2 prunes to exactly 2 versions; N-1 is strict even with
+create_metadata(path, 10) removing pruning as a cause (the test that
+answers question 1); soft-deleted N-1 and CURRENT both read as null,
+not WP_Error; retire clears the memo; retire is idempotent (fires
+'retired' once).
+No defect found; no change to secrets.php.
+Noted environment flakiness: host.docker.internal:8201 connectivity
+from the wp-env tests-cli container occasionally times out under
+heavy concurrent docker load from sibling flights (kms-keyring,
+cli-smoke running in parallel worktrees) -- not a code defect,
+confirmed by an immediate clean rerun passing. Both wp-env passes
+green (48 tests, 1 skipped by conformance base class).
+bin/ci-local.sh --keep and make reference-check pass.
