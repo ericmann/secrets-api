@@ -14,7 +14,7 @@ Started: 2026-09-24T20:46:16.429Z
 - [x] P3-01 Add the examples PHPUnit harness, Moto, and the AWS Secrets Manager conformance run
 - [x] P3-02 Add the examples CI job with a pinned Moto service container
 - [x] P3-03 Push phase 3
-- [ ] P4-01 Write the AWS KMS keyring example and run the keyring conformance suite against Moto
+- [x] P4-01 Write the AWS KMS keyring example and run the keyring conformance suite against Moto
 - [ ] P4-02 Prove the KMS keyring end to end: round trip, one Decrypt per request, the adoption error, and adoption via rotate --from=config
 - [ ] P4-03 Write the AWS KMS keyring README with the adoption walkthrough
 - [ ] P4-04 Push phase 4
@@ -194,3 +194,24 @@ only — no code change). No code changes required; task is push + log
 only per Files touched.
 
 Manual check: NOT VERIFIED (human) — examples CI job green on the PR.
+
+### P4-01 — f60fbd2
+Added examples/aws-kms-keyring/secrets.php: final class AWS_KMS_Keyring
+implements WP_Secrets_Keyring, constants PREFIX/ENCRYPTION_CONTEXT/
+TIMEOUT/KEY_LENGTH, wrap()/unwrap()/get_key_source(), private call() doing
+SigV4 by hand (copied from the Secrets Manager example) against
+TrentService.Encrypt/Decrypt. Install block guards on
+WP_SECRETS_KMS_KEY_ID + the three AWS constants, all non-empty after
+trim(). unwrap() of a non-kms1: value returns WP_SECRETS_ERROR_KEY_UNAVAILABLE
+with the literal string "rotate --from=config" for P4-02's adoption test.
+
+Added Moto_KMS_Fixture (create_key()/endpoint()/region()) copying the
+SigV4 block again per the detailed spec's guidance, and
+Tests_AWS_KMS_Keyring_Conformance extends WP_Secrets_Keyring_Conformance,
+set_up_before_class() creates one key.
+
+Interpretation: none -- fully specified in the task text.
+
+22 tests green via wp-env tests-cli phpunit-examples.xml.dist (1 expected
+skip). bin/ci-local.sh --keep (481 tests single+multisite) and make
+reference-check both green.
