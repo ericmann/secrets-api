@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<phpunit
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:noNamespaceSchemaLocation="vendor/phpunit/phpunit/phpunit.xsd"
+	bootstrap="tests/bootstrap-examples.php"
+	backupGlobals="false"
+	colors="true"
+	beStrictAboutTestsThatDoNotTestAnything="true"
+	beStrictAboutOutputDuringTests="true"
+	failOnWarning="true"
+	failOnRisky="true"
+	convertDeprecationsToExceptions="false"
+	>
+	<testsuites>
+		<testsuite name="secrets-api-examples">
+			<directory prefix="test-" suffix=".php">examples/*/tests</directory>
+		</testsuite>
+	</testsuites>
+
+	<php>
+		<const name="WP_TESTS_MULTISITE" value="0"/>
+		<env name="WP_SECRETS_TEST_AWS_ENDPOINT" value="http://host.docker.internal:5051"/>
+	</php>
+</phpunit>

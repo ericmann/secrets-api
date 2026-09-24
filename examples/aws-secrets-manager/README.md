@@ -123,4 +123,30 @@ class Tests_AWS_Secrets_Manager_Provider extends WP_Secrets_Provider_Conformance
 That checks the properties `implements WP_Secrets_Provider` cannot: absence reported as `null`
 rather than an error, deleting something absent succeeding, fingerprints stable for the same
 value, and listings never containing a plaintext. It makes real API calls, so point it at a
-throwaway AWS account.
+throwaway AWS account. The repository itself now runs this class against Moto, an AWS emulator, in
+`make test-examples` — see the next section.
+
+## Run it against an emulator
+
+`examples/aws-secrets-manager/tests/test-aws-secrets-manager-conformance.php` runs the conformance
+suite above against [Moto](https://github.com/getmoto/moto) instead of real AWS, so it can run
+without credentials or cost. Start it:
+
+```sh
+docker pull motoserver/moto:latest
+docker run -d --name secrets-api-moto-kms -p 5051:5000 motoserver/moto:latest
+curl -sf http://localhost:5051/moto-api/   # 200 once it is up
+```
+
+The fourth constructor argument, `$endpoint`, points the provider at Moto instead of real AWS —
+this is what `WP_SECRETS_AWS_ENDPOINT` sets when defined, and it is never set in production.
+`phpunit-examples.xml.dist` already points `WP_SECRETS_TEST_AWS_ENDPOINT` at
+`http://host.docker.internal:5051`, which is where the tests-cli container reaches a Moto
+container published on the host. Then:
+
+```sh
+npx @wordpress/env run --env-cwd=wp-content/plugins/kms-keyring tests-cli vendor/bin/phpunit -c phpunit-examples.xml.dist
+```
+
+or, without wp-env, `make test-examples`. Not part of `make ci`: it needs Moto running, which CI
+does not provide by default.
