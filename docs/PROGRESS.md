@@ -17,7 +17,7 @@ Started: 2026-09-24T20:47:35.233Z
 - [x] P5-01 Convert to multisite and run the network pass
 - [x] P5-02 Wire smoke into make ci, bin/ci-local.sh, and a smoke CI job
 - [x] P5-03 Push phase 5 and record the manual check
-- [ ] P6-01 Prove each historical bug fails the smoke test
+- [x] P6-01 Prove each historical bug fails the smoke test
 - [ ] P6-02 Push phase 6 and record the manual check
 - [ ] P7-01 Update the coverage gaps, the spec pages, and the detailed spec's status
 - [ ] P7-02 Document make smoke in the README and the CI reference
@@ -412,3 +412,23 @@ not invoked (nothing depends on it).
 Manual check: NOT VERIFIED (human): the smoke job is green on PHP
 7.4 and 8.3 in the Actions tab; make smoke on a host without Docker
 passes both passes.
+
+### P6-01 — 31961a1
+Added a "Regression proof" comment block under smoke.sh's header
+documenting each of the three historical bugs, the exact edit that
+reintroduces it, and the assertion(s) that catch it. No functional
+change to smoke.sh's logic.
+
+For each bug: edited cli/class-wp-cli-secret-command.php by hand
+inside wp-env, ran a fresh install + smoke.sh, captured not-ok
+lines, then git checkout -- cli/class-wp-cli-secret-command.php.
+Bug 1 (--slot renamed to --version): 4 failures (synopsis row,
+--version=previous no-op check, both --slot=previous assertions).
+Bug 2 (list --format description line deleted): 9 failures
+(synopsis row + every list --format=* case). Bug 3 (@subcommand
+migrate-legacy deleted): 4 failures (both registration rows,
+synopsis row, migrate-legacy --dry-run). Full text in the commit.
+
+git diff --stat HEAD -- cli/ empty before committing. Final green
+run: 139/139, exit 0. bin/ci-local.sh --keep and make reference-check
+both clean.
