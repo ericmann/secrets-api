@@ -20,6 +20,9 @@ Started: 2026-09-24T20:46:46.009Z
 - [x] P6-02 Add ADR 0009 and update the spec pages' "As built" sections
 - [x] P6-03 Update the journal tracking pages, write the journal entry, and index both
 - [x] P6-04 Push phase 6, remove the Vault container, and record the manual checks
+- [ ] R1-01 Preserve other custom_metadata keys when writing the rotation flag, and tighten the Vault provider's docblocks and unreachable test
+- [ ] R1-02 Make Vault_Test_Server fail loudly when Vault is unreachable instead of reporting absence
+- [ ] R1-03 Correct the Vault README, tracking page, root README, Makefile and ci.yml comments, and guard against leaked task IDs
 
 ## Log
 (one entry per task, appended by implement)
