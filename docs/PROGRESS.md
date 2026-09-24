@@ -14,18 +14,19 @@ Started: 2026-09-24T20:47:35.233Z
 - [x] P4-01 Rotate the site key end to end
 - [x] P4-02 Load drop-ins through the real loader, with cleanup on exit
 - [x] P4-03 Push phase 4 and record the manual check
-- [!] P5-01 Convert to multisite and run the network pass
-- [-] P5-02 Wire smoke into make ci, bin/ci-local.sh, and a smoke CI job
-- [-] P5-03 Push phase 5 and record the manual check
-- [-] P6-01 Prove each historical bug fails the smoke test
-- [-] P6-02 Push phase 6 and record the manual check
-- [-] P7-01 Update the coverage gaps, the spec pages, and the detailed spec's status
-- [-] P7-02 Document make smoke in the README and the CI reference
-- [-] P7-03 Write the journal entry and link it from the index
-- [-] P7-04 Push phase 7 and record the final manual checks
+- [ ] P5-01 Convert to multisite and run the network pass
+- [ ] P5-02 Wire smoke into make ci, bin/ci-local.sh, and a smoke CI job
+- [ ] P5-03 Push phase 5 and record the manual check
+- [ ] P6-01 Prove each historical bug fails the smoke test
+- [ ] P6-02 Push phase 6 and record the manual check
+- [ ] P7-01 Update the coverage gaps, the spec pages, and the detailed spec's status
+- [ ] P7-02 Document make smoke in the README and the CI reference
+- [ ] P7-03 Write the journal entry and link it from the index
+- [ ] P7-04 Push phase 7 and record the final manual checks
 - [x] R1-01 Preserve the root key across multisite conversion
 - [x] R1-02 Make the smoke list-value and rotation assertions able to fail
 - [x] R1-03 Widen the smoke diagnostic constraint to the variables the suite uses
+- [ ] R2-01 Make the smoke diagnostic rule catch any key- or value-holding variable
 
 ## Log
 (one entry per task, appended by implement)
@@ -339,3 +340,30 @@ this rule; the '# Working in this repository' / Documentation section
 is untouched.
 
 bin/ci-local.sh --keep and make reference-check both green.
+
+### P5-01 — unblocked (round 2)
+Blocker was the src/ root-key-stranding defect on multisite conversion; R1-01 fixed it (get_wrapped_root_key adopts the main site's row), mutation-tested and verified end to end by the reviewer: after multisite-convert + network activate, secret get returns the pre-conversion value and network-secret health --format=json exits 0.
+
+### P5-02 — unblocked (round 2)
+Skipped only as a dependent of P5-01, which is unblocked this round.
+
+### P5-03 — unblocked (round 2)
+Skipped only as a dependent of P5-01, which is unblocked this round.
+
+### P6-01 — unblocked (round 2)
+Skipped only as a dependent of P5-01, which is unblocked this round.
+
+### P6-02 — unblocked (round 2)
+Skipped only as a dependent of P5-01, which is unblocked this round.
+
+### P7-01 — unblocked (round 2)
+Skipped only as a dependent of P5-01, which is unblocked this round. Note: this flight now changed src/ (R1-01); docs/spec/network.md 'As built' already records it.
+
+### P7-02 — unblocked (round 2)
+Skipped only as a dependent of P5-01, which is unblocked this round.
+
+### P7-03 — unblocked (round 2)
+Skipped only as a dependent of P5-01, which is unblocked this round. Note: per docs/SPEC.md §2 the journal entry must cover the multisite-conversion root-key defect the harness found and the R1-01 fix to class-wp-secrets-key-manager.php (step 2's 'if nothing in src/ changed' branch no longer applies).
+
+### P7-04 — unblocked (round 2)
+Skipped only as a dependent of P5-01, which is unblocked this round.
