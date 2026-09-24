@@ -1191,6 +1191,9 @@ implementation is never handed a plaintext secret, only 32 bytes of key material
 and cannot turn encryption off. There is no method here that
 accepts a plaintext secret value at all.
 
+An implementation should run WP_Secrets_Keyring_Conformance against itself before
+shipping.
+
 **Since:** 7.2.0
 
 **Source:** [`src/wp-includes/interface-wp-secrets-keyring.php`](../../src/wp-includes/interface-wp-secrets-keyring.php)
@@ -1228,6 +1231,11 @@ public function unwrap( $wrapped )
 #### `WP_Secrets_Keyring::wrap()`
 
 Wraps (encrypts) raw key material for storage.
+
+Must not be deterministic: two calls with the same key material must return
+different values. WP_Secrets_Key_Manager::rotate_site_key() stores the
+re-wrapped value with update_site_option(), which reports an unchanged value
+as a failure, and WP_Secrets_Keyring_Conformance checks this.
 
 ```php
 public function wrap( $key_material )
