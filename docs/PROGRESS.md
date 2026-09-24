@@ -23,7 +23,7 @@ Started: 2026-09-24T20:46:16.429Z
 - [x] P5-03 Write the dev journal entry
 - [x] P5-04 Push phase 5, remove the Moto container, record the live-KMS check as not verified
 - [x] R1-01 Restore the misconfigured-WP_SECRETS_KEY scenario in the three-state contract test
-- [ ] R1-02 Correct the published docs: journal finding, worktree-specific wp-env path, ci.md, KMS README CI sentence
+- [x] R1-02 Correct the published docs: journal finding, worktree-specific wp-env path, ci.md, KMS README CI sentence
 
 ## Log
 (one entry per task, appended by implement)
@@ -339,3 +339,23 @@ assertions unchanged.
 Verified: 11/11 tests in Tests_Secrets_ThreeStateContract pass single-site and
 multisite; full bin/ci-local.sh --keep green; make reference-check clean.
 No src/ changes.
+
+### R1-02 — 936d773
+Fixed five docs to match reality:
+- docs/journal/2026-09-24-a-kms-keyring.md: replaced the Mock_Keyring
+  paragraph with the true finding (deterministic, returned false on failed
+  decode, fixed by P0-01) and dropped the false open-questions.md citation.
+- examples/README.md, examples/aws-kms-keyring/README.md,
+  examples/aws-secrets-manager/README.md: replaced the hard-coded
+  wp-content/plugins/kms-keyring --env-cwd with
+  --env-cwd="wp-content/plugins/$(basename "$PWD")", run from the repo
+  root, matching how bin/ci-local.sh derives CONTAINER_CWD.
+- docs/reference/ci.md: the examples-job Moto sentence now names both the
+  AWS Secrets Manager provider conformance run and the AWS KMS keyring
+  conformance/integration tests.
+- examples/aws-kms-keyring/README.md final paragraph: replaced "which CI
+  does not provide by default" with the true statement that make ci omits
+  it and the examples CI job runs it against a pinned Moto container.
+Verified via the exact greps in the task's Acceptance tests (all pass),
+bin/ci-local.sh --keep green, make reference-check clean. git diff --stat
+touches only the five named files (plus docs/PROGRESS.md via the tool).
