@@ -11,7 +11,7 @@ Started: 2026-09-24T20:46:16.429Z
 - [x] P1-03 Push phase 1
 - [x] P2-01 Generalise wp secret rotate with --from and re-wrap under the active keyring
 - [x] P2-02 Push phase 2
-- [ ] P3-01 Add the examples PHPUnit harness, Moto, and the AWS Secrets Manager conformance run
+- [x] P3-01 Add the examples PHPUnit harness, Moto, and the AWS Secrets Manager conformance run
 - [ ] P3-02 Add the examples CI job with a pinned Moto service container
 - [ ] P3-03 Push phase 3
 - [ ] P4-01 Write the AWS KMS keyring example and run the keyring conformance suite against Moto
@@ -140,3 +140,30 @@ bin/ci-local.sh --keep and make reference-check both green, 481 tests.
 Pushed build/kms-keyring to origin (565e4d2).
 Manual check: none required by SPEC (wp help secret rotate output is in
 the P2-01 commit).
+
+### P3-01 — 3b8fba6
+Added phpunit-examples.xml.dist (bootstrap=tests/bootstrap-examples.php,
+testsuite examples/*/tests, WP_SECRETS_TEST_AWS_ENDPOINT env not forced)
+and tests/bootstrap-examples.php (requires tests/bootstrap.php then every
+examples/*/secrets.php via glob). Makefile gained test-examples (not in
+ci:). AWS_Secrets_Manager_Provider's constructor gained a fourth
+$endpoint param; call() uses it as the request URL and computes the
+signed Host header from wp_parse_url() (host[:port]) so Moto's signature
+check matches what wp_remote_post() actually sends. Install block passes
+WP_SECRETS_AWS_ENDPOINT when defined, else ''.
+
+New conformance test class runs against Moto (motoserver/moto digest
+sha256:91fd602a21f49cf9eb82fdf474015a3c131d40104c8297ea6a2ca920708ae32c,
+container secrets-api-moto-kms on :5051, still running for P3-02 to
+reuse). One subject name reused across the run (Moto keeps AWSPREVIOUS
+between calls like real AWS); tear_down() deletes it plus the two
+prefix-listing fixture names. Extra test confirms loading the example
+via bootstrap-examples.php installs no provider (guard constants never
+defined there).
+
+README gained "Run it against an emulator" with the Moto commands and
+make test-examples.
+
+15 tests green via wp-env tests-cli (1 skipped: read-only-refuses-writes,
+correctly skipped for a writable provider). bin/ci-local.sh --keep and
+make reference-check both green, main suites unaffected (481 tests).
