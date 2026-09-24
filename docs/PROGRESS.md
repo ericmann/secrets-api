@@ -25,7 +25,7 @@ Started: 2026-09-24T20:47:35.233Z
 - [-] P7-04 Push phase 7 and record the final manual checks
 - [x] R1-01 Preserve the root key across multisite conversion
 - [x] R1-02 Make the smoke list-value and rotation assertions able to fail
-- [ ] R1-03 Widen the smoke diagnostic constraint to the variables the suite uses
+- [x] R1-03 Widen the smoke diagnostic constraint to the variables the suite uses
 
 ## Log
 (one entry per task, appended by implement)
@@ -322,5 +322,20 @@ through by hand instead -- skipping that line leaves WP_SECRETS_KEY at
 $old, equal to the value just written into WP_SECRETS_KEY_PREVIOUS, so
 the new != check would report not_ok. Reverted (never actually
 applied) before commit.
+
+bin/ci-local.sh --keep and make reference-check both green.
+
+### R1-03 — 1643f2e
+Widened smoke-diagnostics-never-print-stdout's pattern in
+docs/foundry.json to also match the suite's lower-case locals (v1,
+v2, vr, vd, old, new, porcelain_out) alongside the existing
+OUT/VALUE*/KEY*/OLD/NEW. Added the 5 required shouldMatch fixtures
+and 2 shouldNotMatch fixtures (length diagnostic, $STATUS); all pass
+under foundry_verify with zero real hits against the tracked tree.
+baseBranch/branchPrefix/permissionMode/verify commands unchanged.
+
+CLAUDE.md: updated only the one '## Constraints' bullet describing
+this rule; the '# Working in this repository' / Documentation section
+is untouched.
 
 bin/ci-local.sh --keep and make reference-check both green.
