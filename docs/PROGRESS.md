@@ -1,6 +1,6 @@
 # HashiCorp Vault KV v2 provider example build progress
-Branch: (set by implement)
-Started: (set by implement)
+Branch: build/vault-provider
+Started: 2026-09-24T20:46:46.009Z
 
 ## Tasks
 - [ ] P1-01 Add the examples PHPUnit harness and the Vault test helper
