@@ -172,11 +172,28 @@ synopsis_flags() {
 	printf '%s' "$(printf '%s\n' "$section" | grep -o -- '--[a-zA-Z][a-zA-Z-]*' | sort -u | tr '\n' ' ' | sed 's/ $//' || true)"
 }
 
-# finish: EXIT trap. Prints the TAP plan and summary, and exits non-zero if
-# anything failed. P4-02 extends this same trap to remove any drop-in left
-# behind by a failed case D run.
+# write_dropin: reads the drop-in body from stdin, writes it to $DROPIN, and
+# records that this run wrote it, so the EXIT trap can clean it up even if
+# the run aborts before case D's own cleanup runs.
+WROTE_DROPIN=0
+write_dropin() {
+	cat >"$DROPIN"
+	WROTE_DROPIN=1
+}
+
+# remove_dropin: deletes $DROPIN if this run wrote it, and clears the flag.
+remove_dropin() {
+	if [ "$WROTE_DROPIN" -eq 1 ]; then
+		rm -f "$DROPIN"
+		WROTE_DROPIN=0
+	fi
+}
+
+# finish: EXIT trap. Removes any drop-in this run wrote, prints the TAP plan
+# and summary, and exits non-zero if anything failed.
 finish() {
 	local exit_status=$?
+	remove_dropin
 	rm -f "$ERR_FILE"
 	printf '1..%d\n' "$N"
 	printf '# passed %d, failed %d\n' "$PASS" "$FAIL"
@@ -496,7 +513,77 @@ case_c_rotation() {
 # --- case D: drop-in loading ---
 
 case_d_dropin() {
-	:
+	local d="${NS}/dropin" vd="smoke-value-dropin-$$"
+
+	# Something to read for the "sets nothing" row, and for the wrong-type
+	# and fatal rows too: those cases only need get to reach the loader,
+	# not to succeed.
+	run "${WP[@]}" secret set "$d" "$vd"
+	assert_status 0 "set $d exits 0 before any drop-in is present"
+
+	# Syntax error.
+	write_dropin <<-'EOF'
+	<?php this is not php
+	EOF
+	run "${WP[@]}" secret get "$d"
+	assert_status 2 "a drop-in with a syntax error makes get exit 2, not 1"
+	run "${WP[@]}" secret dropin
+	assert_out_contains "Provider: WP_Secrets_Broken_Provider" "dropin reports a syntax-error drop-in as broken"
+	remove_dropin
+
+	# Throws on load.
+	write_dropin <<-'EOF'
+	<?php throw new RuntimeException( 'smoke' );
+	EOF
+	run "${WP[@]}" secret get "$d"
+	assert_status 2 "a drop-in that throws on load makes get exit 2"
+	run "${WP[@]}" secret dropin
+	assert_out_contains "Provider: WP_Secrets_Broken_Provider" "dropin reports a throwing drop-in as broken"
+	remove_dropin
+
+	# Wrong provider type: the 4 September fail-closed fix, through the
+	# real loader.
+	write_dropin <<-'EOF'
+	<?php $GLOBALS['wp_secrets_provider'] = new stdClass();
+	EOF
+	run "${WP[@]}" secret get "$d"
+	assert_status 2 "a wrong-type provider global makes get exit 2 (fail closed)"
+	run "${WP[@]}" secret dropin
+	assert_out_contains "Provider: WP_Secrets_Broken_Provider" "dropin reports a wrong-type provider global as broken"
+	remove_dropin
+
+	# Sets nothing: get behaves exactly as with no drop-in.
+	write_dropin <<-'EOF'
+	<?php // A drop-in that sets no global.
+	EOF
+	run "${WP[@]}" secret get "$d" --reveal --field=value
+	assert_status 0 "get $d --reveal --field=value exits 0 with a no-op drop-in"
+	assert_out_eq "$vd" "a drop-in that sets nothing still returns the value"
+	run "${WP[@]}" secret get "${NS}/never-set"
+	assert_status 1 "get of a name never set still exits 1 with a no-op drop-in"
+	run "${WP[@]}" secret dropin
+	assert_out_contains "Drop-in active: yes" "dropin reports a no-op drop-in as active"
+	assert_out_contains "Provider: WP_Secrets_Libsodium_Provider" "a drop-in that sets nothing leaves the shipped provider in place"
+	remove_dropin
+
+	# Uncatchable fatal: a class that implements the keyring interface but
+	# omits its methods. Recorded as expected behaviour -- a non-zero exit
+	# with a PHP fatal on stderr -- not as something desired; a future PHP
+	# that makes this catchable would show up here as a change.
+	write_dropin <<-'EOF'
+	<?php final class Smoke_Incomplete_Keyring implements WP_Secrets_Keyring {}
+	EOF
+	run "${WP[@]}" secret get "$d"
+	if [ "$STATUS" -ne 0 ]; then
+		ok "a class missing interface methods makes get exit non-zero"
+	else
+		not_ok "a class missing interface methods makes get exit non-zero" "exit status was 0"
+	fi
+	assert_err_contains "Fatal error" "a class missing interface methods is an uncatchable fatal (recorded, not desired)"
+	remove_dropin
+
+	run "${WP[@]}" secret dropin
+	assert_out_contains "Drop-in active: no" "no drop-in remains after case D"
 }
 
 # --- multisite conversion ---
