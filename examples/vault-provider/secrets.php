@@ -34,6 +34,8 @@ defined( 'ABSPATH' ) || exit;
 
 /**
  * Serves secrets from a HashiCorp Vault KV v2 secrets engine.
+ *
+ * The rotation flag uses custom_metadata, which requires Vault 1.9+.
  */
 final class Vault_KV2_Provider implements WP_Secrets_Provider {
 
@@ -201,6 +203,38 @@ final class Vault_KV2_Provider implements WP_Secrets_Provider {
 			''
 		);
 
+		// The value and the rotation flag are two requests, not a transaction
+		// (see the file docblock): the action above already fired for the
+		// value write, and a flag failure is reported or logged separately
+		// rather than undoing what already landed.
+		$wanted = (bool) $needs_rotation;
+		$had    = $this->flag_is_set( $meta );
+
+		if ( $wanted !== $had ) {
+			$flag = $this->write_flag( $vault_path, $wanted );
+
+			if ( is_wp_error( $flag ) ) {
+				if ( $wanted ) {
+					return new WP_Error(
+						WP_SECRETS_ERROR_STORE_UNAVAILABLE,
+						sprintf(
+							'The value was stored but Vault refused to record the rotation flag: %s',
+							$flag->get_error_message()
+						)
+					);
+				}
+
+				error_log(
+					sprintf(
+						'Vault_KV2_Provider: could not clear %s on %s: %s',
+						self::ROTATION_FLAG,
+						$vault_path,
+						$flag->get_error_message()
+					)
+				);
+			}
+		}
+
 		return true;
 	}
 
@@ -322,14 +356,32 @@ final class Vault_KV2_Provider implements WP_Secrets_Provider {
 					continue;
 				}
 
+				$secret_meta = $this->request( 'GET', $this->url( 'metadata', "{$base}{$ns}/{$key}" ) );
+
+				if ( is_wp_error( $secret_meta ) ) {
+					return $secret_meta;
+				}
+
+				// A secret deleted between the LIST and this GET is simply
+				// omitted, the same way a name that never existed would be.
+				if ( null === $secret_meta ) {
+					continue;
+				}
+
+				$created = 0;
+
+				if ( ! empty( $secret_meta['created_time'] ) ) {
+					$created = (int) strtotime( preg_replace( '/\.\d+Z$/', 'Z', $secret_meta['created_time'] ) );
+				}
+
 				$entries[] = array(
 					'name'           => "{$ns}/{$key}",
-					// One LIST per namespace and no data reads: fingerprinting every
-					// entry would mean a read per secret. See README.md question 4.
+					// No data reads: fingerprinting every entry would mean a
+					// read per secret. See README.md question 4.
 					'fingerprint'    => '',
-					'created'        => 0,
-					'has_previous'   => false,
-					'needs_rotation' => false,
+					'created'        => $created,
+					'has_previous'   => null !== $this->previous_version( $secret_meta ),
+					'needs_rotation' => $this->flag_is_set( $secret_meta ),
 				);
 			}
 		}
@@ -528,6 +580,44 @@ final class Vault_KV2_Provider implements WP_Secrets_Provider {
 		}
 
 		return $previous;
+	}
+
+	/**
+	 * Whether the rotation flag is set. Requires Vault 1.9+, which is when
+	 * custom_metadata shipped. Reads as set only when the value is exactly
+	 * "1" -- see write_flag() for why a clear writes "0" rather than removing
+	 * the key.
+	 *
+	 * @param array|null $meta Decoded metadata, or null.
+	 *
+	 * @return bool
+	 */
+	private function flag_is_set( $meta ) {
+		return null !== $meta
+			&& isset( $meta['custom_metadata'][ self::ROTATION_FLAG ] )
+			&& '1' === $meta['custom_metadata'][ self::ROTATION_FLAG ];
+	}
+
+	/**
+	 * Writes the rotation flag. Vault replaces custom_metadata wholesale on
+	 * every POST and rejects an empty map, so clearing the flag writes "0"
+	 * rather than omitting the key -- there is no way to send "no custom
+	 * metadata at all" without also destroying every other custom_metadata
+	 * key a different tool may have set.
+	 *
+	 * @param string $vault_path Path under the mount.
+	 * @param bool   $set        Whether to set (true) or clear (false).
+	 *
+	 * @return true|WP_Error
+	 */
+	private function write_flag( $vault_path, $set ) {
+		$result = $this->request(
+			'POST',
+			$this->url( 'metadata', $vault_path ),
+			array( 'custom_metadata' => array( self::ROTATION_FLAG => $set ? '1' : '0' ) )
+		);
+
+		return is_wp_error( $result ) ? $result : true;
 	}
 
 	/**

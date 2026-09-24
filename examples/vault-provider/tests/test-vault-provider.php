@@ -15,12 +15,24 @@ class Tests_Vault_Provider extends WP_UnitTestCase {
 	/** @var Vault_KV2_Provider */
 	private $provider;
 
+	/** @var string|false */
+	private $original_error_log = false;
+
 	public function set_up() {
 		parent::set_up();
 
 		$this->server = new Vault_Test_Server();
 		$this->server->wipe();
 		$this->provider = $this->server->provider();
+	}
+
+	public function tear_down() {
+		if ( false !== $this->original_error_log ) {
+			ini_set( 'error_log', $this->original_error_log );
+			$this->original_error_log = false;
+		}
+
+		parent::tear_down();
 	}
 
 	public function test_create_sets_max_versions_to_two_in_vault_itself() {
@@ -241,5 +253,212 @@ class Tests_Vault_Provider extends WP_UnitTestCase {
 		$this->assertTrue( $this->provider->retire_previous( 'acme/key' ) );
 
 		$this->assertSame( array( 'retired' ), $fired );
+	}
+
+	public function test_needs_rotation_round_trips_through_custom_metadata() {
+		$path = 'wp/site/1/acme/key';
+
+		$this->assertTrue( $this->provider->set( 'acme/key', 'v', false, true ) );
+
+		$this->assertSame( '1', $this->server->metadata( $path )['custom_metadata']['needs_rotation'] );
+
+		$listing = $this->provider->list_secrets();
+		$this->assertTrue( $listing[0]['needs_rotation'] );
+	}
+
+	public function test_a_set_without_the_flag_clears_it() {
+		$path = 'wp/site/1/acme/key';
+
+		$this->provider->set( 'acme/key', 'v1', false, true );
+		$this->provider->set( 'acme/key', 'v2' );
+
+		$this->assertSame( '0', $this->server->metadata( $path )['custom_metadata']['needs_rotation'] );
+
+		$listing = $this->provider->list_secrets();
+		$this->assertFalse( $listing[0]['needs_rotation'] );
+	}
+
+	public function test_the_flag_is_written_on_create_when_requested() {
+		$seen = array();
+
+		add_filter(
+			'pre_http_request',
+			static function ( $preempt, $args, $url ) use ( &$seen ) {
+				if ( 'POST' === $args['method'] && false !== strpos( $url, '/metadata/' )
+					&& false !== strpos( (string) $args['body'], 'custom_metadata' )
+				) {
+					$seen[] = $url;
+				}
+
+				return $preempt;
+			},
+			10,
+			3
+		);
+
+		$this->provider->set( 'acme/key', 'v', false, true );
+
+		$this->assertCount( 1, $seen );
+	}
+
+	public function test_a_set_with_an_unchanged_flag_makes_no_metadata_write() {
+		$this->provider->set( 'acme/key', 'v1' );
+
+		$seen = array();
+
+		add_filter(
+			'pre_http_request',
+			static function ( $preempt, $args, $url ) use ( &$seen ) {
+				if ( 'POST' === $args['method'] && false !== strpos( $url, '/metadata/' )
+					&& false !== strpos( (string) $args['body'], 'custom_metadata' )
+				) {
+					$seen[] = $url;
+				}
+
+				return $preempt;
+			},
+			10,
+			3
+		);
+
+		$this->provider->set( 'acme/key', 'v2' );
+
+		$this->assertSame( array(), $seen );
+	}
+
+	public function test_a_failed_flag_write_that_was_requested_is_an_error_after_the_value_landed() {
+		$canary = 'CANARY-flag-fail-7e2a';
+
+		add_filter(
+			'pre_http_request',
+			static function ( $preempt, $args, $url ) {
+				if ( 'POST' === $args['method'] && false !== strpos( $url, '/metadata/' )
+					&& false !== strpos( (string) $args['body'], 'custom_metadata' )
+				) {
+					return array(
+						'headers'  => array(),
+						'body'     => wp_json_encode( array( 'errors' => array( 'Vault is sealed' ) ) ),
+						'response' => array( 'code' => 503, 'message' => '' ),
+						'cookies'  => array(),
+						'filename' => null,
+					);
+				}
+
+				return $preempt;
+			},
+			10,
+			3
+		);
+
+		$fired = array();
+		add_action(
+			'wp_secret_changed',
+			static function ( $name, $action ) use ( &$fired ) {
+				$fired[] = $action;
+			},
+			10,
+			2
+		);
+
+		$result = $this->provider->set( 'acme/key', $canary, false, true );
+
+		$this->assertWPError( $result );
+		$this->assertSame( WP_SECRETS_ERROR_STORE_UNAVAILABLE, $result->get_error_code() );
+		$this->assertStringNotContainsString( $canary, $result->get_error_message() );
+
+		remove_all_filters( 'pre_http_request' );
+
+		$this->assertSame( $canary, $this->provider->get( 'acme/key', WP_Secret_Version::CURRENT )->reveal() );
+		$this->assertSame( array( 'created' ), $fired );
+	}
+
+	public function test_a_failed_clear_is_logged_without_the_value_and_ignored() {
+		$path   = 'wp/site/1/acme/key';
+		$canary = 'CANARY-clear-9c1d';
+
+		$this->provider->set( 'acme/key', 'v1', false, true );
+
+		$log_file                 = get_temp_dir() . 'vault-provider-test-' . wp_generate_password( 8, false ) . '.log';
+		$this->original_error_log = ini_get( 'error_log' );
+		ini_set( 'error_log', $log_file );
+
+		add_filter(
+			'pre_http_request',
+			static function ( $preempt, $args, $url ) {
+				if ( 'POST' === $args['method'] && false !== strpos( $url, '/metadata/' )
+					&& false !== strpos( (string) $args['body'], 'custom_metadata' )
+				) {
+					return array(
+						'headers'  => array(),
+						'body'     => wp_json_encode( array( 'errors' => array( 'Vault is sealed' ) ) ),
+						'response' => array( 'code' => 503, 'message' => '' ),
+						'cookies'  => array(),
+						'filename' => null,
+					);
+				}
+
+				return $preempt;
+			},
+			10,
+			3
+		);
+
+		$this->assertTrue( $this->provider->set( 'acme/key', $canary ) );
+
+		remove_all_filters( 'pre_http_request' );
+
+		$log = file_exists( $log_file ) ? file_get_contents( $log_file ) : '';
+
+		if ( file_exists( $log_file ) ) {
+			unlink( $log_file );
+		}
+
+		$this->assertStringContainsString( 'could not clear needs_rotation', $log );
+		$this->assertStringNotContainsString( $canary, $log );
+		$this->assertSame( '1', $this->server->metadata( $path )['custom_metadata']['needs_rotation'] );
+	}
+
+	public function test_list_reports_created_and_has_previous() {
+		$this->provider->set( 'acme/key', 'v1' );
+
+		$listing = $this->provider->list_secrets();
+		$this->assertLessThan( 300, abs( time() - $listing[0]['created'] ) );
+		$this->assertFalse( $listing[0]['has_previous'] );
+
+		$this->provider->set( 'acme/key', 'v2' );
+		$listing = $this->provider->list_secrets();
+		$this->assertTrue( $listing[0]['has_previous'] );
+
+		$this->provider->retire_previous( 'acme/key' );
+		$listing = $this->provider->list_secrets();
+		$this->assertFalse( $listing[0]['has_previous'] );
+	}
+
+	public function test_list_omits_a_secret_deleted_between_list_and_metadata_read() {
+		$this->provider->set( 'acme/one', 'v1' );
+		$this->provider->set( 'acme/two', 'v1' );
+
+		add_filter(
+			'pre_http_request',
+			static function ( $preempt, $args, $url ) {
+				if ( 'GET' === $args['method'] && false !== strpos( $url, '/metadata/wp/site/1/acme/one' ) ) {
+					return array(
+						'headers'  => array(),
+						'body'     => wp_json_encode( array( 'errors' => array() ) ),
+						'response' => array( 'code' => 404, 'message' => '' ),
+						'cookies'  => array(),
+						'filename' => null,
+					);
+				}
+
+				return $preempt;
+			},
+			10,
+			3
+		);
+
+		$names = wp_list_pluck( $this->provider->list_secrets(), 'name' );
+
+		$this->assertSame( array( 'acme/two' ), $names );
 	}
 }
