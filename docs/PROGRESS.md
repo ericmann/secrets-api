@@ -6,7 +6,7 @@ Started: 2026-09-24T20:47:35.233Z
 - [x] P1-01 Provision the throwaway install with a pinned WP-CLI
 - [x] P1-02 Push phase 1 and record the manual check
 - [x] P2-01 Create smoke.sh with the TAP helpers and the has-command matrix
-- [ ] P2-02 Check the flag table exactly and pin the --version cause
+- [x] P2-02 Check the flag table exactly and pin the --version cause
 - [ ] P2-03 Push phase 2 and record the manual check
 - [ ] P3-01 Cover set and get, masking, stdin, porcelain, slots, and JSON
 - [ ] P3-02 Cover list filters, retire, delete, absence, keys, health, dropin, import, migrate, and the single-site refusal
@@ -80,3 +80,22 @@ bin/smoke-install.sh run: 22 ok lines, 1..22, passed 22/failed 0, exit
 `wp cli has-command` worked directly; the help-based contingency in
 the task was not needed. Makefile's smoke recipe now runs
 bin/smoke-install.sh then tests/smoke/smoke.sh.
+
+### P2-02 — 1fdce68
+Added EXPECTED_FLAGS table (11 rows, secret only per Decisions),
+normalize_flags() and synopsis_flags() helpers, a flag-table loop in
+case_a_registration (assertions 23-33), and the --version=previous pin
+(assertions 34-37: set A, set B, get --version=previous --reveal
+--field=value must not contain value A, delete).
+
+Verified inside wp-env cli container: 37/37 pass, exit 0. Negative
+check on the get row (dropped --reveal) reproduced not-ok with the
+expected/actual flag lists, reverted uncommitted.
+
+Interpretation: synopsis_flags()'s flag regex needed
+--[a-zA-Z][a-zA-Z-]* rather than --[a-zA-Z-]*, because generate-key's
+SYNOPSIS-section prose contains a bare em-dash ("-- adding the
+constant") that the looser pattern matched as a zero-letter flag.
+
+network-secret's synopsis is untested here, per Decisions ("checked
+for secret only").
