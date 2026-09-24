@@ -9,7 +9,7 @@ description: "Why the Secrets API ships as a feature plugin first, and what fini
 |---|---|
 | **Number** | 0002 |
 | **Date** | 2026-08-25 |
-| **Status** | Accepted |
+| **Status** | Accepted. Amended by [ADR 0008](0008-the-trac-ticket-replaces-thread-confirmation.md). |
 
 ## Context
 
@@ -39,8 +39,9 @@ the presence of the symbol, so a slip to 7.3 cannot silently disable it.
 
 **The plugin is done when:**
 
-- the public surface matches the proposal, with every addition beyond it recorded and confirmed
-  on the thread;
+- the public surface matches the proposal, with every addition beyond it recorded and listed on
+  the Trac ticket ([ADR 0008](0008-the-trac-ticket-replaces-thread-confirmation.md); originally
+  "confirmed on the thread");
 - `make ci` is green across the PHP 7.4 to 8.3 and single-site to multisite matrix;
 - at least one real platform provider has been built against `WP_Secrets_Provider` and the
   conformance suite, and what it turned up has been fixed;
