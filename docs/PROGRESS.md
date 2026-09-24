@@ -6,7 +6,7 @@ Started: 2026-09-24T20:46:16.429Z
 - [x] P0-01 Add the keyring conformance suite and make Mock_Keyring pass it
 - [x] P0-02 State the non-determinism requirement in the keyring interface docblock
 - [x] P0-03 Push phase 0
-- [ ] P1-01 Cache the unwrapped root key in WP_Secrets_Key_Manager for the request
+- [x] P1-01 Cache the unwrapped root key in WP_Secrets_Key_Manager for the request
 - [ ] P1-02 Document root-key caching: examples README, spec page, ADR 0009
 - [ ] P1-03 Push phase 1
 - [ ] P2-01 Generalise wp secret rotate with --from and re-wrap under the active keyring
@@ -67,3 +67,31 @@ both green.
 Pushed build/kms-keyring to origin (new branch, tracking set up).
 Manual check: none required by SPEC. No manual check needed for phase 0
 per docs/SPEC.md §8 phase 1.
+
+### P1-01 — 9458df6
+Added $cached_root_key/$cached_wrapped to WP_Secrets_Key_Manager.
+get_root_key() serves from cache when the stored wrapped value matches;
+only caches on a string result. rotate_site_key() sets the cache after a
+successful update_site_option() and also reuses the cache to avoid a
+redundant unwrap() when $old_keyring === $this->keyring and the wrapped
+value matches (needed so rotation itself costs zero extra unwrap calls,
+per acceptance test). generate_root_key() primes the cache on both the
+won-race and lost-race paths.
+
+Mock_Keyring gained wrap_calls/unwrap_calls counters + wrap_call_count()/
+unwrap_call_count().
+
+Added 7 tests to test-wp-secrets-key-manager.php (all pass single-site +
+multisite). Two pre-existing tests needed updates because the new
+per-request cache makes their old premise obsolete (not a regression,
+the designed effect of this task):
+- test_rotation_does_not_change_any_derived_master_key: the "old keyring
+  no longer works" check now uses a fresh manager instance, since the
+  manager that just rotated legitimately keeps a valid primed cache.
+- test-secrets-three-state-contract.php's
+  test_key_unavailable_is_wp_error_not_null: corrupts the stored wrapped
+  root key option instead of redefining WP_SECRETS_KEY mid-request
+  (changing the constant no longer forces a fresh unwrap within one
+  request/cache).
+
+bin/ci-local.sh --keep and make reference-check green, 475 tests.
