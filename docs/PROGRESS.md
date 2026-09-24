@@ -10,7 +10,7 @@ Started: 2026-09-24T20:46:46.009Z
 - [x] P2-02 Implement `set()`, `retire_previous()`, and a minimal `list_secrets()`; run the conformance suite against Vault
 - [x] P2-03 Push phase 2 and record the manual checks
 - [x] P3-01 Prove strict N-1 and destroy-on-retire against the live server
-- [ ] P3-02 Push phase 3 and record the manual checks
+- [~] P3-02 Push phase 3 and record the manual checks
 - [ ] P4-01 Store `needs_rotation` in `custom_metadata` and fill in listing metadata
 - [ ] P4-02 Multisite isolation, sealed-or-unreachable behaviour, and the timeout measurement
 - [ ] P4-03 Push phase 4 and record the manual checks
