@@ -5,7 +5,7 @@ Started: 2026-09-24T20:46:46.009Z
 ## Tasks
 - [x] P1-01 Add the examples PHPUnit harness and the Vault test helper
 - [x] P1-02 Add the `examples` CI job with a Vault service container
-- [ ] P1-03 Push phase 1 and record the manual checks
+- [~] P1-03 Push phase 1 and record the manual checks
 - [ ] P2-01 Add the Vault KV v2 provider skeleton with path mapping, HTTP client, `get()`, and `delete()`
 - [ ] P2-02 Implement `set()`, `retire_previous()`, and a minimal `list_secrets()`; run the conformance suite against Vault
 - [ ] P2-03 Push phase 2 and record the manual checks
