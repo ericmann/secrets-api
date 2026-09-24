@@ -23,5 +23,3 @@ site/.astro/
 # Spacefast CLI link and state. Written wherever sf publish runs from; never commit it.
 .spacefast/
 
-# Private reviewer asks; drafted locally, never committed.
-docs-review-asks.md

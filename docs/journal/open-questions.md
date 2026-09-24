@@ -29,12 +29,18 @@ provider can be stronger than the default, never weaker.
 [ADR 0001](../decisions/0001-provider-as-outermost-extension-point.md) records the discussion,
 the decision, and what shipped in 0.1.0.
 
-**What is still open:** nobody has written a real platform provider against `WP_Secrets_Provider`
-yet. The interface is shaped by hosts describing what they need rather than by anyone building
-against it, and the first real implementation will turn something up. That is what to ask for on
-the thread: not "does this look right" but "build against it and tell us what broke", and run
-the conformance suite in `tests/includes/class-wp-secrets-provider-conformance.php` to see what it
-fails to catch.
+**What has been built:** one real provider, `examples/aws-secrets-manager/`, verified against live
+AWS for set, masked read, rotation, and `--slot=previous`. Building it turned up four defects,
+none of them in the interface: a provider global of the wrong type fell through to the default
+provider instead of failing closed, `wp secret dropin` reported internals rather than the provider,
+and three WP-CLI dispatch bugs surfaced on the first end-to-end run. The two-slot version model
+mapped onto `AWSCURRENT`/`AWSPREVIOUS` with no emulation.
+
+**What is still open:** that is one provider, written by the same hands as the interface. The
+conformance suite has not been run against it in an automated test, only described in its README,
+and no host has built against `WP_Secrets_Provider` independently. A keyring backed by a
+key-management service, which `examples/README.md` recommends as the first integration to write,
+has no example at all.
 
 ---
 
