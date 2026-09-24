@@ -26,3 +26,86 @@ those do not.
   automatically through `.github/workflows/docs-publish.yml`.
 - Never change Space access settings or domains from an agent session. Those are the owner's
   decisions, made in the Spacefast dashboard.
+
+## Principles
+
+- Read `CONTRIBUTING.md` and the section above before every task. Both bind every task.
+- The design is `tests/smoke/SPEC.md`; the process is `docs/SPEC.md`. Design conflicts go to the
+  first, process conflicts to the second. Read the task's cited sections before writing.
+- `src/` is copy-ready for core: core's standard, `default` text domain, `@since 7.2.0`, no
+  `function_exists()` guards. `plugin/` and `cli/` are never copied. Do not touch `plugin/`.
+- Errors, not exceptions: public API functions return `WP_Error` or `false`, never throw.
+- No plaintext in output: a secret value or key never appears in a log line, error message, CLI
+  output (except `get --reveal`), test diagnostic, or cache.
+- Tests only get stronger: never delete, weaken, or skip one except for an environment gate.
+- Tests land in the same commit as the code they cover. One task, one commit, small and scoped.
+- Absent, present, and broken are three states. `get` exits 0, 1, 2. Never collapse them.
+- Never publish: no `sf publish`, no tag, no Spacefast changes. A human does that after merge.
+- Parallel flights `build/kms-keyring` (adds `rotate --from`, `make test-examples`) and
+  `build/vault-provider` build from the same `main`. Do not do their work; keep edits to
+  `Makefile`, `ci.yml`, `examples/README.md`, `docs/index.md`, and the journal tracking pages
+  additive and confined to this flight's own lines.
+
+## Commands
+
+- Full verification (30-minute timeout): `bin/ci-local.sh --keep`, then `make reference-check`.
+- Smoke install inside wp-env:
+  `npx @wordpress/env run --env-cwd=wp-content/plugins/cli-smoke cli env DB_HOST=mysql DB_USER=root DB_PASS=password bash bin/smoke-install.sh`
+- Smoke run inside wp-env:
+  `npx @wordpress/env run --env-cwd=wp-content/plugins/cli-smoke cli bash tests/smoke/smoke.sh`
+- One PHPUnit file: `npx @wordpress/env run --env-cwd=wp-content/plugins/cli-smoke tests-cli vendor/bin/phpunit <file>`
+- On a host with MySQL (no Docker): `make smoke` (`SMOKE_DB_NAME`, `DB_USER`, `DB_PASS`, `DB_HOST`).
+- Regenerate reference docs after a docblock change: `make reference`.
+- This worktree's wp-env ports are in the git-ignored `.wp-env.override.json`. Never edit or
+  commit it. Never run `wp-env destroy`.
+
+## Module map
+
+- `src/wp-includes/`: the API as it ships in core. `secrets.php` (functions, error codes,
+  provider resolution), `WP_Secret`, `WP_Secret_Version`, the three interfaces
+  (`WP_Secrets_Provider`, `WP_Secrets_Store`, `WP_Secrets_Keyring`), the libsodium provider,
+  option store, config keyring, key manager, cipher, and the three `Broken_*` fail-closed classes.
+- `src/wp-admin/includes/secrets-site-health.php`: Site Health tests and debug info.
+- `secrets-api.php`: bootstrap, the no-op gate, `wp_secrets_api_load_dropin()`.
+- `plugin/`: prototype legacy reader, migrator, fallback store. Do not touch.
+- `cli/`: `WP_CLI_Secret_Command` (11 subcommands) and its network subclass.
+- `tests/phpunit/`, `tests/includes/`: PHPUnit suite, mocks, conformance suite.
+- `tests/smoke/smoke.sh`: the bash harness this flight builds. `bin/smoke-install.sh`: its
+  throwaway install in `.smoke/` (git-ignored).
+- `examples/<name>/`: single-file drop-ins, excluded from lint. `docs/`: the published site source.
+
+## Constraints
+
+Each line that is a single-line pattern is also a rule in `docs/foundry.json` `constraints`.
+
+- No `set -x` / `xtrace` in `bin/smoke-install.sh` or `tests/smoke/smoke.sh`.
+- No bash-4-only syntax (`declare -A`, `mapfile`, `readarray`, `${x,,}`) in the smoke scripts.
+- No bare `wp` in the smoke scripts; only `"${WP[@]}"` (pinned phar, `--path`, `-d display_errors=stderr`).
+- No `wp-env` or `npx` inside the smoke scripts.
+- The smoke database is never assigned or defaulted to `wordpress_test`.
+- A TAP diagnostic (`not_ok`, `diag`) never interpolates `$OUT`, a `VALUE*`, `KEY*`, `OLD`, or `NEW`.
+- No `wp-env destroy` and no literal `8930`/`8931` in `bin/`, `tests/`, `Makefile`, `.github/`.
+- No `sf publish`, `git tag`, or `git push --tags` in `bin/`, `tests/`, `Makefile`, `ci.yml`.
+- Every `uses:` in `.github/workflows/` is a 40-hex SHA pin.
+- No `apply_filters(` and no `function_exists('wp_…')`/`class_exists('WP_…')` under `src/`.
+- Every `phpcs:ignore`/`phpcs:disable` carries ` -- reason` on the same line.
+- Reviewer checks by reading: no plaintext or key in any output path; the three interface files
+  have no signature change (`git diff main -- src/wp-includes/interface-*.php` is empty or
+  docblock-only); spec pages keep exactly three sections; the `# Working in this repository`
+  section above is verbatim; edits to shared files are additive; no test weakened; `.smoke/`
+  and `.wp-env.override.json` are untracked (`git ls-files`); `docs/reference/{functions,
+  classes,hooks,wp-cli}.md` change only via `make reference`; nothing private under `docs/`.
+
+## Commit template
+
+Title: `<ID>: <imperative title>`. Body wrapped at 72 columns:
+
+```
+Goal: <one sentence>
+Tests: <files, assertion counts, and any negative check performed>
+Interpretation: <where the spec allowed two readings, which was taken>
+Measurement: <only for a tuning task; before and after>
+Manual check: <NOT VERIFIED (human) plus the list, or "none">
+```
+
+`docs/SPEC.md` and `tests/smoke/SPEC.md` win over `docs/PLAN.md`, which wins over code comments.
