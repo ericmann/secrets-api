@@ -310,6 +310,23 @@ final class AWS_Secrets_Manager_Provider implements WP_Secrets_Provider {
 	}
 
 	/**
+	 * The scope prefix for the current request: `wp-network/` for network
+	 * scope, or `wp/site/<blog_id>/` for site scope. Site scope is per site
+	 * because the shipped provider's option store is per site; a flat `wp/`
+	 * prefix would make every blog on a network share one secret.
+	 *
+	 * Read at call time (not cached), so a `switch_to_blog()` mid-request is
+	 * honoured.
+	 *
+	 * @param bool $network Whether this is network scope.
+	 *
+	 * @return string
+	 */
+	private function scope_prefix( $network ) {
+		return $network ? 'wp-network/' : 'wp/site/' . get_current_blog_id() . '/';
+	}
+
+	/**
 	 * Secrets Manager names allow alphanumerics and /_+=.@- so a namespaced
 	 * WordPress name maps across unchanged. Network-scope secrets get a prefix so
 	 * they cannot collide with a site-scope secret of the same name.
@@ -320,7 +337,7 @@ final class AWS_Secrets_Manager_Provider implements WP_Secrets_Provider {
 	 * @return string
 	 */
 	private function aws_name( $name, $network ) {
-		return ( $network ? 'wp-network/' : 'wp/' ) . $name;
+		return $this->scope_prefix( $network ) . $name;
 	}
 
 	/**
@@ -332,7 +349,7 @@ final class AWS_Secrets_Manager_Provider implements WP_Secrets_Provider {
 	 * @return string|null
 	 */
 	private function wp_name( $aws_name, $network ) {
-		$prefix = $network ? 'wp-network/' : 'wp/';
+		$prefix = $this->scope_prefix( $network );
 
 		if ( 0 !== strpos( $aws_name, $prefix ) ) {
 			return null;

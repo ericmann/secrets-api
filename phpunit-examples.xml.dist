@@ -14,6 +14,7 @@
 	<testsuites>
 		<testsuite name="examples">
 			<directory prefix="test-" suffix=".php">examples/vault-provider/tests</directory>
+			<directory prefix="test-" suffix=".php">examples/aws-secrets-manager/tests</directory>
 		</testsuite>
 	</testsuites>
 </phpunit>
