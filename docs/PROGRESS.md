@@ -4,7 +4,7 @@ Started: 2026-09-24T20:46:46.009Z
 
 ## Tasks
 - [x] P1-01 Add the examples PHPUnit harness and the Vault test helper
-- [ ] P1-02 Add the `examples` CI job with a Vault service container
+- [x] P1-02 Add the `examples` CI job with a Vault service container
 - [ ] P1-03 Push phase 1 and record the manual checks
 - [ ] P2-01 Add the Vault KV v2 provider skeleton with path mapping, HTTP client, `get()`, and `delete()`
 - [ ] P2-02 Implement `set()`, `retire_previous()`, and a minimal `list_secrets()`; run the conformance suite against Vault
@@ -37,3 +37,15 @@ Examples suite (both passes) green: 3/3 tests each.
 wp-env for this worktree started on ports 8920/8921 (via existing
 .wp-env.override.json, untouched).
 bin/ci-local.sh --keep and make reference-check both pass.
+
+### P1-02 — 314a8a6
+Job `examples`: needs: static, mysql + vault service containers, PHP
+8.3, make install then make test-examples with VAULT_ADDR=
+http://127.0.0.1:8200 and VAULT_TOKEN=dev-root. Vault service image
+pinned to the same digest as the Makefile comment (P1-01):
+sha256:47f14a6acb98f48d798a07df7c83f23a6e636e1cf724c5f8ff165cb32667a1e2.
+Comment above the job avoids repeating the digest as a literal string
+so grep -c 'hashicorp/vault@sha256:' stays 1 per file (Verification
+requirement); it instead points at the image: line.
+YAML validated with js-yaml (python3 had no PyYAML available).
+No existing job touched.
