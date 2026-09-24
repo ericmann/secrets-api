@@ -24,8 +24,15 @@ final class Vault_Test_Server {
 	/** @var string */
 	private $mount;
 
-	public function __construct() {
-		$addr = getenv( 'VAULT_ADDR' );
+	/**
+	 * @param string|null $addr Vault address override; falls back to VAULT_ADDR,
+	 *                          then 'http://127.0.0.1:8200'. The token always
+	 *                          comes from the environment.
+	 */
+	public function __construct( $addr = null ) {
+		if ( null === $addr ) {
+			$addr = getenv( 'VAULT_ADDR' );
+		}
 		$this->addr  = rtrim( $addr ? $addr : 'http://127.0.0.1:8200', '/' );
 		$token       = getenv( 'VAULT_TOKEN' );
 		$this->token = $token ? $token : 'dev-root';
@@ -74,7 +81,15 @@ final class Vault_Test_Server {
 		);
 
 		if ( is_wp_error( $response ) ) {
-			return array( 'code' => 0, 'body' => null );
+			PHPUnit\Framework\Assert::fail(
+				sprintf(
+					'%s %s/v1/%s: %s',
+					$method,
+					$this->addr,
+					$path,
+					$response->get_error_message()
+				)
+			);
 		}
 
 		$code    = (int) wp_remote_retrieve_response_code( $response );
@@ -103,6 +118,12 @@ final class Vault_Test_Server {
 
 		if ( 404 === $result['code'] ) {
 			return null;
+		}
+
+		if ( 200 !== $result['code'] ) {
+			PHPUnit\Framework\Assert::fail(
+				sprintf( 'GET %s/v1/%s/metadata/%s: unexpected HTTP %d', $this->addr, $this->mount, $vault_path, $result['code'] )
+			);
 		}
 
 		return isset( $result['body']['data'] ) ? $result['body']['data'] : null;
@@ -160,6 +181,12 @@ final class Vault_Test_Server {
 			return array();
 		}
 
+		if ( 200 !== $result['code'] ) {
+			PHPUnit\Framework\Assert::fail(
+				sprintf( 'GET %s/v1/%s/metadata/%s?list=true: unexpected HTTP %d', $this->addr, $this->mount, $vault_path, $result['code'] )
+			);
+		}
+
 		return isset( $result['body']['data']['keys'] ) ? $result['body']['data']['keys'] : array();
 	}
 
@@ -189,7 +216,13 @@ final class Vault_Test_Server {
 				continue;
 			}
 
-			$this->request( 'DELETE', "{$this->mount}/metadata/{$full}" );
+			$result = $this->request( 'DELETE', "{$this->mount}/metadata/{$full}" );
+
+			if ( 204 !== $result['code'] ) {
+				PHPUnit\Framework\Assert::fail(
+					sprintf( 'DELETE %s/v1/%s/metadata/%s: unexpected HTTP %d', $this->addr, $this->mount, $full, $result['code'] )
+				);
+			}
 		}
 	}
 }

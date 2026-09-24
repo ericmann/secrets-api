@@ -43,4 +43,20 @@ class Tests_Vault_Harness extends WP_UnitTestCase {
 		$this->assertSame( array(), $this->server->list_keys( 'wp/' ) );
 		$this->assertNull( $this->server->metadata( 'wp/site/1/harness/one' ) );
 	}
+
+	public function test_the_helper_fails_loudly_when_vault_is_unreachable() {
+		$helper = new Vault_Test_Server( 'http://127.0.0.1:1' );
+
+		$this->expectException( PHPUnit\Framework\AssertionFailedError::class );
+
+		$helper->metadata( 'wp/site/1/acme/key' );
+	}
+
+	public function test_wipe_fails_loudly_when_vault_is_unreachable() {
+		$helper = new Vault_Test_Server( 'http://127.0.0.1:1' );
+
+		$this->expectException( PHPUnit\Framework\AssertionFailedError::class );
+
+		$helper->wipe();
+	}
 }
