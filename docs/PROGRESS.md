@@ -18,7 +18,7 @@ Started: 2026-09-24T20:47:35.233Z
 - [x] P5-02 Wire smoke into make ci, bin/ci-local.sh, and a smoke CI job
 - [x] P5-03 Push phase 5 and record the manual check
 - [x] P6-01 Prove each historical bug fails the smoke test
-- [ ] P6-02 Push phase 6 and record the manual check
+- [x] P6-02 Push phase 6 and record the manual check
 - [ ] P7-01 Update the coverage gaps, the spec pages, and the detailed spec's status
 - [ ] P7-02 Document make smoke in the README and the CI reference
 - [ ] P7-03 Write the journal entry and link it from the index
@@ -432,3 +432,13 @@ synopsis row, migrate-legacy --dry-run). Full text in the commit.
 git diff --stat HEAD -- cli/ empty before committing. Final green
 run: 139/139, exit 0. bin/ci-local.sh --keep and make reference-check
 both clean.
+
+### P6-02 — 3b9e557
+Pushed build/cli-smoke to origin (f4df960..01f0253, fast-forward, no
+force) before this empty task commit; pushed again after.
+git log -1 --format=%B on 31961a1 (P6-01) shows the three quoted
+not-ok groups (bug 1: 4 failures, bug 2: 9 failures, bug 3: 4
+failures).
+
+Manual check: NOT VERIFIED (human): a reader confirms the commit
+message evidence matches the detailed spec's three bugs one to one.
