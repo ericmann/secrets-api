@@ -10,7 +10,7 @@ Started: 2026-09-24T20:46:16.429Z
 - [x] P1-02 Document root-key caching: examples README, spec page, ADR 0009
 - [x] P1-03 Push phase 1
 - [x] P2-01 Generalise wp secret rotate with --from and re-wrap under the active keyring
-- [ ] P2-02 Push phase 2
+- [x] P2-02 Push phase 2
 - [ ] P3-01 Add the examples PHPUnit harness, Moto, and the AWS Secrets Manager conformance run
 - [ ] P3-02 Add the examples CI job with a pinned Moto service container
 - [ ] P3-03 Push phase 3
@@ -135,3 +135,8 @@ confined to that file). Verified `wp help secret rotate` synopsis is
 container.
 
 bin/ci-local.sh --keep and make reference-check both green, 481 tests.
+
+### P2-02 — 565e4d2
+Pushed build/kms-keyring to origin (565e4d2).
+Manual check: none required by SPEC (wp help secret rotate output is in
+the P2-01 commit).
