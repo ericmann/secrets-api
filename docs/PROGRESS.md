@@ -11,7 +11,7 @@ Started: 2026-09-24T20:46:46.009Z
 - [x] P2-03 Push phase 2 and record the manual checks
 - [x] P3-01 Prove strict N-1 and destroy-on-retire against the live server
 - [x] P3-02 Push phase 3 and record the manual checks
-- [ ] P4-01 Store `needs_rotation` in `custom_metadata` and fill in listing metadata
+- [x] P4-01 Store `needs_rotation` in `custom_metadata` and fill in listing metadata
 - [ ] P4-02 Multisite isolation, sealed-or-unreachable behaviour, and the timeout measurement
 - [ ] P4-03 Push phase 4 and record the manual checks
 - [ ] P5-01 Map AWS site scope to `wp/site/<blog_id>/<name>` and test it by capturing the request
@@ -121,3 +121,16 @@ Manual check: NOT VERIFIED (human)
    `wp secret set` again, `wp secret retire --yes`, then
    `wp secret get --slot=previous` reports absence, and
    `vault kv metadata get` shows the retired version destroyed.
+
+### P4-01 — b58fe16
+flag_is_set()/write_flag() added; the literal '1'/'0' string appears
+only inside those two methods (grep-verified). set() compares wanted
+vs. had (from the metadata read at the top of set()) and writes the
+flag only on change, after the wp_secret_changed action fires; a
+failed write while requested returns WP_Error (value already landed);
+a failed clear is error_log()'d (path + Vault's message, never the
+value) and ignored. list_secrets() now does one GET metadata per
+listed key; a 404 between LIST and GET is skipped, not an error.
+9 tests added to Tests_Vault_Provider, all green, both wp-env passes
+(56 tests, 1 skipped by conformance base class).
+bin/ci-local.sh --keep and make reference-check pass.
