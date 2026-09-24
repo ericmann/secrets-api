@@ -6,7 +6,7 @@ Started: 2026-09-24T20:46:46.009Z
 - [x] P1-01 Add the examples PHPUnit harness and the Vault test helper
 - [x] P1-02 Add the `examples` CI job with a Vault service container
 - [x] P1-03 Push phase 1 and record the manual checks
-- [ ] P2-01 Add the Vault KV v2 provider skeleton with path mapping, HTTP client, `get()`, and `delete()`
+- [x] P2-01 Add the Vault KV v2 provider skeleton with path mapping, HTTP client, `get()`, and `delete()`
 - [ ] P2-02 Implement `set()`, `retire_previous()`, and a minimal `list_secrets()`; run the conformance suite against Vault
 - [ ] P2-03 Push phase 2 and record the manual checks
 - [ ] P3-01 Prove strict N-1 and destroy-on-retire against the live server
@@ -59,3 +59,16 @@ Manual check: NOT VERIFIED (human)
 2. The pinned digest
    sha256:47f14a6acb98f48d798a07df7c83f23a6e636e1cf724c5f8ff165cb32667a1e2
    resolves on Docker Hub to a current 1.x release.
+
+### P2-01 — 9224e40
+Vault_KV2_Provider added (445 lines). request() returns decoded 'data'
+array on 2xx (empty array for 204), null on 404, WP_Error otherwise
+(403/503 both map to WP_SECRETS_ERROR_STORE_UNAVAILABLE). get()
+handles CURRENT and PREVIOUS via previous_version() (strict N-1, null
+when missing/soft-deleted/destroyed). delete() fires wp_secret_changed
+with 'deleted'. set()/retire_previous()/list_secrets() return
+WP_Error('Not implemented.') -- deliberate per task text, closed in
+P2-02; called out here so the reviewer doesn't read it as a defect.
+Vault_Test_Server::provider() added.
+19 offline tests green, both wp-env passes. bin/ci-local.sh --keep
+and make reference-check pass.
