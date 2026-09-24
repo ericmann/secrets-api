@@ -607,13 +607,56 @@ case_d_dropin() {
 # --- multisite conversion ---
 
 convert_to_multisite() {
-	:
+	run "${WP[@]}" core multisite-convert --title="Secrets API smoke network"
+	assert_status 0 "multisite-convert exits 0"
+
+	run "${WP[@]}" plugin activate secrets-api --network
+	assert_status 0 "plugin activate secrets-api --network exits 0"
+
+	SITE2_ID="$("${WP[@]}" site create --slug=smoke2 --porcelain)"
+	SITE2_URL="$("${WP[@]}" site list --blog_id="$SITE2_ID" --field=url)"
+	if [ -n "$SITE2_URL" ]; then
+		ok "site create --slug=smoke2 produced a non-empty URL"
+	else
+		not_ok "site create --slug=smoke2 produced a non-empty URL" "SITE2_URL was empty"
+	fi
+	export SITE2_ID SITE2_URL
 }
 
 # --- case E: multisite ---
 
 case_e_multisite() {
-	:
+	local VN="smoke-value-network-$$" VS="smoke-value-site2-$$"
+
+	run "${WP[@]}" network-secret set "${NS}/net" "$VN"
+	assert_status 0 "network-secret set ${NS}/net exits 0"
+
+	run "${WP[@]}" network-secret get "${NS}/net" --reveal --field=value
+	assert_status 0 "network-secret get ${NS}/net --reveal --field=value exits 0"
+	assert_out_eq "$VN" "network-secret round-trips"
+
+	run "${WP[@]}" network-secret get "${NS}/net" --reveal --field=value --url="$SITE2_URL"
+	assert_status 0 "network-secret get ${NS}/net from site 2 exits 0"
+	assert_out_eq "$VN" "network scope is visible from every site"
+
+	run "${WP[@]}" secret set "${NS}/site" "$VS" --url="$SITE2_URL"
+	assert_status 0 "secret set ${NS}/site --url=site2 exits 0"
+
+	run "${WP[@]}" secret get "${NS}/site"
+	assert_status 1 "a site-2 secret is invisible from site 1"
+
+	run "${WP[@]}" secret get "${NS}/site" --url="$SITE2_URL" --reveal --field=value
+	assert_status 0 "secret get ${NS}/site --url=site2 --reveal --field=value exits 0"
+	assert_out_eq "$VS" "the site-2 secret round-trips from site 2"
+
+	run "${WP[@]}" network-secret health --format=json
+	assert_status 0 "network-secret health --format=json exits 0"
+	local json_file
+	json_file="$(mktemp)"
+	printf '%s' "$OUT" >"$json_file"
+	run php -r 'exit( null === json_decode( file_get_contents( $argv[1] ), true ) ? 1 : 0 );' -- "$json_file"
+	assert_status 0 "network-secret health --format=json is valid JSON"
+	rm -f "$json_file"
 }
 
 # --- main ---
