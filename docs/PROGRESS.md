@@ -7,7 +7,7 @@ Started: 2026-09-24T20:47:35.233Z
 - [x] P1-02 Push phase 1 and record the manual check
 - [x] P2-01 Create smoke.sh with the TAP helpers and the has-command matrix
 - [x] P2-02 Check the flag table exactly and pin the --version cause
-- [ ] P2-03 Push phase 2 and record the manual check
+- [x] P2-03 Push phase 2 and record the manual check
 - [ ] P3-01 Cover set and get, masking, stdin, porcelain, slots, and JSON
 - [ ] P3-02 Cover list filters, retire, delete, absence, keys, health, dropin, import, migrate, and the single-site refusal
 - [ ] P3-03 Push phase 3 and record the manual check
@@ -99,3 +99,10 @@ constant") that the looser pattern matched as a zero-letter flag.
 
 network-secret's synopsis is untested here, per Decisions ("checked
 for secret only").
+
+### P2-03 — a874194
+Pushed build/cli-smoke to origin. No code changes.
+
+Push: done (origin/build/cli-smoke).
+Manual check: NOT VERIFIED (human)
+- make smoke on a host without Docker runs case A green.
