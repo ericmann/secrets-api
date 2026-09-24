@@ -9,7 +9,195 @@
       "timeoutMs": 120000
     }
   ],
+  "extraVerify": {},
+  "build": [],
   "baseBranch": "main",
   "branchPrefix": "build/",
-  "permissionMode": "auto"
+  "permissionMode": "auto",
+  "maxRounds": 3,
+  "maxRoundsHard": 6,
+  "constraints": [
+    {
+      "id": "no-filters-in-src",
+      "description": "No apply_filters() anywhere under src/. A filter that can see a credential is a filter that can steal one; the architectural test says the same, this makes the reviewer's check mechanical.",
+      "paths": ["src/"],
+      "pattern": "\\bapply_filters\\s*\\(",
+      "shouldMatch": [
+        "$value = apply_filters( 'wp_secret_value', $value );",
+        "return apply_filters('secrets_provider',$provider);"
+      ],
+      "shouldNotMatch": [
+        "do_action( 'wp_secret_changed', $name, $action );",
+        "// there is no filter anywhere in core-bound code"
+      ]
+    },
+    {
+      "id": "no-self-guard-in-src",
+      "description": "src/ never guards one of its own wp_*/WP_* symbols with function_exists()/class_exists(); the no-op decision lives in secrets-api.php alone. Probing third-party symbols (sodium_*) is fine.",
+      "paths": ["src/"],
+      "pattern": "\\b(function_exists|class_exists)\\s*\\(\\s*['\"](wp_|WP_)",
+      "shouldMatch": [
+        "if ( ! function_exists( 'wp_get_secret' ) ) {",
+        "if (class_exists(\"WP_Secret\")) {"
+      ],
+      "shouldNotMatch": [
+        "if ( function_exists( 'sodium_crypto_kdf_derive_from_key' ) ) {",
+        "// a function_exists() guard here would double as an overloading surface"
+      ]
+    },
+    {
+      "id": "no-persistent-cache-in-examples",
+      "description": "An example provider memoises within the request only. Nothing it fetches may reach the object cache, a transient, or an option row, because that would persist a plaintext more weakly than the backend protects it.",
+      "paths": ["examples/aws-secrets-manager/secrets.php", "examples/vault-provider/secrets.php"],
+      "pattern": "\\b(wp_cache_set|wp_cache_add|set_transient|set_site_transient|update_option|add_option|update_site_option|add_site_option)\\s*\\(\\s*[^\\s)]",
+      "shouldMatch": [
+        "wp_cache_set( $key, $value, 'secrets' );",
+        "set_transient('vault_' . $name, $value, 60);",
+        "update_option( '_vault_memo', $this->memo );"
+      ],
+      "shouldNotMatch": [
+        "deliberately cannot round-trip a plaintext through wp_cache_set(), and",
+        "$existing = get_option( 'blogname' );",
+        "// Request-scoped only. Never the persistent object cache."
+      ]
+    },
+    {
+      "id": "vault-timeout-is-a-constant",
+      "description": "The HTTP timeout is the ⚠️ ASSUMPTION constant Vault_KV2_Provider::REQUEST_TIMEOUT; a literal number in a request array is a tunable that was never wired to the constant.",
+      "paths": ["examples/vault-provider/"],
+      "exclude": ["examples/vault-provider/tests/"],
+      "pattern": "['\"]timeout['\"]\\s*=>\\s*[0-9]",
+      "shouldMatch": [
+        "'timeout' => 5,",
+        "\"timeout\" => 10,",
+        "'timeout'=>3"
+      ],
+      "shouldNotMatch": [
+        "'timeout' => self::REQUEST_TIMEOUT,",
+        "const REQUEST_TIMEOUT = 5;"
+      ]
+    },
+    {
+      "id": "vault-max-versions-is-a-constant",
+      "description": "max_versions is written from Vault_KV2_Provider::MAX_VERSIONS only, so the two-slot cap has exactly one home.",
+      "paths": ["examples/vault-provider/"],
+      "exclude": ["examples/vault-provider/tests/"],
+      "pattern": "['\"]max_versions['\"]\\s*=>\\s*[0-9]",
+      "shouldMatch": [
+        "'max_versions' => 2,",
+        "\"max_versions\" => 10",
+        "array( 'max_versions'=>2 )"
+      ],
+      "shouldNotMatch": [
+        "'max_versions' => self::MAX_VERSIONS,",
+        "const MAX_VERSIONS = 2;",
+        "sets `max_versions: 2` on every secret it creates"
+      ]
+    },
+    {
+      "id": "no-throw-in-examples",
+      "description": "Errors, not exceptions: an example provider returns WP_Error and never throws.",
+      "paths": ["examples/aws-secrets-manager/secrets.php", "examples/vault-provider/secrets.php"],
+      "pattern": "^\\s*throw\\s+new\\b",
+      "shouldMatch": [
+        "throw new RuntimeException( 'Vault unreachable' );",
+        "\t\tthrow new InvalidArgumentException();"
+      ],
+      "shouldNotMatch": [
+        "// never throw: a caller branching on is_wp_error() must get a WP_Error",
+        "return new WP_Error( WP_SECRETS_ERROR_STORE_UNAVAILABLE, $message );"
+      ]
+    },
+    {
+      "id": "examples-are-single-files",
+      "description": "Each example is one file with no Composer and no SDK, so it never requires or includes anything.",
+      "paths": ["examples/aws-secrets-manager/secrets.php", "examples/vault-provider/secrets.php"],
+      "pattern": "^\\s*(require|include)(_once)?\\b",
+      "shouldMatch": [
+        "require_once __DIR__ . '/vendor/autoload.php';",
+        "include 'sigv4.php';",
+        "\trequire( ABSPATH . 'wp-admin/includes/plugin.php' );"
+      ],
+      "shouldNotMatch": [
+        "// No Composer, no SDK: nothing is required from elsewhere.",
+        "$policy = 'a token without write policy is not detected in advance';"
+      ]
+    },
+    {
+      "id": "no-value-in-error-output",
+      "description": "A plaintext never appears in a WP_Error message or a log line. The provider's value variable is $value; any error or log call that mentions it is a leak.",
+      "paths": ["examples/aws-secrets-manager/secrets.php", "examples/vault-provider/secrets.php"],
+      "pattern": "(error_log|new WP_Error|_doing_it_wrong|trigger_error)\\s*\\(.*\\$value\\b",
+      "shouldMatch": [
+        "error_log( 'Vault write failed for ' . $value );",
+        "return new WP_Error( 'x', sprintf( 'could not store %s', $value ) );"
+      ],
+      "shouldNotMatch": [
+        "return new WP_Error( WP_SECRETS_ERROR_STORE_UNAVAILABLE, $message );",
+        "error_log( sprintf( 'Vault_KV2_Provider: could not clear %s on %s: %s', self::ROTATION_FLAG, $vault_path, $flag->get_error_message() ) );",
+        "$body = array( 'data' => array( 'value' => $value ) );"
+      ]
+    },
+    {
+      "id": "phpcs-ignore-needs-reason",
+      "description": "Every phpcs:ignore or phpcs:disable carries ' -- <reason>' on the same line.",
+      "paths": ["src/", "plugin/", "cli/", "tests/", "examples/", "bin/", "secrets-api.php"],
+      "pattern": "phpcs:(ignore|disable)(?!.*\\s--\\s+\\S)",
+      "shouldMatch": [
+        "// phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped",
+        "// phpcs:ignore",
+        "/* phpcs:disable WordPress.PHP.DevelopmentFunctions */"
+      ],
+      "shouldNotMatch": [
+        "// phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- fixed string, no user input.",
+        "// phpcs:disable WordPress.PHP.DevelopmentFunctions -- error_log is the documented sink for a failed clear."
+      ]
+    },
+    {
+      "id": "actions-pinned-by-sha",
+      "description": "Every GitHub Action is pinned by a full 40-character commit SHA, never a tag.",
+      "paths": [".github/workflows/"],
+      "pattern": "uses:\\s*\\S+@(?![0-9a-f]{40}\\b)",
+      "shouldMatch": [
+        "        uses: actions/checkout@v4",
+        "uses: shivammathur/setup-php@2.37.2",
+        "      - uses: actions/cache@main"
+      ],
+      "shouldNotMatch": [
+        "        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1",
+        "        uses: shivammathur/setup-php@f3e473d116dcccaddc5834248c87452386958240 # 2.37.2"
+      ]
+    },
+    {
+      "id": "vault-image-pinned-by-digest",
+      "description": "The Vault image is referenced only by sha256 digest in CI and in the Makefile's local run line, per the pin-everything rule in ci.yml.",
+      "paths": [".github/workflows/", "Makefile"],
+      "pattern": "hashicorp/vault(?!@sha256:[0-9a-f]{64}\\b)",
+      "shouldMatch": [
+        "        image: hashicorp/vault:1.17",
+        "docker run -d hashicorp/vault",
+        "image: hashicorp/vault@sha256:abc123"
+      ],
+      "shouldNotMatch": [
+        "        image: hashicorp/vault@sha256:0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
+        "# docker run -d --name secrets-api-vault -p 8201:8200 hashicorp/vault@sha256:0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
+      ]
+    },
+    {
+      "id": "never-publish-or-destroy-from-tooling",
+      "description": "CI, the Makefile, and bin/ never publish the site, create a tag, or destroy the wp-env. Publishing happens after merge, by a human.",
+      "paths": [".github/workflows/ci.yml", "Makefile", "bin/"],
+      "pattern": "\\b(sf publish|git tag|wp-env destroy)\\b",
+      "shouldMatch": [
+        "      - run: sf publish site/dist --space spc_x",
+        "\tgit tag v0.2.0",
+        "npx @wordpress/env destroy || npx wp-env destroy"
+      ],
+      "shouldNotMatch": [
+        "      - run: make test-examples",
+        "\"${WP_ENV[@]}\" stop >/dev/null 2>&1 || true",
+        "# Every action is pinned by full commit SHA rather than by tag."
+      ]
+    }
+  ]
 }
