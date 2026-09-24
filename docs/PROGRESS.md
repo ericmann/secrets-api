@@ -12,7 +12,7 @@ Started: 2026-09-24T20:46:16.429Z
 - [x] P2-01 Generalise wp secret rotate with --from and re-wrap under the active keyring
 - [x] P2-02 Push phase 2
 - [x] P3-01 Add the examples PHPUnit harness, Moto, and the AWS Secrets Manager conformance run
-- [ ] P3-02 Add the examples CI job with a pinned Moto service container
+- [x] P3-02 Add the examples CI job with a pinned Moto service container
 - [ ] P3-03 Push phase 3
 - [ ] P4-01 Write the AWS KMS keyring example and run the keyring conformance suite against Moto
 - [ ] P4-02 Prove the KMS keyring end to end: round trip, one Decrypt per request, the adoption error, and adoption via rotate --from=config
@@ -167,3 +167,22 @@ make test-examples.
 15 tests green via wp-env tests-cli (1 skipped: read-only-refuses-writes,
 correctly skipped for a writable provider). bin/ci-local.sh --keep and
 make reference-check both green, main suites unaffected (481 tests).
+
+### P3-02 — 95c54fb
+Added the `examples` job to .github/workflows/ci.yml, appended after
+test-multisite (needs: static, mysql service block identical to
+test-multisite, moto service pinned by digest
+sha256:91fd602a21f49cf9eb82fdf474015a3c131d40104c8297ea6a2ca920708ae32c on
+port 5000, env WP_SECRETS_TEST_AWS_ENDPOINT=http://127.0.0.1:5000). Same
+checkout/setup-php/composer-cache/make-install steps as test-multisite
+using the file's existing pinned action SHAs, then a 30x1s "Wait for
+Moto" curl loop, then make test-examples. Comment explains why it is
+outside make ci and that examples/ stays unlinted.
+
+docs/reference/ci.md (hand-written, not generated) gained the examples
+row in the Matrix table and one sentence in "Where this runs" naming it
+the only job with a non-database service.
+
+Verified: ruby -ryaml parses the file; the grep for the digest matches
+`docker inspect secrets-api-moto-kms --format '{{.Config.Image}}'`.
+bin/ci-local.sh --keep and make reference-check both green.
