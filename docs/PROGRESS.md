@@ -21,7 +21,7 @@ Started: 2026-09-24T20:46:46.009Z
 - [x] P6-03 Update the journal tracking pages, write the journal entry, and index both
 - [x] P6-04 Push phase 6, remove the Vault container, and record the manual checks
 - [x] R1-01 Preserve other custom_metadata keys when writing the rotation flag, and tighten the Vault provider's docblocks and unreachable test
-- [ ] R1-02 Make Vault_Test_Server fail loudly when Vault is unreachable instead of reporting absence
+- [x] R1-02 Make Vault_Test_Server fail loudly when Vault is unreachable instead of reporting absence
 - [ ] R1-03 Correct the Vault README, tracking page, root README, Makefile and ci.yml comments, and guard against leaked task IDs
 
 ## Log
@@ -301,3 +301,24 @@ WP_SECRETS_ERROR_STORE_UNAVAILABLE for get/list_secrets/delete.
 
 Verified: php -l both files, grep for task IDs empty, bin/ci-local.sh --keep
 green (single site + multisite, 456 tests each), make reference-check green.
+
+### R1-02 — 46eec67
+Vault_Test_Server now fails loudly instead of collapsing errors into
+absence: request() calls PHPUnit\Framework\Assert::fail() with method,
+URL, and error message on WP_Error from wp_remote_request(); metadata()
+and list_keys() still return null/array() on 404 (true absence) but
+fail on any other unexpected HTTP code; wipe_recursive() fails on a
+non-204 DELETE. Added optional constructor arg $addr = null (falls back
+to VAULT_ADDR then 'http://127.0.0.1:8200'); token still always comes
+from env. Existing callers (server->provider() etc.) pass nothing.
+
+Tests: added test_the_helper_fails_loudly_when_vault_is_unreachable and
+test_wipe_fails_loudly_when_vault_is_unreachable to Tests_Vault_Harness,
+using Vault_Test_Server('http://127.0.0.1:1') and
+expectException(PHPUnit\Framework\AssertionFailedError::class).
+
+Verified: started the pinned Vault dev container (digest from Makefile
+comment) and ran phpunit-examples.xml.dist both single-site and
+multisite via wp-env -- 70/70 green each pass, including new tests.
+bin/ci-local.sh --keep and make reference-check green. Removed the
+Vault container afterward (it did not exist before this task).
