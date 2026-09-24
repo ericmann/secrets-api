@@ -337,8 +337,15 @@ case_b_behaviour() {
 	run "${WP[@]}" secret set "${NS}-b/other" "$v1"
 	assert_status 0 "set ${NS}-b/other exits 0"
 
+	run "${WP[@]}" secret list
+	assert_status 0 "list exits 0"
+	assert_out_not_contains "$v1" "list never shows a value"
+	assert_out_not_contains "$v2" "list never shows a value (second value)"
+
 	run "${WP[@]}" secret list --format=json
 	assert_status 0 "list --format=json exits 0"
+	assert_out_not_contains "$v1" "list --format=json never shows a value"
+	assert_out_not_contains "$v2" "list --format=json never shows a value (second value)"
 	json_file="$(mktemp)"
 	printf '%s' "$OUT" >"$json_file"
 	run php -r 'exit( null === json_decode( file_get_contents( $argv[1] ), true ) ? 1 : 0 );' -- "$json_file"
@@ -351,6 +358,8 @@ case_b_behaviour() {
 		name,*) ok "list --format=csv starts with a name column" ;;
 		*) not_ok "list --format=csv starts with a name column" "first bytes of output did not start with name," ;;
 	esac
+	assert_out_not_contains "$v1" "list --format=csv never shows a value"
+	assert_out_not_contains "$v2" "list --format=csv never shows a value (second value)"
 
 	run "${WP[@]}" secret list --fields=name,fingerprint --format=csv
 	assert_status 0 "list --fields=name,fingerprint --format=csv exits 0"
@@ -473,7 +482,16 @@ case_c_rotation() {
 	new="$("${WP[@]}" secret generate-key)"
 	run "${WP[@]}" config set WP_SECRETS_KEY "$new" --type=constant --quiet
 	assert_status 0 "config set WP_SECRETS_KEY to a new value exits 0"
-	unset old new
+
+	local current_key previous_key
+	current_key="$("${WP[@]}" config get WP_SECRETS_KEY)"
+	previous_key="$("${WP[@]}" config get WP_SECRETS_KEY_PREVIOUS)"
+	if [ "$current_key" != "$previous_key" ]; then
+		ok "WP_SECRETS_KEY differs from WP_SECRETS_KEY_PREVIOUS before rotate"
+	else
+		not_ok "WP_SECRETS_KEY differs from WP_SECRETS_KEY_PREVIOUS before rotate" "the two config values were equal"
+	fi
+	unset old new current_key previous_key
 
 	# 3. rotate --yes now succeeds.
 	run "${WP[@]}" secret rotate --yes
