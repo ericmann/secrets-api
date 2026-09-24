@@ -5,7 +5,7 @@ Started: 2026-09-24T20:46:46.009Z
 ## Tasks
 - [x] P1-01 Add the examples PHPUnit harness and the Vault test helper
 - [x] P1-02 Add the `examples` CI job with a Vault service container
-- [~] P1-03 Push phase 1 and record the manual checks
+- [x] P1-03 Push phase 1 and record the manual checks
 - [ ] P2-01 Add the Vault KV v2 provider skeleton with path mapping, HTTP client, `get()`, and `delete()`
 - [ ] P2-02 Implement `set()`, `retire_previous()`, and a minimal `list_secrets()`; run the conformance suite against Vault
 - [ ] P2-03 Push phase 2 and record the manual checks
@@ -49,3 +49,13 @@ so grep -c 'hashicorp/vault@sha256:' stays 1 per file (Verification
 requirement); it instead points at the image: line.
 YAML validated with js-yaml (python3 had no PyYAML available).
 No existing job touched.
+
+### P1-03 — 6e34962
+Push: git push -u origin build/vault-provider succeeded (new branch,
+tracking origin/build/vault-provider).
+Manual check: NOT VERIFIED (human)
+1. The `examples` job is green on GitHub Actions for this branch's
+   draft PR, including the Vault service health check.
+2. The pinned digest
+   sha256:47f14a6acb98f48d798a07df7c83f23a6e636e1cf724c5f8ff165cb32667a1e2
+   resolves on Docker Hub to a current 1.x release.
