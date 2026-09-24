@@ -53,13 +53,10 @@ discover them fresh. All three held:
   said nothing about it. It does now, and the conformance suite checks it.
 
 What only building the example showed, rather than what was predicted going in: `Mock_Keyring`,
-the test double the conformance suite and dozens of other tests lean on, is weaker than the
-contract it stands in for. It is a fine stand-in for "some keyring" in a unit test, but it is not
-signed request over a network, has no timeout to fail closed on, and cannot demonstrate the
-`kms1:`-prefix adoption error a real drop-in has to produce. Writing a real implementation against
-the same interface is what surfaced that gap; it is recorded in
-[`open-questions.md`](open-questions.md#host-and-platform-providers) alongside the fact that no
-host has built against `WP_Secrets_Keyring` independently yet either.
+the test double the conformance suite and dozens of other tests lean on, was deterministic and
+returned `false` on a failed decode, so it failed the keyring contract the new conformance suite
+checks. P0-01 made it non-deterministic with an integrity tag and `WP_Error` on every failure, and
+it now passes the suite it stands in for.
 
 ## What I left out
 

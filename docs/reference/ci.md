@@ -78,8 +78,8 @@ hosted pipeline.
 latest / trunk matrix, plus a multisite job. `shivammathur/setup-php` provides the interpreter and
 asks for the `sodium` extension by name. The whole API is built on libsodium, so relying on
 whatever the runner image happens to ship wasn't good enough. The `examples` job is the only one
-with a non-database service container: a pinned Moto instance the AWS Secrets Manager example runs
-its conformance suite against.
+with a non-database service container: a pinned Moto instance the AWS Secrets Manager provider
+conformance run and the AWS KMS keyring conformance and integration tests both run against.
 
 The workflow declares `permissions: contents: read`. Nothing in it writes to the repository,
 publishes anything, or needs a token beyond reading the code under test.

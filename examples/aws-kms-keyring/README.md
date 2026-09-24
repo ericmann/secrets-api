@@ -186,11 +186,12 @@ The fifth constructor argument, `$endpoint`, points the keyring at Moto instead 
 is what `WP_SECRETS_AWS_ENDPOINT` sets when defined, and it is never set in production.
 `phpunit-examples.xml.dist` already points `WP_SECRETS_TEST_AWS_ENDPOINT` at
 `http://host.docker.internal:5051`, which is where the tests-cli container reaches a Moto
-container published on the host. Then:
+container published on the host. Then, run from the repository root so `$(basename "$PWD")`
+resolves to the plugin's directory name:
 
 ```sh
-npx @wordpress/env run --env-cwd=wp-content/plugins/kms-keyring tests-cli vendor/bin/phpunit -c phpunit-examples.xml.dist
+npx @wordpress/env run --env-cwd="wp-content/plugins/$(basename "$PWD")" tests-cli vendor/bin/phpunit -c phpunit-examples.xml.dist
 ```
 
-or, without wp-env, `make test-examples`. Not part of `make ci`: it needs Moto running, which CI
-does not provide by default.
+or, without wp-env, `make test-examples`. Not part of `make ci`: it needs Moto running, and the
+separate examples CI job runs it against a pinned Moto service container.

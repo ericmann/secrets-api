@@ -92,8 +92,9 @@ docker run -d --name secrets-api-moto-kms -p 5051:5000 motoserver/moto:latest
 curl -sf http://localhost:5051/moto-api/   # 200 once it is up
 ```
 
-Then `make test-examples`, or, under wp-env,
-`npx @wordpress/env run --env-cwd=wp-content/plugins/kms-keyring tests-cli vendor/bin/phpunit -c phpunit-examples.xml.dist`.
+Then `make test-examples`, or, under wp-env, run from the repository root so `$(basename "$PWD")`
+resolves to the plugin's directory name:
+`npx @wordpress/env run --env-cwd="wp-content/plugins/$(basename "$PWD")" tests-cli vendor/bin/phpunit -c phpunit-examples.xml.dist`.
 This is outside `make ci`: it needs Moto running, a service container the other CI environments
 do not provide.
 
