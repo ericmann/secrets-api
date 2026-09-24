@@ -7,6 +7,13 @@ by the plugin; you copy one into a `wp-content/secrets.php` drop-in. They're exc
 This will probably become a submodule once there's more than one, which is why it sits at the top
 level instead of under `docs/`.
 
+## Examples in this directory
+
+- [`aws-kms-keyring/`](aws-kms-keyring/README.md) — a `WP_Secrets_Keyring`. AWS KMS holds the
+  root key; secrets stay in WordPress's own options tables.
+- [`aws-secrets-manager/`](aws-secrets-manager/README.md) — a `WP_Secrets_Provider`. AWS Secrets
+  Manager holds the secret itself; WordPress becomes a consumer rather than a custodian.
+
 ## Which interface do you need?
 
 Worth getting right before you write anything. **A key-management service is not a secret store**,
@@ -74,7 +81,23 @@ something absent succeeding, fingerprints staying stable for the same value, lis
 containing a plaintext, and a read-only declaration actually being honoured. See
 [`../docs/spec/extension-points.md`](../docs/spec/extension-points.md).
 
+## Run the examples suite
+
+Both examples' conformance suites run against [Moto](https://github.com/getmoto/moto), an AWS
+emulator, so they run without real credentials or cost:
+
+```sh
+docker pull motoserver/moto:latest
+docker run -d --name secrets-api-moto-kms -p 5051:5000 motoserver/moto:latest
+curl -sf http://localhost:5051/moto-api/   # 200 once it is up
+```
+
+Then `make test-examples`, or, under wp-env,
+`npx @wordpress/env run --env-cwd=wp-content/plugins/kms-keyring tests-cli vendor/bin/phpunit -c phpunit-examples.xml.dist`.
+This is outside `make ci`: it needs Moto running, a service container the other CI environments
+do not provide.
+
 ## Dependencies
 
-Each binding has its own `composer.json`. The plugin's dependency tree stays clean, `make ci`
-never installs an SDK, and `examples/*/vendor/` is git-ignored.
+The examples have no Composer dependencies — that is the point of hand-rolling SigV4 instead of
+pulling in an SDK. `examples/*/vendor/` stays git-ignored for any example that ever adds one.
