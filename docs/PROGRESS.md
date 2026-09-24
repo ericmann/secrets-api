@@ -21,7 +21,7 @@ Started: 2026-09-24T20:47:35.233Z
 - [x] P6-02 Push phase 6 and record the manual check
 - [x] P7-01 Update the coverage gaps, the spec pages, and the detailed spec's status
 - [x] P7-02 Document make smoke in the README and the CI reference
-- [ ] P7-03 Write the journal entry and link it from the index
+- [x] P7-03 Write the journal entry and link it from the index
 - [ ] P7-04 Push phase 7 and record the final manual checks
 - [x] R1-01 Preserve the root key across multisite conversion
 - [x] R1-02 Make the smoke list-value and rotation assertions able to fail
@@ -478,3 +478,25 @@ one sentence under Pinning about wp-cli.phar's version+SHA-256 pin.
 Verified: grep -n 'make smoke' README.md docs/reference/ci.md shows
 both; bin/ci-local.sh --keep and make reference-check both green
 (ci.md is hand-maintained, correctly untouched by the generator).
+
+### P7-03 — b63f4e7
+Added docs/journal/2026-09-24-testing-the-cli-for-real.md: frontmatter
+title/description/date, voice matching the 4 September entry, four
+sections in order (what was built, what it found, what was
+deliberately left out, what it means for the Trac patch), linking
+tests/smoke/smoke.sh and ADR 0008. Named the --version swallow as
+the concrete finding PHPUnit could not catch, and the multisite
+root-key adoption fix (R1-01) as the one src/ change this work
+drove, with a pointer to docs/spec/network.md.
+
+docs/index.md: added the entry's line under journal/, right after
+the 0.1.0 line, same shape.
+
+tests/smoke/SPEC.md: date P7-01 already wrote (2026-09-24) matches
+today; no correction needed.
+
+Verified: head -5 shows the three frontmatter keys; grep -c
+'smoke.sh' and grep -c '0008' are each 3; grep -n
+'testing-the-cli-for-real' hits both docs/index.md and
+tests/smoke/SPEC.md; docs/journal/_drafts untouched. bin/ci-local.sh
+--keep and make reference-check both green.
