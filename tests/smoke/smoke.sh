@@ -85,6 +85,18 @@ run() {
 	ERR="$(cat "$ERR_FILE")"
 }
 
+# run_stdin <file> <cmd...>: same contract as run(), but the command's
+# stdin comes from <file> rather than the harness's own stdin. Used for
+# `set --stdin`, which cannot be piped into safely from inside a function
+# that also needs to capture stdout.
+run_stdin() {
+	local input_file="$1"
+	shift
+	STATUS=0
+	OUT="$("$@" <"$input_file" 2>"$ERR_FILE")" || STATUS=$?
+	ERR="$(cat "$ERR_FILE")"
+}
+
 # assert_status <n> "<desc>": pass when the last run()'s STATUS equals <n>.
 assert_status() {
 	local expected="$1" desc="$2"
@@ -230,7 +242,78 @@ case_a_registration() {
 # --- case B: behaviour and exit codes ---
 
 case_b_behaviour() {
-	:
+	local v1="smoke-value-one-$$" v2="smoke-value-two-$$"
+	local s="${NS}/basic"
+	local stdin_file json_file
+
+	# 1. set with a positional value.
+	run "${WP[@]}" secret set "$s" "$v1"
+	assert_status 0 "set with a positional value exits 0"
+
+	# 2. set --stdin.
+	stdin_file="$(mktemp)"
+	printf '%s\n' "$v1" >"$stdin_file"
+	run_stdin "$stdin_file" "${WP[@]}" secret set "${NS}/stdin" --stdin
+	assert_status 0 "set --stdin from a pipe exits 0"
+	rm -f "$stdin_file"
+
+	run "${WP[@]}" secret get "${NS}/stdin" --reveal --field=value
+	assert_status 0 "get ${NS}/stdin exits 0"
+	assert_out_eq "$v1" "set --stdin stores the piped value with the trailing newline trimmed"
+
+	# 3. set --porcelain.
+	run "${WP[@]}" secret set "${NS}/porcelain" "$v1" --porcelain
+	assert_status 0 "set --porcelain exits 0"
+	local porcelain_out="$OUT"
+	if [ "$(printf '%s' "$porcelain_out" | wc -l)" -eq 0 ]; then
+		ok "set --porcelain prints exactly one line"
+	else
+		not_ok "set --porcelain prints exactly one line" "output contained more than one line"
+	fi
+	run "${WP[@]}" secret get "${NS}/porcelain" --field=fingerprint
+	assert_out_eq "$porcelain_out" "set --porcelain prints only the fingerprint"
+
+	# 4. masking, --reveal, and the table.
+	run "${WP[@]}" secret get "$s"
+	assert_status 0 "get $s exits 0"
+	assert_out_not_contains "$v1" "get masks the value by default"
+
+	run "${WP[@]}" secret get "$s" --reveal --field=value
+	assert_status 0 "get $s --reveal --field=value exits 0"
+	assert_out_eq "$v1" "get --reveal --field=value prints exactly the value"
+
+	run "${WP[@]}" secret get "$s" --reveal
+	assert_status 0 "get $s --reveal exits 0"
+	assert_out_contains "$v1" "get --reveal shows the value in the table"
+
+	# 5. slots: set a second value, previous must still be the first.
+	run "${WP[@]}" secret set "$s" "$v2"
+	assert_status 0 "set $s to a second value exits 0"
+
+	run "${WP[@]}" secret get "$s" --slot=previous --reveal --field=value
+	assert_status 0 "get --slot=previous exits 0"
+	assert_out_eq "$v1" "get --slot=previous returns the demoted value (bug 1, end to end)"
+
+	run "${WP[@]}" secret get "$s" --reveal --field=value
+	assert_status 0 "get $s current slot exits 0"
+	assert_out_eq "$v2" "get with no --slot returns the current value"
+
+	# 6. --format=json.
+	run "${WP[@]}" secret get "$s" --format=json
+	assert_status 0 "get --format=json exits 0"
+	json_file="$(mktemp)"
+	printf '%s' "$OUT" >"$json_file"
+	run php -r 'exit( null === json_decode( file_get_contents( $argv[1] ), true ) ? 1 : 0 );' -- "$json_file"
+	assert_status 0 "get --format=json is valid JSON"
+	run php -r '
+		$rows = json_decode( file_get_contents( $argv[1] ), true );
+		if ( ! is_array( $rows ) || 1 !== count( $rows ) ) {
+			exit( 1 );
+		}
+		echo $rows[0]["name"];
+	' -- "$json_file"
+	assert_out_eq "$s" "get --format=json decodes to exactly one row named $s"
+	rm -f "$json_file"
 }
 
 # --- case C: rotation ---
