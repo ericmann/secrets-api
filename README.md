@@ -27,7 +27,8 @@ composer install
 bin/ci-local.sh
 ```
 
-Add `--keep` to leave the environment running between iterations.
+Add `--keep` to leave the environment running between iterations. `bin/ci-local.sh` now also runs
+the WP-CLI smoke test inside wp-env, against its own throwaway install.
 
 If you already have a WordPress test suite and a database, skip wp-env entirely:
 
@@ -48,6 +49,7 @@ target list.
 | `make test` / `make test-ms` | phpunit, single site / multisite |
 | `make coverage` | phpunit with an HTML coverage report (see `docs/journal/test-coverage-gaps.md` re: wp-env) |
 | `make reference` / `make reference-check` | regenerate `docs/reference/` from docblocks / fail if it is stale |
+| `make smoke` | provision a throwaway WordPress in `.smoke/` and drive `wp secret` / `wp network-secret` end to end (needs MySQL and network access) |
 | `make ci` | all of the above |
 
 Runners without egress to wordpress.org can point the installer at a mirror with `WP_MIRROR_BASE`
@@ -162,7 +164,8 @@ stores credentials, and a flaw in it is a flaw in the thing protecting everythin
 
 CI (`.github/workflows/ci.yml`) is a thin wrapper around the `make` targets above, running on
 github.com's hosted runners: static analysis gates a PHP 7.4/8.0/8.3 × WordPress latest/trunk
-matrix plus a multisite job. See [`docs/reference/ci.md`](docs/reference/ci.md).
+matrix plus a multisite job and a PHP 7.4/8.3 smoke job driving a real `wp` binary. See
+[`docs/reference/ci.md`](docs/reference/ci.md).
 
 ## License
 
