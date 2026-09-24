@@ -17,7 +17,7 @@ Started: 2026-09-24T20:46:46.009Z
 - [x] P5-01 Map AWS site scope to `wp/site/<blog_id>/<name>` and test it by capturing the request
 - [x] P5-02 Push phase 5 and record the manual checks
 - [x] P6-01 Write the Vault example README and update the example index, root README, and CI reference
-- [ ] P6-02 Add ADR 0009 and update the spec pages' "As built" sections
+- [x] P6-02 Add ADR 0009 and update the spec pages' "As built" sections
 - [ ] P6-03 Update the journal tracking pages, write the journal entry, and index both
 - [ ] P6-04 Push phase 6, remove the Vault container, and record the manual checks
 
@@ -222,3 +222,25 @@ under "Where this runs".
 Verified: every ../ relative link resolves except the by-design ADR 0009
 one; the pinned digest matches Makefile and ci.yml verbatim; bin/ci-local.sh
 --keep and make reference-check both pass.
+
+### P6-02 — d9ee7f3
+ADR 0009 (docs/decisions/0009-cap-a-many-version-backend-to-two-slots.md, new):
+same frontmatter/table/section shape as ADR 0008, dated today. Context: KV v2's
+integer versioning vs the API's two slots, and the two problems (hidden
+versions readable to any Vault token; "previous" undefined past two
+versions). Decision: max_versions:2 on create, PREVIOUS strictly N-1,
+destroy not soft-delete on retire. Consequences: secrets created outside the
+provider keep their own policy; retiring can leave no previous version by
+design; the undefined docblock goes to the Trac ticket via
+open-questions.md; this ADR is the record to amend if wrong in practice.
+Links the detailed spec, the README, and ADR 0008.
+Only "As built" changed on all four spec pages (code matches the proposal):
+versioning.md gained the Vault-translation paragraph pointing at
+previous_version() and ADR 0009; rotation.md's "Retiring the previous
+value" gained one sentence on destroy vs soft-delete; providers-and-keyrings.md's
+"Supporting surface" gained a sentence naming both provider examples;
+extension-points.md's conformance-suite paragraph gained a sentence on the
+Vault run as a second known-good subject.
+Verified: grep -c '^## ' reports 3 on all four pages; docs/decisions/ shows
+0009 as the only new file; the ADR link left dangling by P6-01's README now
+resolves; bin/ci-local.sh --keep and make reference-check both pass.
