@@ -66,6 +66,7 @@ directory holds everything longer than that.
 - [`0008-the-trac-ticket-replaces-thread-confirmation.md`](decisions/0008-the-trac-ticket-replaces-thread-confirmation.md) — additions are reviewed on the Trac ticket, after two more examples and a CLI smoke test.
 - [`0009-root-key-cached-for-the-request.md`](decisions/0009-root-key-cached-for-the-request.md) — the key manager unwraps the root key once per request instead of once per secret.
 - [`0010-cap-a-many-version-backend-to-two-slots.md`](decisions/0010-cap-a-many-version-backend-to-two-slots.md) — the Vault example caps `max_versions` at 2 and defines `PREVIOUS` as strictly N-1.
+- [`0011-stay-on-starlight-for-now.md`](decisions/0011-stay-on-starlight-for-now.md) — Blume can't yet run the site's link-rewriting plugin, so the docs stay on Starlight.
 
 ### journal/
 - [`2026-09-04-0-1-0-is-public.md`](journal/2026-09-04-0-1-0-is-public.md) — devlog: what 0.1.0 shipped, what it left out, and the road to 7.2.
