@@ -28,7 +28,7 @@ Started: 2026-09-24T20:47:35.233Z
 - [x] R1-03 Widen the smoke diagnostic constraint to the variables the suite uses
 - [x] R2-01 Make the smoke diagnostic rule catch any key- or value-holding variable
 - [x] R3-01 Correct bug 1's documented cause and the other inaccurate claims about what the smoke test found
-- [ ] R4-01 Correct the journal's account of bug 1's reintroduction and case A's 'cause' comment
+- [x] R4-01 Correct the journal's account of bug 1's reintroduction and case A's 'cause' comment
 
 ## Log
 (one entry per task, appended by implement)
@@ -573,3 +573,26 @@ ok (smoke-diagnostics-never-print-stdout zero hits), bin/ci-local.sh
 --keep ended "All green." with "# passed 144, failed 0", make
 reference-check clean. grep checks for the banned phrases and
 P6-01/R1-01 IDs all print nothing. Manual check: none.
+
+### R4-01 — 37cff5f
+Rewrote the journal's "What it found" paragraph to match P6-01's
+actual finding: on the current tree, get() declares --slot and
+WP-CLI rejects --version=previous outright (case A pins both the
+exit code and the stderr message). Reintroducing --version by hand
+shows the other side instead: the previous value comes back, but
+the suite still fails on the synopsis table and both
+--slot=previous rows, so it catches the rename, not the 4 September
+symptom. Removed the invented causal link between bug 1 and the
+root-key defect; kept them as separate findings joined by
+"Separately, ...".
+
+Rewrapped the "What was built" paragraph's over-length line 20 to
+100 columns; no words changed.
+
+smoke.sh line 280 comment changed from "Pin bug 1's cause, not only
+its fix" to "Pin WP-CLI's side of bug 1, not only its fix"; no code
+or assertions touched.
+
+Verified: bin/ci-local.sh --keep passed 144/144, all 13 constraints
+ok, make reference-check clean. All four required greps behave as
+specified. No Foundry task IDs introduced into either file.
