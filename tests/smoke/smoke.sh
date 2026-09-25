@@ -277,7 +277,7 @@ case_a_registration() {
 	done
 	IFS="$saved_ifs"
 
-	# Pin bug 1's cause, not only its fix: `get` declares --slot, not
+	# Pin WP-CLI's side of bug 1, not only its fix: `get` declares --slot, not
 	# --version, so --version=previous is passed through to get() by
 	# WP-CLI (which hands --version after a command to the subcommand) and
 	# rejected there as an undeclared parameter. This is already implied by

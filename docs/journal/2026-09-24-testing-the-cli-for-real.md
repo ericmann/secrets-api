@@ -17,8 +17,9 @@ silence to become confirmation.
 
 Five cases. A: every subcommand on both `wp secret` and `wp network-secret` is registered, and
 each `wp secret` subcommand's synopsis flags match an exact table, in both directions — a new flag
-with no row and a row with no flag both fail loudly. B: the exit-code contract (0 found, 1 absent, 2 broken),
-masking and `--reveal`, slots, every `list` format, `retire`, `delete`, `generate-key`,
+with no row and a row with no flag both fail loudly. B: the exit-code contract (0 found, 1
+absent, 2 broken), masking and `--reveal`, slots, every `list` format, `retire`, `delete`,
+`generate-key`,
 `import-option`, and `migrate-legacy --dry-run`. C: rotation end to end, with the previous key
 moved into `wp-config.php` and a fresh key generated, then confirmed still decryptable and
 reported healthy afterward. D: drop-in loading through the real loader — a syntax error, a thrown
@@ -46,12 +47,14 @@ it itself; what actually dropped the flag was `wp-env run`, before WP-CLI ever s
 is `--slot` now regardless, since a subcommand-level flag should not share a name with a global
 one WP-CLI does recognise (`wp --version`) even when that global flag is not the one eating it
 here. Case A's synopsis check and case B's `get --slot=previous` assertion both pin the rename.
-Reintroducing `--version` by hand and running against the real binary shows what that rename
-actually guards against: `get --version=previous` now reaches `get()`, which does not declare
-`--version`, and WP-CLI rejects it — exit 1, `unknown --version parameter` on stderr. Case A
-asserts both of those directly. Diagnosing this also turned up a second defect: case E's first
-run failed on the network-secret health check after `wp core multisite-convert`, traced to
-`WP_Secrets_Key_Manager` not preserving the root key across the conversion. That is fixed, and
+On the current tree, `get --version=previous` reaches `get()`, which declares `--slot` and not
+`--version`, and WP-CLI rejects it: exit 1, `unknown --version parameter` on stderr. Case A
+asserts both. Reintroducing `--version` by hand shows the other side: `get()` declares the flag
+again, the real binary hands it `--version=previous`, and the previous value comes back. The
+suite still fails, on the synopsis table, the `--version=previous` row, and both `--slot=previous`
+rows, so it catches the rename, not the 4 September symptom. Separately, case E's first run
+failed on the network-secret health check after `wp core multisite-convert`, because
+`WP_Secrets_Key_Manager` did not preserve the root key across the conversion. That is fixed, and
 `convert_to_multisite` now asserts directly that a secret set before conversion still decrypts
 after it.
 
