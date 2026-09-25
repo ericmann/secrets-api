@@ -1,7 +1,7 @@
 ---
 title: "The five questions the proposal asked the community"
 description: "Where answers from the proposal's comment thread are recorded, so they land somewhere rather than being absorbed into an assumption."
-date: 2026-09-04
+date: 2026-09-24
 ---
 
 ## 🟢 The five questions the proposal asked the community
@@ -34,5 +34,8 @@ confirmation, and it is recorded as such.
 5. **For hosts running secret stores or key backends: what is missing from the drop-in surface?**
    — answered at length by two hosting platforms on the thread; see
    [ADR 0001](../decisions/0001-provider-as-outermost-extension-point.md) and
-   [Host and platform providers](open-questions.md#host-and-platform-providers).
+   [Host and platform providers](open-questions.md#host-and-platform-providers). The keyring side
+   of the drop-in surface now has a real implementation, `examples/aws-kms-keyring/`, and it
+   needed nothing added to the interface itself — only a docblock sentence on non-determinism, a
+   request-scoped cache in the key manager, and a `--from` flag on `wp secret rotate`.
 

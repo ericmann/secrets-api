@@ -15,7 +15,7 @@ DB_PASS ?=
 DB_HOST ?= 127.0.0.1
 
 .DEFAULT_GOAL := help
-.PHONY: help install lint lint-fix compat analyse test test-ms coverage reference reference-check ci clean
+.PHONY: help install lint lint-fix compat analyse test test-ms test-examples coverage reference reference-check ci clean
 
 help: ## Show this help.
 	@grep -hE '^[a-zA-Z_-]+:.*?## ' $(MAKEFILE_LIST) \
@@ -44,6 +44,9 @@ test: ## Run the single-site suite.
 
 test-ms: ## Run the multisite suite.
 	WP_MULTISITE=1 $(VENDOR_BIN)/phpunit -c phpunit-multisite.xml.dist
+
+test-examples: ## Run the platform examples suite against emulators. Needs Moto (see examples/README.md); not part of make ci.
+	$(VENDOR_BIN)/phpunit -c phpunit-examples.xml.dist
 
 coverage: ## Run the single-site suite with coverage.
 	$(VENDOR_BIN)/phpunit --coverage-html coverage --coverage-text

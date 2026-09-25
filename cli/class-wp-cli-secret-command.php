@@ -487,15 +487,35 @@ class WP_CLI_Secret_Command {
 	}
 
 	/**
-	 * Re-wraps the root key under a new WP_SECRETS_KEY after a site-key change.
+	 * Re-wraps the root key under the active keyring.
 	 *
-	 * No secret is re-encrypted: rotation only changes what the root key is
+	 * There are two cases, chosen with --from. `--from=config-previous` (the
+	 * default) is a site key change: the root key, currently wrapped under
+	 * WP_SECRETS_KEY_PREVIOUS, is re-wrapped under the current WP_SECRETS_KEY.
+	 * `--from=config` is moving the root key onto a new keyring: a secrets.php
+	 * drop-in has installed one, and the root key, currently wrapped under the
+	 * config keyring's WP_SECRETS_KEY, is re-wrapped under that new keyring. No
+	 * secret is ever re-encrypted: rotation only changes what the root key is
 	 * wrapped under, not the root key's own bytes.
 	 *
 	 * ## OPTIONS
 	 *
+	 * [--from=<keyring>]
+	 * : Which keyring currently wraps the root key.
+	 * ---
+	 * default: config-previous
+	 * options:
+	 *   - config-previous
+	 *   - config
+	 * ---
+	 *
 	 * [--yes]
 	 * : Skip the confirmation prompt.
+	 *
+	 * ## EXAMPLES
+	 *
+	 *     $ wp secret rotate --yes
+	 *     $ wp secret rotate --from=config --yes
 	 *
 	 * @when after_wp_load
 	 *
@@ -503,18 +523,54 @@ class WP_CLI_Secret_Command {
 	 * @param array $assoc_args Associative arguments.
 	 */
 	public function rotate( $args, $assoc_args ) {
-		if ( ! defined( 'WP_SECRETS_KEY_PREVIOUS' ) ) {
-			WP_CLI::error( 'WP_SECRETS_KEY_PREVIOUS is not defined. Move the current WP_SECRETS_KEY value to WP_SECRETS_KEY_PREVIOUS, set WP_SECRETS_KEY to a new value from `wp secret generate-key`, then run this again.' );
+		$from = isset( $assoc_args['from'] ) ? $assoc_args['from'] : 'config-previous';
+
+		if ( ! in_array( $from, array( 'config-previous', 'config' ), true ) ) {
+			WP_CLI::error( sprintf( 'Unknown --from value "%s". Use config-previous or config.', $from ) );
 
 			return;
 		}
 
-		WP_CLI::confirm( 'Rotate the site key? This re-wraps the root key under the new WP_SECRETS_KEY.', $assoc_args );
+		$key_manager = _wp_secrets_get_key_manager();
+		$new_keyring = $key_manager->get_keyring();
 
-		$result = _wp_secrets_get_key_manager()->rotate_site_key(
-			new WP_Secrets_Config_Key_Provider( true ),
-			new WP_Secrets_Config_Key_Provider( false )
+		if ( 'config-previous' === $from ) {
+			if ( ! defined( 'WP_SECRETS_KEY_PREVIOUS' ) ) {
+				WP_CLI::error( 'WP_SECRETS_KEY_PREVIOUS is not defined. Move the current WP_SECRETS_KEY value to WP_SECRETS_KEY_PREVIOUS, set WP_SECRETS_KEY to a new value from `wp secret generate-key`, then run this again.' );
+
+				return;
+			}
+
+			if ( $new_keyring instanceof WP_Secrets_Config_Key_Provider
+				&& defined( 'WP_SECRETS_KEY' )
+				&& WP_SECRETS_KEY === WP_SECRETS_KEY_PREVIOUS
+			) {
+				WP_CLI::error( 'WP_SECRETS_KEY and WP_SECRETS_KEY_PREVIOUS hold the same value. There is nothing to rotate.' );
+
+				return;
+			}
+
+			$old_keyring = new WP_Secrets_Config_Key_Provider( true );
+		} else {
+			if ( $new_keyring instanceof WP_Secrets_Config_Key_Provider ) {
+				WP_CLI::error( 'The active keyring already reads WP_SECRETS_KEY. --from=config only applies after a secrets.php drop-in installs a different keyring.' );
+
+				return;
+			}
+
+			$old_keyring = new WP_Secrets_Config_Key_Provider( false );
+		}
+
+		WP_CLI::confirm(
+			sprintf(
+				'Rotate the root key from "%s" to "%s"? This re-wraps the root key; no secret is re-encrypted.',
+				$old_keyring->get_key_source(),
+				$new_keyring->get_key_source()
+			),
+			$assoc_args
 		);
+
+		$result = $key_manager->rotate_site_key( $old_keyring, $new_keyring );
 
 		if ( is_wp_error( $result ) ) {
 			WP_CLI::error( $result->get_error_message() );
@@ -522,7 +578,9 @@ class WP_CLI_Secret_Command {
 			return;
 		}
 
-		WP_CLI::success( 'Site key rotated. No secret needed to be re-encrypted.' );
+		WP_CLI::success(
+			sprintf( 'Root key re-wrapped under: %s. No secret needed to be re-encrypted.', $new_keyring->get_key_source() )
+		);
 	}
 
 	/**

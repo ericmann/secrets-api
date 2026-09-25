@@ -1,7 +1,7 @@
 ---
 title: "Test coverage gaps"
 description: "Code paths the automated suite does not reach, why, and what was verified by hand instead."
-date: 2026-09-04
+date: 2026-09-24
 ---
 
 ## 🟢 `sodium_compat` is never exercised by the test suite
@@ -89,7 +89,8 @@ wp-env can. Not built. Until it is, treat any change to a command's docblock syn
 name as untested, and run it by hand.
 
 Cheap interim discipline: `wp help secret <subcommand>` shows the synopsis WP-CLI actually built.
-If a flag is missing there, it is missing everywhere.
+If a flag is missing there, it is missing everywhere. `--from` on `wp secret rotate` was checked
+this way by hand when it was generalised; the output is recorded in the body of the commit that added `--from`.
 
 
 ---
@@ -127,3 +128,15 @@ the same unexplained cause). What is not known is why the split falls exactly al
 Left as-is: no coverage threshold gates anything in `make ci`. Trustworthy numbers, if wanted,
 should come from the non-Docker path against a host PHP with a coverage driver installed normally,
 not via a `pecl install` into an already-running container.
+
+
+---
+
+## 🟢 Examples run against an emulator, not live AWS
+
+`make test-examples` proves `examples/aws-secrets-manager/` and `examples/aws-kms-keyring/`
+against [Moto](https://github.com/getmoto/moto), which is what runs in CI and on every developer
+machine. Moto does not verify SigV4 signatures or IAM permissions the way real AWS does, so a
+signing bug that happens to produce a request Moto accepts anyway, or a policy missing a
+permission the example actually needs, is invisible to this suite. The live run against real AWS
+is the manual step named in `examples/aws-kms-keyring/README.md` and has not been run yet.
