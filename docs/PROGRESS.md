@@ -27,7 +27,7 @@ Started: 2026-09-24T20:47:35.233Z
 - [x] R1-02 Make the smoke list-value and rotation assertions able to fail
 - [x] R1-03 Widen the smoke diagnostic constraint to the variables the suite uses
 - [x] R2-01 Make the smoke diagnostic rule catch any key- or value-holding variable
-- [ ] R3-01 Correct bug 1's documented cause and the other inaccurate claims about what the smoke test found
+- [x] R3-01 Correct bug 1's documented cause and the other inaccurate claims about what the smoke test found
 
 ## Log
 (one entry per task, appended by implement)
@@ -537,3 +537,38 @@ Verified: foundry_verify -- the rule self-tests green (fixture
 null, hits []), every other constraint unchanged/green,
 bin/ci-local.sh --keep green (139/139 smoke), make reference-check
 clean.
+
+### R3-01 — f264c3e
+Corrected bug 1's documented cause across cli/ docblock, smoke.sh
+header/case-A comments, journal entry, ci.yml comment, and ci.md
+pointer: WP-CLI 2.12.0 passes --version after a command through to
+the subcommand; the 4 Sept symptom was wp-env run dropping the flag,
+not WP-CLI consuming it. Kept --slot as the name (avoids the wrapper
+issue and confusion with `wp --version`) -- Interpretation noted in
+commit.
+
+Added 5 smoke.sh assertions (139->144): case A now asserts
+get --version=previous exits 1 with "unknown --version parameter" on
+stderr (reaches get(), which doesn't declare --version). convert_to_
+multisite now sets NS/preconvert before core multisite-convert and
+reads it back with --reveal after plugin activate --network, proving
+end-to-end that the root-key fix survives conversion.
+
+journal 2026-09-24-testing-the-cli-for-real.md: rewrote "What it
+found" and the root-key paragraph in "What was built" to state
+verified facts only (no "reviewer caught it", no false WP-CLI
+--version claim); named the new pre/post-conversion assertion;
+"each command's synopsis" -> "each `wp secret` subcommand's synopsis".
+
+Removed P6-01/R1-01 IDs from ci.yml and smoke.sh comments. ci.yml
+diff and cli/ diff are comment/docblock-only (verified via git diff).
+docs/reference/wp-cli.md regenerated via `make reference`, never
+hand-edited. docs/foundry.json and CLAUDE.md untouched: the new
+local `preconvert_value` already matches the existing
+smoke-diagnostics-never-print-stdout pattern (contains "value").
+
+Verification: foundry_verify with these 6 files -- all 13 constraints
+ok (smoke-diagnostics-never-print-stdout zero hits), bin/ci-local.sh
+--keep ended "All green." with "# passed 144, failed 0", make
+reference-check clean. grep checks for the banned phrases and
+P6-01/R1-01 IDs all print nothing. Manual check: none.
