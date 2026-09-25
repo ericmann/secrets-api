@@ -262,12 +262,36 @@ final class AWS_Secrets_Manager_Provider implements WP_Secrets_Provider {
 				// real one for a single secret.
 				'fingerprint'    => '',
 				'created'        => isset( $item['CreatedDate'] ) ? (int) $item['CreatedDate'] : 0,
-				'has_previous'   => false,
+				'has_previous'   => $this->has_previous_stage( $item ),
 				'needs_rotation' => false,
 			);
 		}
 
 		return $entries;
+	}
+
+	/**
+	 * Whether a ListSecrets entry has a version labelled AWSPREVIOUS.
+	 *
+	 * ListSecrets already carries each secret's version-to-stage map, so this
+	 * costs no extra call.
+	 *
+	 * @param array $item One entry from ListSecrets' SecretList.
+	 *
+	 * @return bool
+	 */
+	private function has_previous_stage( array $item ) {
+		$stages = isset( $item['SecretVersionsToStages'] ) && is_array( $item['SecretVersionsToStages'] )
+			? $item['SecretVersionsToStages']
+			: array();
+
+		foreach ( $stages as $labels ) {
+			if ( is_array( $labels ) && in_array( 'AWSPREVIOUS', $labels, true ) ) {
+				return true;
+			}
+		}
+
+		return false;
 	}
 
 	/**
@@ -466,6 +490,18 @@ final class AWS_Secrets_Manager_Provider implements WP_Secrets_Provider {
 
 		if ( false !== strpos( $aws_error, 'ResourceNotFoundException' ) ) {
 			return new WP_Error( 'aws_not_found', 'No such secret.' );
+		}
+
+		/*
+		 * A force-deleted secret is not gone at once: for a minute or two AWS
+		 * answers InvalidRequestException, "marked for deletion", instead of
+		 * ResourceNotFound. To the caller who deleted it, it is absent, and
+		 * reporting it as unreachable would break the three-state contract.
+		 */
+		$aws_message = isset( $parsed['message'] ) ? $parsed['message'] : ( isset( $parsed['Message'] ) ? $parsed['Message'] : '' );
+
+		if ( false !== strpos( $aws_error, 'InvalidRequestException' ) && false !== stripos( $aws_message, 'marked for deletion' ) ) {
+			return new WP_Error( 'aws_not_found', 'No such secret: it is scheduled for deletion.' );
 		}
 
 		/*
