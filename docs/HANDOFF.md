@@ -2,9 +2,9 @@
 
 Branch: `build/cli-smoke`
 Base: `1209b5013018`
-Head: `4ea429b`
+Head: `aec11a5`
 
-Task counts: 24 done, 0 blocked, 0 skipped, 0 todo, 0 in progress. 24 total.
+Task counts: 25 done, 0 blocked, 0 skipped, 0 todo, 0 in progress. 25 total.
 
 ## Round 1
 
@@ -157,6 +157,66 @@ file scope: 13/13 constraints ok, `bin/ci-local.sh --keep` green (459/459 single
 
 None logged this round.
 
+## Round 3
+
+Review-fix round. One `R3-*` task queued by the round-3 reviewer, done, zero open.
+
+**R3-01 — Correct bug 1's documented cause and the other inaccurate claims about what the smoke
+test found.** Round 2's `docs/journal/2026-09-24-testing-the-cli-for-real.md`, `tests/smoke/
+smoke.sh`, the `get()` docblock, `.github/workflows/ci.yml`, and `docs/reference/ci.md` all
+repeated a claim the review round found false: that "WP-CLI's own global `--version` flag
+swallows `--version=previous` before the subcommand sees it." The reviewer's four pieces of
+evidence (P6-01's `not ok` line when `--version` was reintroduced, the pinned phar's
+`back_compat_conversions()` only mapping `--version` when `empty($args)`, a direct run showing
+`get --version=previous` exits 1 with `unknown --version parameter`, and a `wp-env run` log
+showing the flag vanishes before WP-CLI sees it) all point the same way: WP-CLI 2.12.0 passes
+`--version` after a command straight through to the subcommand; the 4 September symptom came
+from `wp-env run`'s own argument parsing dropping the flag first, not from WP-CLI consuming it.
+
+Corrected in every place: the `get()` docblock paragraph under `[--slot=<slot>]` now says `--slot`
+avoids the value being dropped by wrappers such as `wp-env run` and avoids confusion with `wp
+--version`, with no claim that WP-CLI itself consumes it (`make reference` regenerated
+`docs/reference/wp-cli.md`, never hand-edited). `tests/smoke/smoke.sh`'s header "Regression proof"
+block dropped the `(P6-01)` Foundry ID and now states the real WP-CLI behavior and why the 4
+September symptom (via `wp-env run`) doesn't reproduce through the real binary. Case A's
+`--version=previous` comment was rewritten the same way, and two new assertions were added right
+after the existing (unchanged) `assert_out_not_contains` row: `get --version=previous exits 1`
+and `WP-CLI rejects --version as an undeclared get parameter` (stderr `unknown --version
+parameter`). `convert_to_multisite` now sets `${NS}/preconvert` (via a local
+`preconvert_value`, already covered by the existing `smoke-diagnostics-never-print-stdout`
+pattern since it contains "value" — no `docs/foundry.json`/`CLAUDE.md` change needed) before
+`core multisite-convert`, and reads it back with `--reveal --field=value` right after `plugin
+activate secrets-api --network`, asserting the value round-trips — the direct end-to-end proof of
+the root-key stranding fix that case E previously only implied.
+
+The journal entry's "What it found" section was rewritten to state the verified finding (harness
+does not reproduce the 4 September symptom through a real `wp`; WP-CLI hands `--version` through;
+`wp-env run` was the actual culprit; case A now pins WP-CLI's side directly) and no longer claims
+the bug-1 reintroduction "failed for the reason it was supposed to" — it now says what the
+reintroduction actually showed (get() rejects the undeclared flag once `--slot` is renamed back).
+The "What was built" paragraph's "A reviewer caught it when case E first ran" became an accurate
+account: case E's first run failed on the network-secret health check, which was diagnosed and
+fixed, and the new pre/post-conversion assertion is named directly. "each command's synopsis
+flags" became "each `wp secret` subcommand's synopsis flags". `.github/workflows/ci.yml`'s smoke
+job comment now names the three dispatch bugs from `tests/smoke/SPEC.md`'s "Why"/coverage-gaps
+history instead of "bug 1's --version=previous swallow" and drops `R1-01`; the diff touches only
+comment lines (verified via `git diff`). `docs/reference/ci.md`'s "The WP-CLI smoke test" section
+now links `docs/journal/2026-09-24-testing-the-cli-for-real.md` instead of the removed
+`test-coverage-gaps.md` pointer.
+
+No Foundry task IDs remain in any touched file (`grep -rn "R1-01\|P6-01"` across the touched files
+prints nothing); no banned phrase remains (`grep -rn "WP-CLI consumes\|global --version\|WP-CLI's
+own global"` across `cli/`, `tests/smoke/smoke.sh`, the journal entry, `docs/reference/`, and
+`.github/` prints nothing). `tests/smoke/smoke.sh` gained exactly 5 assertions, 139 -> 144, none
+removed or weakened. Verified with `foundry_verify` scoped to the six touched files: all 13
+constraints ok (`smoke-diagnostics-never-print-stdout` zero hits), `bin/ci-local.sh --keep` ended
+"All green." with "# passed 144, failed 0", `make reference-check` clean. Re-verified at round end
+with `foundry_verify` and no file scope: identical result, 144/144 smoke, all green.
+
+### Round 3 pipeline friction
+
+None logged this round.
+
 ## Interpretation choices
 
 - **P4-01** — The task's prescribed negative check (skip setting `WP_SECRETS_KEY` to the new
@@ -174,6 +234,14 @@ None logged this round.
 No other task in Round 2 required an interpretation call beyond what is described in that task's
 own entry above; each was implemented literally against the PLAN.md text and the cited SPEC
 sections.
+
+- **R3-01** — The task's evidence establishes that WP-CLI itself does not consume `--version`, so
+  the flag's original name choice (`--slot`) is no longer justified by "WP-CLI swallows it." Kept
+  `--slot` anyway rather than renaming it back to `--version`, per the task's explicit "Out of
+  scope: Renaming --slot ... or any code path in cli/" instruction, and gave the docblock a
+  still-true reason: `wp-env run` (a wrapper, not WP-CLI) does swallow `--version`, and a
+  subcommand flag sharing a name with a real WP-CLI global (`wp --version`) is worth avoiding
+  regardless of whether that global is the one at fault here.
 
 ## ⚠️ ASSUMPTION config keys
 
@@ -223,3 +291,9 @@ CI wiring only drive the existing CLI and the existing Makefile/wp-env plumbing.
   an exact-name list; if a future task adds another plaintext-holding local that does *not*
   contain `key` or `value` in its name, it will not be caught automatically — name new
   plaintext-holding locals with `key` or `value` in them, or extend the rule again.
+- **Round 3 (R3-01):** `tests/smoke/SPEC.md`'s own "pins bug 1's cause" wording was explicitly
+  out of scope for this task (left to the operator, per the task text) — it may still read as
+  though WP-CLI itself is the culprit, even though the docblock, `smoke.sh` comments, and the
+  journal entry no longer say that. Worth a look if the spec page is touched next.
+- Full smoke count is 144/144 on this branch now; every run this round (individual task verify
+  and round-end `foundry_verify` with no file scope) was 144/144, exit 0.
