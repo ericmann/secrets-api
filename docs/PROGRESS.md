@@ -28,6 +28,7 @@ Started: 2026-09-24T20:47:35.233Z
 - [x] R1-03 Widen the smoke diagnostic constraint to the variables the suite uses
 - [x] R2-01 Make the smoke diagnostic rule catch any key- or value-holding variable
 - [x] R3-01 Correct bug 1's documented cause and the other inaccurate claims about what the smoke test found
+- [ ] R4-01 Correct the journal's account of bug 1's reintroduction and case A's 'cause' comment
 
 ## Log
 (one entry per task, appended by implement)
