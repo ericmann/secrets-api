@@ -16,6 +16,7 @@ make analyse   # phpstan
 make test      # phpunit, single site
 make test-ms   # phpunit, multisite
 make reference-check  # docs/reference/ matches the source docblocks
+make smoke     # WP-CLI end to end against a throwaway install in .smoke/
 make ci        # all of the above
 ```
 
@@ -44,6 +45,24 @@ make ci
 
 `bin/install-wp-tests.sh` takes `<db-name> <db-user> <db-pass> [db-host] [wp-version]` and honours
 `WP_TESTS_DIR` and `WP_CORE_DIR`.
+
+### The WP-CLI smoke test
+
+`make smoke` (`bin/smoke-install.sh` then `tests/smoke/smoke.sh`) is a bash harness that drives a
+real, pinned `wp-cli.phar` against a real WordPress install it provisions itself under `.smoke/` —
+never wp-env's own `wp-content`, never the PHPUnit suite's database. It exists because every other
+test in this repository instantiates `WP_CLI_Secret_Command` directly and calls its methods,
+which covers nothing about how WP-CLI actually dispatches to them; see
+[`docs/journal/2026-09-24-testing-the-cli-for-real.md`](../journal/2026-09-24-testing-the-cli-for-real.md)
+and `tests/smoke/SPEC.md`.
+
+Variables it reads: `SMOKE_DB_NAME` (defaults to `wordpress_smoke`, and refuses to run if set to
+`wordpress_test`, which belongs to the PHPUnit suite), `DB_USER`, `DB_PASS`, `DB_HOST`,
+`WP_VERSION`, and `SMOKE_URL`. It needs egress to GitHub releases (the `wp-cli.phar` download) and
+wordpress.org (`wp core download`). Through `bin/ci-local.sh` it runs inside wp-env's `cli`
+container, against wp-env's own development MySQL rather than a separate service. The install
+under `.smoke/` is disposable: `bin/smoke-install.sh` drops and recreates its database and
+overwrites `wp-config.php` on every run.
 
 ## Air-gapped and mirrored environments
 
@@ -98,6 +117,8 @@ Each SHA in the workflow came from the GitHub API at the version noted beside it
 copied out of documentation or a README. An unverified pin is really a pin to whatever the last
 person pasted.
 
+`wp-cli.phar` is pinned the same way, by version and SHA-256, in `bin/smoke-install.sh`.
+
 ## Matrix
 
 | Job | PHP | WordPress | Notes |
@@ -105,9 +126,9 @@ person pasted.
 | `static` | 8.3 | — | lint + compat + analyse. Gates everything else. |
 | `test` | 7.4, 8.0, 8.3 | latest, trunk | Single site |
 | `test-multisite` | 8.3 | latest | Multisite suite |
-| `examples` | 8.3 | latest | `make test-examples` against a Moto (AWS emulator) service container, pinned by digest. Not part of `make ci`. |
+| `smoke` | 7.4, 8.3 | latest | WP-CLI end to end, single site then multisite |
+| `examples` | 8.3 | latest | `make test-examples` against Moto (an AWS emulator) and a Vault dev server, both pinned by digest, single site then multisite. Not part of `make ci`. |
 | `reference-docs` | 8.3 | — | `bin/gen-reference.php --check`: the committed docs/reference/ matches the source. No Composer install. |
-| `examples` | 8.3 | latest | `make test-examples` against a Vault dev-mode service container, single site and multisite. Outside `make ci` because it needs the container. |
 
 The 7.4 leg is not optional. Core's floor is 7.4 and `src/` must run there; PHPCompatibilityWP
 catches syntax statically, but only a running 7.4 catches runtime behaviour differences.

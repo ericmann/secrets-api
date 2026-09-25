@@ -13,9 +13,10 @@ DB_NAME ?= wordpress_test
 DB_USER ?= root
 DB_PASS ?=
 DB_HOST ?= 127.0.0.1
+SMOKE_DB_NAME ?= wordpress_smoke
 
 .DEFAULT_GOAL := help
-.PHONY: help install lint lint-fix compat analyse test test-ms test-examples coverage reference reference-check ci clean
+.PHONY: help install lint lint-fix compat analyse test test-ms test-examples coverage reference reference-check ci smoke clean
 
 help: ## Show this help.
 	@grep -hE '^[a-zA-Z_-]+:.*?## ' $(MAKEFILE_LIST) \
@@ -54,7 +55,11 @@ reference: ## Regenerate docs/reference/ from source docblocks.
 reference-check: ## Fail if docs/reference/ is stale relative to the source.
 	php bin/gen-reference.php --check
 
-ci: lint compat analyse reference-check test test-ms ## Everything CI runs.
+smoke: ## Provision the throwaway install and run the WP-CLI smoke test.
+	SMOKE_DB_NAME=$(SMOKE_DB_NAME) DB_USER=$(DB_USER) DB_PASS="$(DB_PASS)" DB_HOST=$(DB_HOST) WP_VERSION=$(WP_VERSION) bin/smoke-install.sh
+	tests/smoke/smoke.sh
+
+ci: lint compat analyse reference-check test test-ms smoke ## Everything CI runs.
 
 # Local Vault dev server for the vault-provider example (pinned digest):
 #   docker run -d --name secrets-api-vault -p 8201:8200 -e VAULT_DEV_ROOT_TOKEN_ID=dev-root --cap-add=IPC_LOCK hashicorp/vault@sha256:47f14a6acb98f48d798a07df7c83f23a6e636e1cf724c5f8ff165cb32667a1e2

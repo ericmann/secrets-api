@@ -52,7 +52,8 @@ the named surface, all in `src/wp-includes/secrets.php` unless noted:
 `wp secret` with `set`, `get`, `delete`, `list`, `retire`, `import-option`, `migrate-legacy`,
 `rotate`, `generate-key`, `health`, and `dropin`. `WP_CLI_Secret_Network_Command` registers
 `wp network-secret` with the same subcommands for network scope. Both load only when `WP_CLI` is
-defined and true.
+defined and true. Both are exercised end to end against a real `wp` binary by
+`tests/smoke/smoke.sh`, on single site and multisite.
 
 **Site Health.** Three tests (`secrets_api_key_source`, undecryptable secrets,
 `secrets_api_needs_rotation`) and a debug-information section, in

@@ -1,7 +1,9 @@
 # Spec: WP-CLI smoke test
 
-Status: planned. Part of the pre-Trac work in
-[ADR 0008](../../docs/decisions/0008-the-trac-ticket-replaces-thread-confirmation.md).
+Status: built. Part of the pre-Trac work in
+[ADR 0008](../../docs/decisions/0008-the-trac-ticket-replaces-thread-confirmation.md). See
+[`docs/journal/2026-09-24-testing-the-cli-for-real.md`](../../docs/journal/2026-09-24-testing-the-cli-for-real.md)
+for the journal entry.
 
 ## Why
 

@@ -171,8 +171,10 @@ There is one gap worth knowing about. PHP treats some class declaration errors i
 an uncatchable fatal, even inside the `try`/`catch` around the `require`. The usual culprit is a
 class that `implements` an interface but omits one of its methods. Userland cannot intercept that,
 and it takes down the whole request rather than failing in a contained way. Run `php -l` over a
-drop-in and load a real request before trusting it in production. See
-[`test-coverage-gaps.md`](../journal/test-coverage-gaps.md), "Drop-in file loading".
+drop-in and load a real request before trusting it in production. `tests/smoke/smoke.sh` case D
+checks the syntax-error, throw-on-load, and wrong-type cases through the real loader; only the
+fatal remains a manual check. See [`test-coverage-gaps.md`](../journal/test-coverage-gaps.md),
+"Drop-in file loading".
 
 **Error codes.** Every `WP_Error` this API returns uses one of a fixed set of codes, defined in
 `src/wp-includes/secrets.php`:

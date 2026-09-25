@@ -45,6 +45,8 @@ wrong type, `wp_secrets_api_load_dropin()` in `secrets-api.php` sets
 `WP_SECRETS_ERROR_STORE_UNAVAILABLE`.
 There is no fallback to the default provider. `tests/phpunit/test-secrets-three-state-contract.php`
 and `tests/phpunit/test-secrets-broken-dropin-fallbacks.php` cover this.
+`tests/smoke/smoke.sh` case D checks the same fail-closed behaviour through the real loader and
+the exit-code contract (2, not 1).
 
 **No filter.** There is no `apply_filters()` call anywhere under `src/`, not only on the retrieval
 path. `test_no_apply_filters_anywhere_in_src()` in `tests/phpunit/test-architecture.php` reads

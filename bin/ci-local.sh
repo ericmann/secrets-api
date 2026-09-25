@@ -71,5 +71,16 @@ echo "==> test (multisite)"
 "${WP_ENV[@]}" run --env-cwd="$CONTAINER_CWD" tests-cli \
 	env WP_MULTISITE=1 vendor/bin/phpunit -c phpunit-multisite.xml.dist
 
+# The smoke test provisions its own throwaway install under .smoke/, with its
+# own database (wordpress_smoke), inside wp-env's *development* `cli`
+# container -- never the `tests-cli` container or its wordpress_test
+# database, which the PHPUnit suite above owns. The two scripts run directly,
+# rather than through `make smoke`, because the `cli` container has no `make`.
+echo "==> smoke (WP-CLI against a throwaway install)"
+"${WP_ENV[@]}" run --env-cwd="$CONTAINER_CWD" cli \
+	env DB_HOST=mysql DB_USER=root DB_PASS=password bash bin/smoke-install.sh
+"${WP_ENV[@]}" run --env-cwd="$CONTAINER_CWD" cli \
+	bash tests/smoke/smoke.sh
+
 echo
 echo "All green."

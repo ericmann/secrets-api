@@ -34,6 +34,10 @@ Both derive from the single root key with `sodium_crypto_kdf_derive_from_key( 32
 start at 1 and the context strings differ, so the network subkey cannot collide with a site
 subkey. The root key is stored via `get_site_option()` / `add_site_option()`, which is
 `wp_sitemeta` on multisite and `wp_options` on a single site. Master keys are never stored.
+Converting a single site to a network leaves the wrapped root key in the former main site's
+options row, since conversion does not move it; the first `get_site_option()` miss on the new
+network falls back to that row, adopts it into `wp_sitemeta`, and removes the stranded copy, so
+secrets written before conversion keep decrypting.
 
 **Storage.** `WP_Secrets_Option_Store` in `src/wp-includes/class-wp-secrets-option-store.php` uses
 the prefix `_wp_secret_` with `get_option()` for site scope and `_wp_network_secret_` with

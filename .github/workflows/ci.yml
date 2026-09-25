@@ -264,3 +264,46 @@ jobs:
           exit 1
 
       - run: make test-examples
+
+  # A dispatch-layer smoke test, not another correctness suite: three real
+  # dispatch bugs (--version=previous returning the current value,
+  # --format rejected for want of a description line, and migrate-legacy
+  # unregistered without @subcommand) reached a green PHPUnit suite because
+  # nothing exercised the real `wp` binary end to end. 7.4 is the floor
+  # this API has to run on; 8.3 is the newest PHP the rest of the matrix
+  # covers. No Composer step: the smoke test provisions its own WP-CLI phar
+  # and WordPress checkout and needs neither `vendor/` nor the WordPress
+  # test suite.
+  smoke:
+    name: "Smoke / PHP ${{ matrix.php }}"
+    needs: static
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        php: ['7.4', '8.3']
+    services:
+      mysql:
+        image: mysql:8.0
+        env:
+          MYSQL_ALLOW_EMPTY_PASSWORD: 'yes'
+          MYSQL_DATABASE: wordpress_smoke
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=5
+    steps:
+      - name: Check out
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Set up PHP ${{ matrix.php }}
+        uses: shivammathur/setup-php@f3e473d116dcccaddc5834248c87452386958240 # 2.37.2
+        with:
+          php-version: ${{ matrix.php }}
+          extensions: sodium, mysqli
+          coverage: none
+
+      - run: make smoke DB_HOST=127.0.0.1
