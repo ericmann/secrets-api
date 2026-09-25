@@ -98,7 +98,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        php: ['7.4', '8.0', '8.3']
+        php: ['7.4', '8.0', '8.3', '8.5']
         wp: ['latest', 'trunk']
     services:
       mysql:
@@ -281,7 +281,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        php: ['7.4', '8.3']
+        php: ['7.4', '8.3', '8.5']
     services:
       mysql:
         image: mysql:8.0

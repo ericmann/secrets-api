@@ -170,8 +170,8 @@ Security issues go through [`SECURITY.md`](SECURITY.md) rather than a public iss
 stores credentials, and a flaw in it is a flaw in the thing protecting everything else.
 
 CI (`.github/workflows/ci.yml`) is a thin wrapper around the `make` targets above, running on
-github.com's hosted runners: static analysis gates a PHP 7.4/8.0/8.3 × WordPress latest/trunk
-matrix plus a multisite job, a PHP 7.4/8.3 smoke job driving a real `wp` binary, and an
+github.com's hosted runners: static analysis gates a PHP 7.4/8.0/8.3/8.5 × WordPress latest/trunk
+matrix plus a multisite job, a PHP 7.4/8.3/8.5 smoke job driving a real `wp` binary, and an
 `examples` job that runs the platform bindings against Moto and Vault service containers. See
 [`docs/reference/ci.md`](docs/reference/ci.md).
 

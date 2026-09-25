@@ -147,7 +147,9 @@ class Tests_Secrets_WPCLISecretCommand extends WP_UnitTestCase {
 	 */
 	public function test_mask_lengths( $value, $expected ) {
 		$mask = new ReflectionMethod( WP_CLI_Secret_Command::class, 'mask' );
-		$mask->setAccessible( true );
+		if ( PHP_VERSION_ID < 80100 ) {
+			$mask->setAccessible( true );
+		}
 
 		$this->assertSame( $expected, $mask->invoke( $this->command(), $value ) );
 	}

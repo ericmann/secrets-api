@@ -15,7 +15,7 @@ scope", and "Timeline" in the [proposal][proposal].
 
 ## As built
 
-**The plugin.** `secrets-api.php` declares version `0.2.0`, `Requires at least: 6.6`, and
+**The plugin.** `secrets-api.php` declares version `0.2.1`, `Requires at least: 6.6`, and
 `Requires PHP: 7.4`.
 
 **Core-bound versus plugin-only.** Everything under `src/` is written to be copied into

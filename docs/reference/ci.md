@@ -93,7 +93,7 @@ reliable egress to Packagist.
 `make ci` is the source of truth and depends on none of the below. What follows is only about the
 hosted pipeline.
 
-**github.com, hosted runners.** Static analysis gates a PHP 7.4 / 8.0 / 8.3 × WordPress
+**github.com, hosted runners.** Static analysis gates a PHP 7.4 / 8.0 / 8.3 / 8.5 × WordPress
 latest / trunk matrix, plus a multisite job. `shivammathur/setup-php` provides the interpreter and
 asks for the `sodium` extension by name. The whole API is built on libsodium, so relying on
 whatever the runner image happens to ship wasn't good enough. The `examples` job is the only one
@@ -124,9 +124,9 @@ person pasted.
 | Job | PHP | WordPress | Notes |
 |---|---|---|---|
 | `static` | 8.3 | — | lint + compat + analyse. Gates everything else. |
-| `test` | 7.4, 8.0, 8.3 | latest, trunk | Single site |
+| `test` | 7.4, 8.0, 8.3, 8.5 | latest, trunk | Single site |
 | `test-multisite` | 8.3 | latest | Multisite suite |
-| `smoke` | 7.4, 8.3 | latest | WP-CLI end to end, single site then multisite |
+| `smoke` | 7.4, 8.3, 8.5 | latest | WP-CLI end to end, single site then multisite |
 | `examples` | 8.3 | latest | `make test-examples` against Moto (an AWS emulator) and a Vault dev server, both pinned by digest, single site then multisite. Not part of `make ci`. |
 | `reference-docs` | 8.3 | — | `bin/gen-reference.php --check`: the committed docs/reference/ matches the source. No Composer install. |
 
@@ -136,6 +136,12 @@ catches syntax statically, but only a running 7.4 catches runtime behaviour diff
 Local wp-env is pinned to PHP 7.4 for the same reason — the floor is where bugs hide, so it is
 the default you develop against rather than something CI discovers later. Change `phpVersion` in
 `.wp-env.json` to reproduce a failure on a newer PHP.
+
+The top of the matrix follows core's. Until 0.2.1 it stopped at 8.3, and core's suite found what that
+missed. PHP 8.5 deprecates `ReflectionMethod::setAccessible()` and `ReflectionProperty::setAccessible()`,
+which have done nothing since 8.1, and the test suite treats deprecations as errors. Tests that reach
+a private member through reflection call `setAccessible( true )` only when `PHP_VERSION_ID < 80100`,
+as core's own tests do.
 
 ## Publishing the docs site
 

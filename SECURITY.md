@@ -25,7 +25,7 @@ explanation rather than silence.
 
 ## Scope
 
-This is a pre-release feature plugin (`0.2.0`) tracking a proposal, not yet shipped in WordPress
+This is a pre-release feature plugin (`0.2.1`) tracking a proposal, not yet shipped in WordPress
 core. There is no supported-version matrix yet: `main` is the only supported branch, and fixes
 land there.
 
