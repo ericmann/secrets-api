@@ -1,6 +1,6 @@
 ---
 title: "Scope"
-description: "The 7.2 target of API plus WP-CLI, the UI deferred to 7.3, why the plugin ships ahead of the core patch, and what 0.1.0 adds beyond the proposal's named surface."
+description: "The 7.2 target of API plus WP-CLI, the UI deferred to 7.3, why the plugin ships ahead of the core patch, and what 0.2.0 adds beyond the proposal's named surface."
 ---
 
 # Scope
@@ -15,7 +15,7 @@ scope", and "Timeline" in the [proposal][proposal].
 
 ## As built
 
-**The plugin.** `secrets-api.php` declares version `0.1.0`, `Requires at least: 6.6`, and
+**The plugin.** `secrets-api.php` declares version `0.2.0`, `Requires at least: 6.6`, and
 `Requires PHP: 7.4`.
 
 **Core-bound versus plugin-only.** Everything under `src/` is written to be copied into
@@ -32,7 +32,7 @@ admin notice when `$wp_version` is at least `WP_SECRETS_API_CORE_VERSION` (`7.2`
 plugin refuses to load and shows a conflict notice instead of deferring to an unknown
 implementation. `tests/phpunit/test-secrets-noop-gate.php` covers the gate.
 
-**API surface at 0.1.0.** The proposal's four functions (`wp_set_secret()`, `wp_get_secret()`,
+**API surface at 0.2.0.** The proposal's four functions (`wp_set_secret()`, `wp_get_secret()`,
 `wp_delete_secret()`, `wp_import_option_as_secret()`), `WP_Secret`, and `WP_Secret_Version` are
 present with the proposed signatures, except that `reveal()` returns `string|WP_Error`. Beyond
 the named surface, all in `src/wp-includes/secrets.php` unless noted:

@@ -14,7 +14,7 @@ directory holds everything longer than that.
 | [`reference/`](reference/) | How-to material: running CI, migrating from the prototype, a drop-in skeleton. |
 | [`decisions/`](decisions/) | Why the design is the way it is. One decision per file. |
 | [`journal/`](journal/) | Running records: open questions, community answers, known test gaps. Dated. |
-| [`changelog/`](changelog/) | Release notes. Empty until the first tagged release. |
+| [`changelog/`](changelog/) | Release notes, one page per release from 0.2.0 on. |
 
 ## Start here
 
@@ -44,7 +44,7 @@ directory holds everything longer than that.
 - [`rotation.md`](spec/rotation.md) — value rotation by overwrite, retirement, and site-key rotation.
 - [`import.md`](spec/import.md) — `wp_import_option_as_secret()` and why it copies rather than moves.
 - [`network.md`](spec/network.md) — network scope and per-site key derivation.
-- [`scope.md`](spec/scope.md) — the 7.2 target, the deferred UI, and what 0.1.0 adds beyond the named surface.
+- [`scope.md`](spec/scope.md) — the 7.2 target, the deferred UI, and what 0.2.0 adds beyond the named surface.
 
 ### reference/
 - [`ci.md`](reference/ci.md) — local, Docker-free, and air-gapped test runs; the hosted matrix; action pinning.
