@@ -54,7 +54,7 @@ SMOKE_DIR="$PWD/.smoke"
 SMOKE_URL="${SMOKE_URL:-http://smoke.test}"
 export WP_CLI_CACHE_DIR="$SMOKE_DIR/cache" PAGER=cat WP_CLI_PAGER=cat
 
-WP=( php -d display_errors=stderr -d log_errors=0 "$SMOKE_DIR/wp-cli.phar" --path="$SMOKE_DIR/wordpress" --allow-root )
+WP=( php -d memory_limit=512M -d display_errors=stderr -d log_errors=0 "$SMOKE_DIR/wp-cli.phar" --path="$SMOKE_DIR/wordpress" --allow-root )
 
 NS="smoke-$$"
 DROPIN="$SMOKE_DIR/wordpress/wp-content/secrets.php"
