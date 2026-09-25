@@ -78,7 +78,9 @@ common host integration is a keyring alone: three methods.
 `src/wp-includes/secrets.php`. `WP_SECRETS_ERROR_PROVIDER_READ_ONLY` for writes a provider
 refuses. A conformance suite, `WP_Secrets_Provider_Conformance` in
 `tests/includes/class-wp-secrets-provider-conformance.php`, runs against the shipped provider and
-can be extended for a third-party one.
+can be extended for a third-party one. Two provider examples exist,
+`examples/aws-secrets-manager/` and `examples/vault-provider/`, and `make test-examples` runs the
+conformance suite against the Vault one on a real server.
 
 **Plugin-only detail.** `secrets-api.php` sets `$GLOBALS['wp_secrets_store']` to a
 `Secrets_API_Prototype_Fallback_Store` wrapping `WP_Secrets_Option_Store` before the drop-in

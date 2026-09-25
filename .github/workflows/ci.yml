@@ -185,16 +185,20 @@ jobs:
 
       - run: make test-ms
 
-  # Outside `make ci` because it needs a service container (Moto, an AWS
-  # emulator) that the other jobs and the no-Docker local path do not provide.
-  # The examples under examples/ stay unlinted -- they are single files a host
-  # copies out, not part of this plugin's own coding-standard surface.
+  # Runs the platform examples (examples/*/secrets.php) against a Moto
+  # server (an AWS emulator, for the KMS and Secrets Manager examples) and a
+  # Vault dev server, single site then multisite. It sits outside `make ci`
+  # because the other jobs and the no-Docker local path provide no service
+  # containers. The examples stay unlinted: they are single files a host copies
+  # out, not part of this plugin's own coding-standard surface.
   examples:
-    name: Examples (Moto)
+    name: Examples (Moto, Vault)
     needs: static
     runs-on: ubuntu-latest
     env:
       WP_SECRETS_TEST_AWS_ENDPOINT: http://127.0.0.1:5000
+      VAULT_ADDR: http://127.0.0.1:8200
+      VAULT_TOKEN: dev-root
     services:
       mysql:
         image: mysql:8.0
@@ -213,6 +217,19 @@ jobs:
         image: motoserver/moto@sha256:91fd602a21f49cf9eb82fdf474015a3c131d40104c8297ea6a2ca920708ae32c
         ports:
           - 5000:5000
+      # Pinned by the same digest as the Makefile comment above test-examples.
+      vault:
+        image: hashicorp/vault@sha256:47f14a6acb98f48d798a07df7c83f23a6e636e1cf724c5f8ff165cb32667a1e2
+        env:
+          VAULT_DEV_ROOT_TOKEN_ID: dev-root
+        ports:
+          - 8200:8200
+        options: >-
+          --cap-add=IPC_LOCK
+          --health-cmd="wget -qO- http://127.0.0.1:8200/v1/sys/health"
+          --health-interval=5s
+          --health-timeout=3s
+          --health-retries=10
     steps:
       - name: Check out
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1

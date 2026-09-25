@@ -45,9 +45,6 @@ test: ## Run the single-site suite.
 test-ms: ## Run the multisite suite.
 	WP_MULTISITE=1 $(VENDOR_BIN)/phpunit -c phpunit-multisite.xml.dist
 
-test-examples: ## Run the platform examples suite against emulators. Needs Moto (see examples/README.md); not part of make ci.
-	$(VENDOR_BIN)/phpunit -c phpunit-examples.xml.dist
-
 coverage: ## Run the single-site suite with coverage.
 	$(VENDOR_BIN)/phpunit --coverage-html coverage --coverage-text
 
@@ -58,6 +55,15 @@ reference-check: ## Fail if docs/reference/ is stale relative to the source.
 	php bin/gen-reference.php --check
 
 ci: lint compat analyse reference-check test test-ms ## Everything CI runs.
+
+# Local Vault dev server for the vault-provider example (pinned digest):
+#   docker run -d --name secrets-api-vault -p 8201:8200 -e VAULT_DEV_ROOT_TOKEN_ID=dev-root --cap-add=IPC_LOCK hashicorp/vault@sha256:47f14a6acb98f48d798a07df7c83f23a6e636e1cf724c5f8ff165cb32667a1e2
+# Then, from the repository root, inside wp-env (see README.md):
+#   npx @wordpress/env run --env-cwd="wp-content/plugins/$(basename "$PWD")" tests-cli env VAULT_ADDR=http://host.docker.internal:8201 VAULT_TOKEN=dev-root vendor/bin/phpunit -c phpunit-examples.xml.dist
+#   npx @wordpress/env run --env-cwd="wp-content/plugins/$(basename "$PWD")" tests-cli env WP_MULTISITE=1 VAULT_ADDR=http://host.docker.internal:8201 VAULT_TOKEN=dev-root vendor/bin/phpunit -c phpunit-examples.xml.dist
+test-examples: ## Run the platform examples suite, single site then multisite. Needs Moto and Vault (see examples/README.md); not part of make ci.
+	$(VENDOR_BIN)/phpunit -c phpunit-examples.xml.dist
+	WP_MULTISITE=1 $(VENDOR_BIN)/phpunit -c phpunit-examples.xml.dist
 
 clean: ## Remove generated artefacts.
 	rm -rf vendor coverage .phpunit.result.cache .phpcs.cache

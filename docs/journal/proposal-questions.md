@@ -21,7 +21,13 @@ absorbed into an assumption.
    its `AWSCURRENT`/`AWSPREVIOUS` staging labels are the same two slots, so the model needed no
    emulation there. `'v' => 1` leaves room to change this, but see
    [ADR 0006](../decisions/0006-record-format-v2-not-read-compatible.md) for what a format bump
-   would mean.
+   would mean. The Vault KV v2 example needed a translation rather than a match: Vault numbers
+   versions 1, 2, 3, and so on, with no built-in concept of "current" and "previous". Setting
+   `max_versions: 2` on create made it a two-slot store, and the conformance suite passed
+   unchanged. The one thing the model did not define was what "previous" means once a backend
+   keeps more than two versions; the strict N-1 answer this example adopted is recorded in
+   [open-questions.md](open-questions.md#what-previous-means-on-a-backend-with-more-than-two-versions)
+   for the Trac ticket.
 3. **Does `wp_import_option_as_secret()` fit actual plugin migration workflows?**
    — no objections raised, and no plugin outside this project has used it yet.
 4. **Which WP-CLI commands most need this surface, and in what priority order?** — no objections

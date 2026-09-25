@@ -78,8 +78,9 @@ hosted pipeline.
 latest / trunk matrix, plus a multisite job. `shivammathur/setup-php` provides the interpreter and
 asks for the `sodium` extension by name. The whole API is built on libsodium, so relying on
 whatever the runner image happens to ship wasn't good enough. The `examples` job is the only one
-with a non-database service container: a pinned Moto instance the AWS Secrets Manager provider
-conformance run and the AWS KMS keyring conformance and integration tests both run against.
+with service containers beyond the database: a pinned Moto instance, which the AWS Secrets Manager
+conformance run and the AWS KMS keyring tests run against, and a pinned Vault dev server for the
+Vault example. It runs `make test-examples` single site and multisite.
 
 The workflow declares `permissions: contents: read`. Nothing in it writes to the repository,
 publishes anything, or needs a token beyond reading the code under test.
@@ -106,6 +107,7 @@ person pasted.
 | `test-multisite` | 8.3 | latest | Multisite suite |
 | `examples` | 8.3 | latest | `make test-examples` against a Moto (AWS emulator) service container, pinned by digest. Not part of `make ci`. |
 | `reference-docs` | 8.3 | — | `bin/gen-reference.php --check`: the committed docs/reference/ matches the source. No Composer install. |
+| `examples` | 8.3 | latest | `make test-examples` against a Vault dev-mode service container, single site and multisite. Outside `make ci` because it needs the container. |
 
 The 7.4 leg is not optional. Core's floor is 7.4 and `src/` must run there; PHPCompatibilityWP
 catches syntax statically, but only a running 7.4 catches runtime behaviour differences.

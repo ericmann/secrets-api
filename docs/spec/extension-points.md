@@ -62,7 +62,9 @@ read-only really does refuse writes with `secret_provider_read_only`. Where the 
 variation it adapts: a read-only provider is never asked to round-trip a value, and the skipped
 checks are reported as skipped rather than passing quietly. The suite lives in
 `tests/includes/class-wp-secrets-provider-conformance.php` and runs against the shipped provider,
-so there is a known-good subject to compare failures against.
+so there is a known-good subject to compare failures against. It also runs against the Vault
+provider example on a real dev server in `make test-examples`, so there is a second known-good
+subject whose backend does not share the two-slot shape.
 
 **The two inner interfaces.** The store and keyring are the internals of the shipped provider,
 and either can still be replaced on its own. A host who wants their own key custody but is happy

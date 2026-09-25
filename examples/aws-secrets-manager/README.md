@@ -82,9 +82,20 @@ them.
 
 ## Naming
 
-WordPress names map across unchanged, under a scope prefix: `acme/stripe-key` becomes
-`wp/acme/stripe-key`, and network-scope secrets use `wp-network/`. Secrets Manager allows
-alphanumerics plus `/_+=.@-`, so no escaping is needed.
+WordPress names map across unchanged, under a scope prefix. Site-scope secrets are per site:
+`acme/stripe-key` becomes `wp/site/1/acme/stripe-key` on a single site, or on blog 1 of a network;
+on another blog it becomes `wp/site/<blog_id>/acme/stripe-key`. Network-scope secrets are
+unchanged: `wp-network/acme/stripe-key`. Secrets Manager allows alphanumerics plus `/_+=.@-`, so no
+escaping is needed. The IAM resource pattern below (`secret:wp/*`) still matches both shapes.
+
+### Upgrading from an earlier copy of this example
+
+Before this change, site-scope secrets lived at `wp/<name>`, with no blog ID — so on a network,
+every site read and wrote the *same* AWS secret for a given name. They now live at
+`wp/site/1/<name>` (site 1) and `wp/site/<blog_id>/<name>` elsewhere. This is a rename on AWS's
+side: create the new secret from the old value, then delete the old one. The example ships no
+compatibility read before 1.0, because a read that fell back to the flat name would silently share
+secrets across blogs again.
 
 ## The part worth pointing at
 
