@@ -53,7 +53,8 @@ real, pinned `wp-cli.phar` against a real WordPress install it provisions itself
 never wp-env's own `wp-content`, never the PHPUnit suite's database. It exists because every other
 test in this repository instantiates `WP_CLI_Secret_Command` directly and calls its methods,
 which covers nothing about how WP-CLI actually dispatches to them; see
-`docs/journal/test-coverage-gaps.md` and `tests/smoke/SPEC.md`.
+[`docs/journal/2026-09-24-testing-the-cli-for-real.md`](../journal/2026-09-24-testing-the-cli-for-real.md)
+and `tests/smoke/SPEC.md`.
 
 Variables it reads: `SMOKE_DB_NAME` (defaults to `wordpress_smoke`, and refuses to run if set to
 `wordpress_test`, which belongs to the PHPUnit suite), `DB_USER`, `DB_PASS`, `DB_HOST`,

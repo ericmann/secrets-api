@@ -114,10 +114,9 @@ class WP_CLI_Secret_Command {
 	 * [--slot=<slot>]
 	 * : Which stored version to read.
 	 *
-	 * Named --slot rather than --version because WP-CLI consumes `--version`
-	 * itself before a subcommand ever sees it: passing --version=previous
-	 * silently yielded the current value, since the flag was swallowed and the
-	 * synopsis default filled in behind it.
+	 * Named --slot rather than --version to avoid the value being dropped by
+	 * wrappers such as `wp-env run`, which consume --version themselves (the
+	 * original bug), and to avoid confusion with `wp --version`.
 	 * ---
 	 * default: current
 	 * options:

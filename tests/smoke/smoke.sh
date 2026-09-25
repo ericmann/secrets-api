@@ -9,20 +9,28 @@
 # This script never touches wp-env's own wp-content: it only ever reaches
 # into .smoke/, the install the install script owns.
 #
-# Regression proof (P6-01): each of the three historical CLI dispatch bugs
-# was reintroduced by hand in cli/class-wp-cli-secret-command.php, run
-# against this suite, confirmed to fail, and reverted (git checkout --).
-# Nothing below is a standing test for the bug's absence beyond the
-# assertions already in cases A and B; this block records which of those
-# assertions is the one that catches each bug.
+# Regression proof: each of the three historical CLI dispatch bugs was
+# reintroduced by hand in cli/class-wp-cli-secret-command.php, run against
+# this suite, confirmed to fail, and reverted (git checkout --). Nothing
+# below is a standing test for the bug's absence beyond the assertions
+# already in cases A and B; this block records which of those assertions is
+# the one that catches each bug.
 #
 #   1. Renaming get()'s `[--slot=<slot>]` synopsis entry (and the
-#      $assoc_args['slot'] reads) to `[--version=<version>]` -- reproducing
-#      the original defect, where WP-CLI's own global --version flag
-#      swallows --version=previous before the subcommand sees it. Caught by
-#      "secret get synopsis flags match the table" (case A) and by
-#      "get --slot=previous exits 0" / "get --slot=previous returns the
-#      demoted value (bug 1, end to end)" (case B).
+#      $assoc_args['slot'] reads) back to `[--version=<version>]` --
+#      reproducing the original defect. Caught by "secret get synopsis
+#      flags match the table" and the "--version=previous does not select
+#      the previous slot" / "get --version=previous exits 1" /
+#      "WP-CLI rejects --version as an undeclared get parameter" rows (case
+#      A), and by "get --slot=previous exits 0" / "get --slot=previous
+#      returns the demoted value (bug 1, end to end)" (case B). Through the
+#      real binary, --version=previous then reaches get() and selects the
+#      previous slot: WP-CLI 2.12.0 passes --version after a command
+#      through to the subcommand. The 4 September symptom, seen through
+#      `wp-env run`, came from that wrapper dropping the flag before
+#      WP-CLI ever saw it, not from WP-CLI itself consuming --version; the
+#      rename to --slot is what these rows pin, not the wrapper's
+#      behaviour.
 #   2. Deleting the `: Render output in a particular format.` description
 #      line under list()'s `[--format=<format>]` -- WP-CLI drops a
 #      parameter that has no description. Caught by "secret list synopsis
@@ -269,17 +277,20 @@ case_a_registration() {
 	done
 	IFS="$saved_ifs"
 
-	# Pin bug 1's cause, not only its fix: `--version=previous` is not
-	# accepted as the slot selector, because WP-CLI's own global --version
-	# flag swallows it before the subcommand ever sees it. This is already
-	# implied by the exact-set check above (`get`'s row has no --version),
-	# stated here explicitly and end to end.
+	# Pin bug 1's cause, not only its fix: `get` declares --slot, not
+	# --version, so --version=previous is passed through to get() by
+	# WP-CLI (which hands --version after a command to the subcommand) and
+	# rejected there as an undeclared parameter. This is already implied by
+	# the exact-set check above (`get`'s row has no --version), stated here
+	# explicitly and end to end.
 	run "${WP[@]}" secret set "${NS}/slotpin" "smoke-value-a-$$"
 	assert_status 0 "set ${NS}/slotpin to value a"
 	run "${WP[@]}" secret set "${NS}/slotpin" "smoke-value-b-$$"
 	assert_status 0 "set ${NS}/slotpin to value b"
 	run "${WP[@]}" secret get "${NS}/slotpin" --version=previous --reveal --field=value
 	assert_out_not_contains "smoke-value-a-$$" "--version=previous does not select the previous slot"
+	assert_status 1 "get --version=previous exits 1: WP-CLI passes the flag to get, which does not declare it"
+	assert_err_contains "unknown --version parameter" "WP-CLI rejects --version as an undeclared get parameter"
 	run "${WP[@]}" secret delete "${NS}/slotpin" --yes
 	assert_status 0 "delete ${NS}/slotpin"
 }
@@ -635,11 +646,20 @@ case_d_dropin() {
 # --- multisite conversion ---
 
 convert_to_multisite() {
+	local preconvert_value="smoke-value-preconvert-$$"
+
+	run "${WP[@]}" secret set "${NS}/preconvert" "$preconvert_value"
+	assert_status 0 "set ${NS}/preconvert exits 0"
+
 	run "${WP[@]}" core multisite-convert --title="Secrets API smoke network"
 	assert_status 0 "multisite-convert exits 0"
 
 	run "${WP[@]}" plugin activate secrets-api --network
 	assert_status 0 "plugin activate secrets-api --network exits 0"
+
+	run "${WP[@]}" secret get "${NS}/preconvert" --reveal --field=value
+	assert_status 0 "get ${NS}/preconvert --reveal --field=value exits 0 after multisite-convert"
+	assert_out_eq "$preconvert_value" "a secret written before multisite-convert still decrypts after it"
 
 	SITE2_ID="$("${WP[@]}" site create --slug=smoke2 --porcelain)"
 	SITE2_URL="$("${WP[@]}" site list --blog_id="$SITE2_ID" --field=url)"

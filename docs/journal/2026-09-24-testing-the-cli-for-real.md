@@ -16,8 +16,8 @@ silence to become confirmation.
 ## What was built
 
 Five cases. A: every subcommand on both `wp secret` and `wp network-secret` is registered, and
-each command's synopsis flags match an exact table, in both directions — a new flag with no row
-and a row with no flag both fail loudly. B: the exit-code contract (0 found, 1 absent, 2 broken),
+each `wp secret` subcommand's synopsis flags match an exact table, in both directions — a new flag
+with no row and a row with no flag both fail loudly. B: the exit-code contract (0 found, 1 absent, 2 broken),
 masking and `--reveal`, slots, every `list` format, `retire`, `delete`, `generate-key`,
 `import-option`, and `migrate-legacy --dry-run`. C: rotation end to end, with the previous key
 moved into `wp-config.php` and a fresh key generated, then confirmed still decryptable and
@@ -29,21 +29,36 @@ secret round-trips from both.
 
 Nothing under `src/` or `cli/` changed to make this pass, with one exception worth stating
 plainly: `WP_Secrets_Key_Manager` did not preserve the root key across `wp core
-multisite-convert` before this work started. A reviewer caught it when case E first ran — every
-secret written before conversion became silently undecryptable, contradicting what
-[`docs/spec/network.md`][network] already claimed. That is fixed now: the wrapped root key is
-adopted from the pre-conversion site option into `wp_sitemeta` on the first post-conversion read,
-and case E asserts on it directly.
+multisite-convert` before this work started. Case E's first run failed on the network-secret
+health check — every secret written before conversion became silently undecryptable,
+contradicting what [`docs/spec/network.md`][network] already claimed. That was diagnosed and
+fixed: the wrapped root key is adopted from the pre-conversion site option into `wp_sitemeta` on
+the first post-conversion read. `convert_to_multisite` now asserts on it directly — a secret set
+immediately before `wp core multisite-convert` is read back with `--reveal --field=value` right
+after the network activates, and must still equal what was written.
 
 ## What it found
 
-The concrete thing PHPUnit could not catch: `--version=previous` silently returned the current
-value, because WP-CLI's own global `--version` flag consumes the argument before the subcommand
-ever sees it. The flag is `--slot` now. Case A's synopsis check and case B's
-`get --slot=previous` assertion both pin this, and reintroducing the bug by hand — restoring
-`--version`, deleting a `--format` description line, dropping an `@subcommand` tag — makes the
-suite fail for the reason each was supposed to. That reintroduce-and-revert cycle is recorded in
-`tests/smoke/smoke.sh`'s own header comment and in the commit that added it.
+The concrete thing PHPUnit could not catch: on 4 September, `--version=previous` silently
+returned the current value. This harness does not reproduce that symptom through a real `wp`.
+WP-CLI 2.12.0 hands `--version` after a command through to the subcommand rather than consuming
+it itself; what actually dropped the flag was `wp-env run`, before WP-CLI ever saw it. The flag
+is `--slot` now regardless, since a subcommand-level flag should not share a name with a global
+one WP-CLI does recognise (`wp --version`) even when that global flag is not the one eating it
+here. Case A's synopsis check and case B's `get --slot=previous` assertion both pin the rename.
+Reintroducing `--version` by hand and running against the real binary shows what that rename
+actually guards against: `get --version=previous` now reaches `get()`, which does not declare
+`--version`, and WP-CLI rejects it — exit 1, `unknown --version parameter` on stderr. Case A
+asserts both of those directly. Diagnosing this also turned up a second defect: case E's first
+run failed on the network-secret health check after `wp core multisite-convert`, traced to
+`WP_Secrets_Key_Manager` not preserving the root key across the conversion. That is fixed, and
+`convert_to_multisite` now asserts directly that a secret set before conversion still decrypts
+after it.
+
+Reintroducing the other two historical bugs by hand — deleting a `--format` description line,
+dropping an `@subcommand` tag — still makes the suite fail for the reason each was supposed to.
+That reintroduce-and-revert cycle is recorded in `tests/smoke/smoke.sh`'s own header comment and
+in the commit that added it.
 
 Past that: every subcommand dispatches the way its docblock says, `list --format=*` behaves the
 same across json, csv, and ids, and the multisite pass, once the root-key fix landed, round-trips

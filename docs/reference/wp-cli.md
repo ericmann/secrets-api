@@ -84,7 +84,7 @@ wp network-secret get <name> [--slot=<slot>] [--reveal] [--field=<field>] [--for
 | Option | Description |
 |---|---|
 | `<name>` | The secret's namespaced name. |
-| `[--slot=<slot>]` | Which stored version to read. Named --slot rather than --version because WP-CLI consumes `--version` itself before a subcommand ever sees it: passing --version=previous silently yielded the current value, since the flag was swallowed and the synopsis default filled in behind it. Default: `current`. Options: `current`, `previous`. |
+| `[--slot=<slot>]` | Which stored version to read. Named --slot rather than --version to avoid the value being dropped by wrappers such as `wp-env run`, which consume --version themselves (the original bug), and to avoid confusion with `wp --version`. Default: `current`. Options: `current`, `previous`. |
 | `[--reveal]` | Show the actual value. Without this, it is masked. |
 | `[--field=<field>]` | Print a single field (name, fingerprint, value) instead of a table. |
 | `[--format=<format>]` | Render output in a particular format. Default: `table`. Options: `table`, `csv`, `json`. |
@@ -309,7 +309,7 @@ wp secret get <name> [--slot=<slot>] [--reveal] [--field=<field>] [--format=<for
 | Option | Description |
 |---|---|
 | `<name>` | The secret's namespaced name. |
-| `[--slot=<slot>]` | Which stored version to read. Named --slot rather than --version because WP-CLI consumes `--version` itself before a subcommand ever sees it: passing --version=previous silently yielded the current value, since the flag was swallowed and the synopsis default filled in behind it. Default: `current`. Options: `current`, `previous`. |
+| `[--slot=<slot>]` | Which stored version to read. Named --slot rather than --version to avoid the value being dropped by wrappers such as `wp-env run`, which consume --version themselves (the original bug), and to avoid confusion with `wp --version`. Default: `current`. Options: `current`, `previous`. |
 | `[--reveal]` | Show the actual value. Without this, it is masked. |
 | `[--field=<field>]` | Print a single field (name, fingerprint, value) instead of a table. |
 | `[--format=<format>]` | Render output in a particular format. Default: `table`. Options: `table`, `csv`, `json`. |
