@@ -2,9 +2,9 @@
 
 Branch: `build/cli-smoke`
 Base: `1209b5013018`
-Head: `aec11a5`
+Head: `ceeeb87`
 
-Task counts: 25 done, 0 blocked, 0 skipped, 0 todo, 0 in progress. 25 total.
+Task counts: 26 done, 0 blocked, 0 skipped, 0 todo, 0 in progress. 26 total.
 
 ## Round 1
 
@@ -214,6 +214,44 @@ constraints ok (`smoke-diagnostics-never-print-stdout` zero hits), `bin/ci-local
 with `foundry_verify` and no file scope: identical result, 144/144 smoke, all green.
 
 ### Round 3 pipeline friction
+
+None logged this round.
+
+## Round 4
+
+Review-fix round. One `R4-*` task queued by the round-4 reviewer, done, zero open.
+
+**R4-01 — Correct the journal's account of bug 1's reintroduction and case A's "cause" comment.**
+Round 3's rewrite of the journal's "What it found" paragraph still overstated what reintroducing
+`--version` by hand showed: it said the reintroduced flag "does not declare `--version`" (i.e.
+described the *current* tree's behavior) in the same sentence as "reintroducing," conflating the
+two states, and added an invented causal link ("Diagnosing this also turned up a second defect")
+between bug 1's rename and the root-key defect that P6-01's actual run never established — the two
+findings are unrelated, from different cases (A/B vs. E). Per the reviewer's evidence (P6-01's
+commit 31961a1: with `get()`'s flag renamed back to `--version`, the suite failed on the synopsis
+row, the `--version=previous`-absence row, and both `--slot=previous` rows — row 36 only fails if
+the *previous* value came back), rewrote the paragraph to state the two tree states separately: on
+the current tree, `get --version=previous` is rejected outright (exit 1, `unknown --version
+parameter`, pinned by case A); reintroducing `--version` by hand instead makes the previous value
+come back, and the suite still fails on the synopsis table and both `--slot=previous` rows, so it
+catches the rename rather than reproducing the 4 September symptom. The root-key finding is now
+introduced with "Separately," with no causal link implied. Also rewrapped the "What was built"
+paragraph's over-length line (line 20, was 109 columns) to 100 columns with no word changes.
+
+`tests/smoke/smoke.sh` line 280's comment changed from "Pin bug 1's cause, not only its fix" to
+"Pin WP-CLI's side of bug 1, not only its fix" — the assertion block only ever pinned WP-CLI's
+rejection behavior (exit 1, stderr message), not any claim about the bug's underlying cause. No
+code, assertion, or description string changed in `smoke.sh`; `git diff HEAD~1 -- tests/smoke/
+smoke.sh` touches only that one comment line.
+
+No Foundry task IDs were introduced into either file. Verified: all four required greps behave as
+specified (the old contradictory sentence and "Diagnosing this" are gone; "the previous value
+comes back" and the old "Pin bug 1's cause" wording are each absent/present as required);
+`bin/ci-local.sh --keep` still passed 144/144 (single-site PHPUnit, multisite PHPUnit, and smoke);
+`make reference-check` clean; `git diff HEAD~1 --stat` lists only the two touched files;
+`foundry_verify` with no file scope showed all 13 constraints ok and both verify commands green.
+
+### Round 4 pipeline friction
 
 None logged this round.
 
