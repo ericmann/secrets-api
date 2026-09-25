@@ -148,7 +148,7 @@ final class Vault_KV2_Provider implements WP_Secrets_Provider {
 	 * Creates or updates a secret. On first write, max_versions is set to
 	 * self::MAX_VERSIONS before the value is written, so Vault is a two-slot
 	 * store from its very first version. A secret created outside this
-	 * provider keeps whatever max_versions it already has -- see ADR 0009.
+	 * provider keeps whatever max_versions it already has -- see ADR 0010.
 	 * The rotation flag is written in a separate metadata request.
 	 *
 	 * @param string      $name           Secret name.

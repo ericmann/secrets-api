@@ -23,3 +23,4 @@ site/.astro/
 
 # Spacefast CLI link and state. Written wherever sf publish runs from; never commit it.
 .spacefast/
+

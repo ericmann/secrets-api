@@ -28,7 +28,10 @@ The 0.1.0 code has four layers, not two. Exactly one value is ever stored wrappe
    wraps them with the keyring, and stores the result under the `_wp_secrets_root_key` site
    option via `add_site_option()`, handling the two-requests-race by re-reading the winner. The
    default keyring wraps with `sodium_crypto_aead_xchacha20poly1305_ietf_encrypt()` under the
-   fixed AAD `wp-secrets-root-key-v1`, storing `nonce . ciphertext` base64-encoded.
+   fixed AAD `wp-secrets-root-key-v1`, storing `nonce . ciphertext` base64-encoded. The key
+   manager keeps the unwrapped root key in memory for the rest of the request, so a remote
+   keyring is invoked once per request rather than once per secret; see
+   [providers-and-keyrings.md](providers-and-keyrings.md).
 3. **Master key.** `WP_Secrets_Key_Manager::get_master_key()` derives a per-scope master key from
    the root key on demand with `sodium_crypto_kdf_derive_from_key()`. Master keys are never
    stored. See [network.md](network.md) for the subkey and context values.

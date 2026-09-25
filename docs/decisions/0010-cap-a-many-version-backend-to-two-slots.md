@@ -1,13 +1,13 @@
 ---
-title: "ADR 0009: Cap a many-version backend to two slots"
+title: "ADR 0010: Cap a many-version backend to two slots"
 description: "The Vault KV v2 provider example sets max_versions: 2 on every secret it creates and defines PREVIOUS as strictly version N-1, so a backend that keeps ten versions still behaves like the API's two-slot model."
 ---
 
-# ADR 0009: Cap a many-version backend to two slots
+# ADR 0010: Cap a many-version backend to two slots
 
 | | |
 |---|---|
-| **Number** | 0009 |
+| **Number** | 0010 |
 | **Date** | 2026-09-24 |
 | **Status** | Accepted. |
 

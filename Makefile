@@ -15,7 +15,7 @@ DB_PASS ?=
 DB_HOST ?= 127.0.0.1
 
 .DEFAULT_GOAL := help
-.PHONY: help install lint lint-fix compat analyse test test-ms coverage reference reference-check ci clean test-examples
+.PHONY: help install lint lint-fix compat analyse test test-ms test-examples coverage reference reference-check ci clean
 
 help: ## Show this help.
 	@grep -hE '^[a-zA-Z_-]+:.*?## ' $(MAKEFILE_LIST) \
@@ -61,7 +61,7 @@ ci: lint compat analyse reference-check test test-ms ## Everything CI runs.
 # Then, from the repository root, inside wp-env (see README.md):
 #   npx @wordpress/env run --env-cwd="wp-content/plugins/$(basename "$PWD")" tests-cli env VAULT_ADDR=http://host.docker.internal:8201 VAULT_TOKEN=dev-root vendor/bin/phpunit -c phpunit-examples.xml.dist
 #   npx @wordpress/env run --env-cwd="wp-content/plugins/$(basename "$PWD")" tests-cli env WP_MULTISITE=1 VAULT_ADDR=http://host.docker.internal:8201 VAULT_TOKEN=dev-root vendor/bin/phpunit -c phpunit-examples.xml.dist
-test-examples: ## Run the examples suite against live service containers (not part of ci).
+test-examples: ## Run the platform examples suite, single site then multisite. Needs Moto and Vault (see examples/README.md); not part of make ci.
 	$(VENDOR_BIN)/phpunit -c phpunit-examples.xml.dist
 	WP_MULTISITE=1 $(VENDOR_BIN)/phpunit -c phpunit-examples.xml.dist
 

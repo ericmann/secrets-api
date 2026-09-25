@@ -40,7 +40,7 @@ default; this API exposes exactly two. The provider answers by setting `max_vers
 secret it creates and defining `PREVIOUS` as strictly version N-1 — never the newest surviving
 version below N, since promoting an older survivor into that slot would let
 `wp_retire_secret_version()` bring back a version it was supposed to make unreachable. Recorded as
-[ADR 0009](../decisions/0009-cap-a-many-version-backend-to-two-slots.md) and as an open question
+[ADR 0010](../decisions/0010-cap-a-many-version-backend-to-two-slots.md) and as an open question
 for the Trac ticket, since `get()` and `retire_previous()`'s own docblocks don't say this.
 `test_previous_is_strictly_n_minus_1_even_when_older_versions_survive` is the test that pins it
 down.

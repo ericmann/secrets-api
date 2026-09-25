@@ -185,16 +185,20 @@ jobs:
 
       - run: make test-ms
 
-  # Runs the platform-binding examples (examples/*/secrets.php) against a real
-  # Vault dev server, not part of `make ci`: examples/README.md and the KMS
-  # spec §5 say the shared-harness examples suite needs a live service
-  # container that `make ci`'s environments do not provide. The Vault image is
-  # pinned by the same digest as the Makefile comment above test-examples --
-  # the "vault" service's image: line below.
+  # Runs the platform examples (examples/*/secrets.php) against a Moto
+  # server (an AWS emulator, for the KMS and Secrets Manager examples) and a
+  # Vault dev server, single site then multisite. It sits outside `make ci`
+  # because the other jobs and the no-Docker local path provide no service
+  # containers. The examples stay unlinted: they are single files a host copies
+  # out, not part of this plugin's own coding-standard surface.
   examples:
-    name: Examples
+    name: Examples (Moto, Vault)
     needs: static
     runs-on: ubuntu-latest
+    env:
+      WP_SECRETS_TEST_AWS_ENDPOINT: http://127.0.0.1:5000
+      VAULT_ADDR: http://127.0.0.1:8200
+      VAULT_TOKEN: dev-root
     services:
       mysql:
         image: mysql:8.0
@@ -208,6 +212,12 @@ jobs:
           --health-interval=10s
           --health-timeout=5s
           --health-retries=5
+      # Pinned by digest, resolved from motoserver/moto:latest on 2026-09-24.
+      moto:
+        image: motoserver/moto@sha256:91fd602a21f49cf9eb82fdf474015a3c131d40104c8297ea6a2ca920708ae32c
+        ports:
+          - 5000:5000
+      # Pinned by the same digest as the Makefile comment above test-examples.
       vault:
         image: hashicorp/vault@sha256:47f14a6acb98f48d798a07df7c83f23a6e636e1cf724c5f8ff165cb32667a1e2
         env:
@@ -242,8 +252,15 @@ jobs:
       - name: Install dependencies and the WordPress test suite
         run: make install WP_VERSION=latest DB_HOST=127.0.0.1
 
-      - name: Run the examples suite against Vault
-        run: make test-examples
-        env:
-          VAULT_ADDR: http://127.0.0.1:8200
-          VAULT_TOKEN: dev-root
+      - name: Wait for Moto
+        run: |
+          for i in $(seq 1 30); do
+            if curl -sf http://127.0.0.1:5000/moto-api/ >/dev/null; then
+              exit 0
+            fi
+            sleep 1
+          done
+          echo "Moto never answered on http://127.0.0.1:5000/moto-api/" >&2
+          exit 1
+
+      - run: make test-examples

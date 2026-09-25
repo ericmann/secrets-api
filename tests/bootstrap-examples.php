@@ -1,14 +1,19 @@
 <?php
 /**
- * PHPUnit bootstrap for the examples suite (platform-binding drop-ins).
+ * PHPUnit bootstrap for the platform examples suite (`make test-examples`).
  *
- * Loads the same WordPress test environment as tests/bootstrap.php, then every
- * example's test helpers and its secrets.php. Each example's install block at the
- * bottom of secrets.php guards on its own WP_SECRETS_*_* constants, which are never
- * defined under test, so loading secrets.php here never installs a provider --
- * it only declares the class and lets each test construct one directly.
+ * Bootstraps WordPress and the plugin exactly as tests/bootstrap.php does, then
+ * requires every examples/*\/secrets.php found on disk so their classes are
+ * available to construct directly in a test. Shared test helpers under
+ * examples/*\/tests/includes/ load first. The install block at the bottom of
+ * each example file is guarded on wp-config.php constants (WP_SECRETS_AWS_REGION
+ * and friends) that are never defined in this process, so requiring the file
+ * installs nothing as a provider or keyring global -- it only makes the class
+ * declarations available.
  *
- * @package SecretsAPI\Examples
+ * Not part of `make ci`. Needs emulators running locally; see examples/README.md.
+ *
+ * @package SecretsAPI
  */
 
 require_once __DIR__ . '/bootstrap.php';
@@ -17,6 +22,6 @@ foreach ( glob( dirname( __DIR__ ) . '/examples/*/tests/includes/*.php' ) as $he
 	require_once $helper;
 }
 
-foreach ( glob( dirname( __DIR__ ) . '/examples/*/secrets.php' ) as $secrets_php ) {
-	require_once $secrets_php;
+foreach ( glob( dirname( __DIR__ ) . '/examples/*/secrets.php' ) as $example ) {
+	require_once $example;
 }

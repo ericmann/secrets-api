@@ -12,9 +12,13 @@
 	convertDeprecationsToExceptions="false"
 	>
 	<testsuites>
-		<testsuite name="examples">
-			<directory prefix="test-" suffix=".php">examples/vault-provider/tests</directory>
-			<directory prefix="test-" suffix=".php">examples/aws-secrets-manager/tests</directory>
+		<testsuite name="secrets-api-examples">
+			<directory prefix="test-" suffix=".php">examples/*/tests</directory>
 		</testsuite>
 	</testsuites>
+
+	<php>
+		<const name="WP_TESTS_MULTISITE" value="0"/>
+		<env name="WP_SECRETS_TEST_AWS_ENDPOINT" value="http://host.docker.internal:5051"/>
+	</php>
 </phpunit>

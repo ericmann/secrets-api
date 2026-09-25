@@ -122,7 +122,7 @@ write. A secret created outside the provider — by `vault kv put` directly, or 
 keeps whatever `max_versions` it already had, so a pre-existing Vault secret can still hold
 versions WordPress cannot see or retire. If that turns out to matter in practice it is a finding
 about the version model, not a bug in this example, and goes on the Trac ticket. See
-[ADR 0009](../../docs/decisions/0009-cap-a-many-version-backend-to-two-slots.md).
+[ADR 0010](../../docs/decisions/0010-cap-a-many-version-backend-to-two-slots.md).
 
 ### 3. Where `needs_rotation` lives
 

@@ -26,6 +26,13 @@
  *   differs from the site path, so there is no collision between the two. Identical
  *   on every blog, so a network secret written on one blog reads on every other.
  *
+ * One unwrapped copy of the root key lives in this object for the rest of the
+ * request, in memory only, never in the object cache. It is replaced whenever the
+ * stored wrapped value changes -- a rotation, a re-wrap, a restore -- so it is never
+ * stale. Callers of get_root_key() still receive a copy and must zero it themselves;
+ * this object's own copy is not theirs to zero. The practical effect: a remote
+ * keyring (a KMS or HSM call) is invoked once per request, not once per secret.
+ *
  * @since 7.2.0
  */
 final class WP_Secrets_Key_Manager {
@@ -75,6 +82,26 @@ final class WP_Secrets_Key_Manager {
 	 * @var WP_Secrets_Keyring
 	 */
 	private $keyring;
+
+	/**
+	 * The unwrapped root key currently cached for this request, or null if nothing
+	 * has been unwrapped yet.
+	 *
+	 * @since 7.2.0
+	 * @var string|null
+	 */
+	private $cached_root_key = null;
+
+	/**
+	 * The wrapped value $cached_root_key was unwrapped from, or null if nothing has
+	 * been unwrapped yet. Used to detect that the stored wrapped value changed
+	 * underneath this object (a rotation, a re-wrap, a restore) so the cache is not
+	 * served stale.
+	 *
+	 * @since 7.2.0
+	 * @var string|null
+	 */
+	private $cached_wrapped = null;
 
 	/**
 	 * Constructor.
@@ -186,7 +213,18 @@ final class WP_Secrets_Key_Manager {
 			);
 		}
 
-		return $this->keyring->unwrap( $wrapped );
+		if ( null !== $this->cached_wrapped && $wrapped === $this->cached_wrapped ) {
+			return $this->cached_root_key;
+		}
+
+		$root_key = $this->keyring->unwrap( $wrapped );
+
+		if ( is_string( $root_key ) ) {
+			$this->cached_wrapped  = $wrapped;
+			$this->cached_root_key = $root_key;
+		}
+
+		return $root_key;
 	}
 
 	/**
@@ -213,7 +251,11 @@ final class WP_Secrets_Key_Manager {
 			);
 		}
 
-		$root_key = $old_keyring->unwrap( $wrapped );
+		if ( $old_keyring === $this->keyring && null !== $this->cached_wrapped && $wrapped === $this->cached_wrapped ) {
+			$root_key = $this->cached_root_key;
+		} else {
+			$root_key = $old_keyring->unwrap( $wrapped );
+		}
 
 		if ( is_wp_error( $root_key ) ) {
 			return $root_key;
@@ -221,9 +263,9 @@ final class WP_Secrets_Key_Manager {
 
 		$rewrapped = $new_keyring->wrap( $root_key );
 
-		wp_secrets_memzero( $root_key );
-
 		if ( is_wp_error( $rewrapped ) ) {
+			wp_secrets_memzero( $root_key );
+
 			return $rewrapped;
 		}
 
@@ -236,11 +278,18 @@ final class WP_Secrets_Key_Manager {
 		 * astronomically unlikely.
 		 */
 		if ( ! update_site_option( self::ROOT_KEY_OPTION, $rewrapped ) ) {
+			wp_secrets_memzero( $root_key );
+
 			return new WP_Error(
 				WP_SECRETS_ERROR_STORE_UNAVAILABLE,
 				__( 'Could not store the re-wrapped root key.', 'default' )
 			);
 		}
+
+		$this->cached_wrapped  = $rewrapped;
+		$this->cached_root_key = $root_key;
+
+		wp_secrets_memzero( $root_key );
 
 		return true;
 	}
@@ -266,6 +315,9 @@ final class WP_Secrets_Key_Manager {
 		}
 
 		if ( add_site_option( self::ROOT_KEY_OPTION, $wrapped ) ) {
+			$this->cached_wrapped  = $wrapped;
+			$this->cached_root_key = $candidate;
+
 			return $candidate;
 		}
 
@@ -281,6 +333,13 @@ final class WP_Secrets_Key_Manager {
 			);
 		}
 
-		return $this->keyring->unwrap( $existing );
+		$root_key = $this->keyring->unwrap( $existing );
+
+		if ( is_string( $root_key ) ) {
+			$this->cached_wrapped  = $existing;
+			$this->cached_root_key = $root_key;
+		}
+
+		return $root_key;
 	}
 }

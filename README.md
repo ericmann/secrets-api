@@ -46,6 +46,7 @@ target list.
 | `make compat` | PHPCompatibilityWP at `testVersion 7.4-` |
 | `make analyse` | phpstan |
 | `make test` / `make test-ms` | phpunit, single site / multisite |
+| `make test-examples` | phpunit against `examples/*/tests`, needs Moto running (see `examples/README.md`); not part of `make ci` |
 | `make coverage` | phpunit with an HTML coverage report (see `docs/journal/test-coverage-gaps.md` re: wp-env) |
 | `make reference` / `make reference-check` | regenerate `docs/reference/` from docblocks / fail if it is stale |
 | `make ci` | all of the above |
@@ -144,10 +145,11 @@ Nothing there is loaded by the plugin, and it's excluded from `make ci` so those
 never become this project's. Read its README before writing one: a key-management service (AWS
 KMS, Google Cloud KMS) is a `WP_Secrets_Keyring` and takes three methods, while a secret store
 (Secrets Manager, Parameter Store) is a `WP_Secrets_Provider` and takes eight. People routinely
-pick the wrong one and pay for it in per-operation API calls. Two `WP_Secrets_Provider` examples
-ship today, AWS Secrets Manager and HashiCorp Vault KV v2, and `make test-examples` runs the
-Vault example against a live Vault dev server and the AWS naming tests offline, through
-`pre_http_request`.
+pick the wrong one and pay for it in per-operation API calls. Start from
+[`examples/aws-kms-keyring/`](examples/aws-kms-keyring/) — it is the smaller interface, and it is
+what most hosts are actually after: key custody moves to the KMS and nothing else changes. Two
+`WP_Secrets_Provider` examples ship alongside it, AWS Secrets Manager and HashiCorp Vault KV v2.
+`make test-examples` runs all three against Moto and a Vault dev server.
 
 ## Contributing
 

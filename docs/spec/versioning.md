@@ -52,7 +52,7 @@ provider whose backend keeps more than two versions of its own: Vault's KV v2 en
 versions 1, 2, 3, and so on. `Vault_KV2_Provider` translates that into the two-slot shape by
 setting `max_versions: 2` on every secret it creates and by defining `PREVIOUS` as strictly
 version N-1 in `previous_version()`, never the newest surviving version below N. See
-[ADR 0009](../decisions/0009-cap-a-many-version-backend-to-two-slots.md).
+[ADR 0010](../decisions/0010-cap-a-many-version-backend-to-two-slots.md).
 
 ## Why
 
