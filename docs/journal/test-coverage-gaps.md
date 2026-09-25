@@ -1,7 +1,7 @@
 ---
 title: "Test coverage gaps"
 description: "Code paths the automated suite does not reach, why, and what was verified by hand instead."
-date: 2026-09-04
+date: 2026-09-24
 ---
 
 ## 🟢 `sodium_compat` is never exercised by the test suite

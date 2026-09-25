@@ -1,7 +1,7 @@
 ---
 title: "The five questions the proposal asked the community"
 description: "Where answers from the proposal's comment thread are recorded, so they land somewhere rather than being absorbed into an assumption."
-date: 2026-09-04
+date: 2026-09-24
 ---
 
 ## 🟢 The five questions the proposal asked the community
