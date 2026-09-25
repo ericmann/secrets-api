@@ -1,7 +1,7 @@
 ---
 title: "Open questions"
 description: "What this implementation deliberately did not decide, with the conservative choice made in the meantime."
-date: 2026-09-04
+date: 2026-09-24
 ---
 
 # Open questions
