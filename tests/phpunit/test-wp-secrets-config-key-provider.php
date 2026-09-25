@@ -103,6 +103,10 @@ class Tests_Secrets_WPSecretsConfigKeyProvider extends WP_UnitTestCase {
 	}
 
 	public function test_get_key_source_reports_the_salt_fallback_when_wp_secrets_key_is_unset() {
+		if ( 'put your unique phrase here' === LOGGED_IN_KEY || 'put your unique phrase here' === LOGGED_IN_SALT ) {
+			$this->markTestSkipped( 'Needs real LOGGED_IN_KEY and LOGGED_IN_SALT values; wp-tests-config-sample.php ships placeholders.' );
+		}
+
 		$provider = new WP_Secrets_Config_Key_Provider();
 
 		$this->assertStringContainsString( 'LOGGED_IN_KEY', $provider->get_key_source() );
@@ -262,6 +266,10 @@ class Tests_Secrets_WPSecretsConfigKeyProvider extends WP_UnitTestCase {
 	 * @preserveGlobalState disabled
 	 */
 	public function test_previous_key_constant_does_not_leak_into_the_current_key_path() {
+		if ( 'put your unique phrase here' === LOGGED_IN_KEY || 'put your unique phrase here' === LOGGED_IN_SALT ) {
+			$this->markTestSkipped( 'Needs real LOGGED_IN_KEY and LOGGED_IN_SALT values; wp-tests-config-sample.php ships placeholders.' );
+		}
+
 		define( 'WP_SECRETS_KEY_PREVIOUS', base64_encode( str_repeat( 'C', 32 ) ) );
 
 		$provider = new WP_Secrets_Config_Key_Provider( false );

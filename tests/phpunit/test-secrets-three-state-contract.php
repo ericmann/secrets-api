@@ -100,6 +100,10 @@ class Tests_Secrets_ThreeStateContract extends WP_UnitTestCase {
 	 * @preserveGlobalState disabled
 	 */
 	public function test_key_unavailable_is_wp_error_not_null() {
+		if ( 'put your unique phrase here' === LOGGED_IN_KEY || 'put your unique phrase here' === LOGGED_IN_SALT ) {
+			$this->markTestSkipped( 'Needs real LOGGED_IN_KEY and LOGGED_IN_SALT values; wp-tests-config-sample.php ships placeholders.' );
+		}
+
 		$provider = new WP_Secrets_Libsodium_Provider(
 			new WP_Secrets_Option_Store(),
 			new WP_Secrets_Key_Manager( new WP_Secrets_Config_Key_Provider() )

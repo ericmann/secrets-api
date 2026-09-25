@@ -26,6 +26,10 @@ class Tests_Secrets_SiteHealth extends WP_UnitTestCase {
 	}
 
 	public function test_key_source_test_recommends_a_dedicated_key_by_default() {
+		if ( 'put your unique phrase here' === LOGGED_IN_KEY || 'put your unique phrase here' === LOGGED_IN_SALT ) {
+			$this->markTestSkipped( 'Needs real LOGGED_IN_KEY and LOGGED_IN_SALT values; wp-tests-config-sample.php ships placeholders.' );
+		}
+
 		$result = wp_secrets_site_health_test_key_source();
 
 		$this->assertSame( 'recommended', $result['status'] );

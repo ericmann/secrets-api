@@ -29,6 +29,9 @@ class Tests_Secrets_ExtensionPoints extends WP_UnitTestCase {
 	 * @preserveGlobalState disabled
 	 */
 	public function test_mock_store_with_the_default_keyring_round_trips() {
+		// Isolated, so this test supplies the site key rather than relying on the test config's salts.
+		define( 'WP_SECRETS_KEY', base64_encode( str_repeat( 'k', 32 ) ) );
+
 		$GLOBALS['wp_secrets_store'] = new Mock_Store();
 
 		$this->assertTrue( wp_set_secret( 'myplugin/api-key', 'value' ) );
@@ -66,6 +69,9 @@ class Tests_Secrets_ExtensionPoints extends WP_UnitTestCase {
 	 * @preserveGlobalState disabled
 	 */
 	public function test_read_succeeds_while_write_fails() {
+		// Isolated, so this test supplies the site key rather than relying on the test config's salts.
+		define( 'WP_SECRETS_KEY', base64_encode( str_repeat( 'k', 32 ) ) );
+
 		$store                       = new Mock_Store();
 		$GLOBALS['wp_secrets_store'] = $store;
 
@@ -91,6 +97,9 @@ class Tests_Secrets_ExtensionPoints extends WP_UnitTestCase {
 	 * @preserveGlobalState disabled
 	 */
 	public function test_a_store_that_refuses_writes_still_serves_reads() {
+		// Isolated, so this test supplies the site key rather than relying on the test config's salts.
+		define( 'WP_SECRETS_KEY', base64_encode( str_repeat( 'k', 32 ) ) );
+
 		$store                       = new Mock_Store();
 		$GLOBALS['wp_secrets_store'] = $store;
 
