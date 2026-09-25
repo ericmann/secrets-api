@@ -13,7 +13,9 @@ than shadowing core's implementation.
 
 > **Status: feature plugin, pre-core-merge.** The public API surface is settled — it is the one
 > described in the proposal. See [`docs/journal/open-questions.md`](docs/journal/open-questions.md) for what is
-> deliberately unresolved.
+> deliberately unresolved. The core patch is Trac ticket
+> [#66187](https://core.trac.wordpress.org/ticket/66187), with its code review in
+> [WordPress/wordpress-develop#13759](https://github.com/WordPress/wordpress-develop/pull/13759).
 
 [proposal]: https://make.wordpress.org/core/2026/08/25/proposal-a-secrets-api-for-wordpress-7-2/
 

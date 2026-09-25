@@ -26,6 +26,15 @@ copied. `tests/phpunit/test-architecture.php` enforces the boundary: no referenc
 file carries `@since 7.2.0`; only the `default` text domain; no subdirectory other than the two
 core paths; no prototype-compatibility symbol.
 
+**The core patch.** Trac ticket [#66187](https://core.trac.wordpress.org/ticket/66187), under
+review in [WordPress/wordpress-develop#13759](https://github.com/WordPress/wordpress-develop/pull/13759).
+It copies `src/` unchanged, then adds the loading the plugin's bootstrap does now:
+- `wp_load_secrets_dropin()` in `load.php`, called from `wp-settings.php` before must-use plugins
+- `populate_roles_720()` and `upgrade_720()` for `manage_secrets`
+- `manage_network_secrets` in `map_meta_cap()`
+
+It also brings the tests for everything in `src/`.
+
 **Standing down.** `wp_secrets_api_bootstrap()` in `secrets-api.php` loads nothing and shows an
 admin notice when `$wp_version` is at least `WP_SECRETS_API_CORE_VERSION` (`7.2`, overridable)
 **and** `wp_get_secret()` already exists. If the symbol exists but the version test fails, the
