@@ -1,103 +1,88 @@
 # Review: build/cli-smoke
-Round: 4
+Round: 5
 
-**Verdict: CHANGES REQUESTED**
+**Verdict: APPROVED**
 
-I reviewed `1209b5013018..d1ca11c` against `docs/SPEC.md`, `tests/smoke/SPEC.md`, and
-`docs/PLAN.md`. The only task commit since round 3 is `f264c3e` (R3-01). I read it line by line
-against its PLAN entry and against the P6-01 commit's recorded evidence (`31961a1`). Earlier rounds
-reviewed every other task commit. I re-checked the whole-branch invariants below.
+I reviewed `1209b5013018..e936c6d` against `docs/SPEC.md`, `tests/smoke/SPEC.md`, and
+`docs/PLAN.md`. The only task commit since round 4 is `37cff5f` (R4-01). I read it line by line
+against its PLAN entry and against the P6-01 evidence in `31961a1`. Earlier rounds reviewed every
+other task commit, so for those I re-checked the whole-branch invariants below.
 
-My own `foundry_verify` run (no file scope) passed. All 13 constraint rules self-tested clean with
-zero hits. `bin/ci-local.sh --keep` ended `All green.`: PHPUnit passed on single site and on
-multisite, and the smoke suite passed 144 of 144. `make reference-check` was clean.
+My own `foundry_verify` run (no file scope) passed. All 13 constraint rules passed their own
+fixture self-tests and found zero hits. `bin/ci-local.sh --keep` ended `All green.`: PHPUnit
+passed on single site and on multisite, and the smoke suite passed 144 of 144.
+`make reference-check` was clean.
 
-Whole-branch invariants I checked:
-- The `# Working in this repository` section of `CLAUDE.md` is byte-identical to `main`. The
-  branch only appends to it.
+R4-01 checks:
+- The journal's replacement text in `docs/journal/2026-09-24-testing-the-cli-for-real.md:50-59`
+  matches the task's text word for word, wrapped at 100 columns.
+- It now describes the two tree states correctly. On the current tree, WP-CLI rejects
+  `--version`. With the flag reintroduced, the previous value comes back. It also drops the
+  invented causal link to the root-key defect.
+- The account agrees with P6-01's recorded `not ok` rows 24, 36, 52, and 53, and with the
+  `smoke.sh` header.
+- The acceptance greps behaved as the task specified:
+  - `which does not declare`: no matches.
+  - `Diagnosing this`: no matches.
+  - `the previous value comes back`: one line (53).
+  - `Pin bug 1's cause` in `smoke.sh`: no matches.
+- The `smoke.sh` diff changes one comment line. No code, assertion, or description string
+  changed.
+- The commit touches only the two files the task named.
+
+Whole-branch invariants:
+- The `# Working in this repository` section of `CLAUDE.md` is byte-identical to `main`'s
+  `CLAUDE.md`. The branch only appends below it.
 - `git diff main -- src/wp-includes/interface-*.php` is empty.
 - Neither `.smoke/` nor `.wp-env.override.json` is tracked.
-- R3-01's `ci.yml` diff touches comment lines only, and its `cli/` diff touches docblock prose
-  only. `docs/reference/wp-cli.md` matches the generator.
-- The task's verification greps (for `WP-CLI consumes`, `global --version`, `WP-CLI's own global`,
-  `R1-01`, and `P6-01`) print nothing.
-- The new pre-conversion local is `preconvert_value`, so `smoke-diagnostics-never-print-stdout`
-  covers it. No diagnostic interpolates it.
+- The `.gitignore` diff has two changes. P1-01 added `/.smoke/`, which Phase 1 calls for.
+  Foundry's own `chore: start implementation run` commit added `.foundry/implement.lock`. No
+  implementer commit touched `.gitignore`.
+- The working tree was clean after each mutation run.
 
 Mutation tests with `foundry_mutate`:
 
 | Mutation | Result |
 |---|---|
-| `class-wp-secrets-key-manager.php`: make `get_wrapped_root_key()` return early on every path | killed by phpstan (always-true condition). This says nothing about the tests, so I ran the next mutation. |
-| `class-wp-secrets-key-manager.php`: read the pre-conversion root key from a misspelled option name, so adoption never finds it | killed: 3 multisite PHPUnit failures (the R1-01 tests) |
+| `cli/class-wp-cli-secret-command.php`: `get()` halts with 1 instead of 2 on a `WP_Error` | Killed. PHPUnit failed `test_get_broken_secret_halts_with_exit_code_2`. |
+| `secrets-api.php`: register `network-secrets` instead of `network-secret` (ran `bin/ci-local.sh --keep` only) | Killed by the smoke suite alone: 125 passed, 19 failed (row 101, rows 134-138, and rows 143-144, among others). Both PHPUnit suites passed. The smoke suite covers command registration, and PHPUnit does not. |
 
-Categories 1 to 3 are clean. R3-01 did what it was asked in `cli/`, `smoke.sh`, `ci.yml`, and
-`ci.md`, and its 5 new assertions pass. The verdict is CHANGES REQUESTED for one reason. Task step
-3b asked the journal to "state what bug 1's reintroduction actually showed". The rewritten
-paragraph says the opposite of what happened. The branch's own evidence contradicts it, and so
-does the `smoke.sh` header that the same commit got right. This is one small fix task. It includes
-exact replacement text so that it converges.
+Earlier rounds mutated `src/wp-includes/class-wp-secrets-key-manager.php` (the R1-01 root-key
+adoption), and the multisite PHPUnit tests killed it. That file has not changed since then.
+
+Categories 1 through 3 are clean across the branch. No task is blocked or skipped, and there are
+no open tasks.
 
 ## Findings
 
-### 1. Category 5 (spec drift: the journal deliverable misstates the evidence): the bug 1 reintroduction is described backwards
-- **Where:** `docs/journal/2026-09-24-testing-the-cli-for-real.md:49-56`
-- **What is wrong:** the entry says:
-  > Reintroducing `--version` by hand and running against the real binary shows what that rename
-  > actually guards against: `get --version=previous` now reaches `get()`, which does not declare
-  > `--version`, and WP-CLI rejects it — exit 1, `unknown --version parameter` on stderr.
-
-  This contradicts itself. Reintroducing `--version` means `get()` declares `--version` again, so
-  it cannot then "not declare `--version`". What P6-01 recorded when the flag was renamed back is
-  this: `not ok 36 - --version=previous does not select the previous slot`. That means the real
-  binary delivered `--version=previous` to `get()`, and `get()` returned the previous value. The
-  suite failed on the synopsis row (24), that row (36), and the two `--slot=previous` rows
-  (52, 53). Exit 1 with `unknown --version parameter` is how the *current* tree behaves, where
-  `get()` declares `--slot`. Case A's new rows 37 and 38 pin exactly that. The `smoke.sh` header,
-  rewritten in the same commit, gets this right ("--version=previous then reaches get() and
-  selects the previous slot"). The journal now disagrees with the test file it links to. The next
-  sentence, "Diagnosing this also turned up a second defect", invents a causal link as well. The
-  root-key defect came from case E's first run, not from diagnosing bug 1. The entry's own "What
-  was built" section says so.
-- **What would break:** SPEC §2 requires this journal entry to report "what it found", and the
-  Trac patch will cite it. As written, it tells readers that restoring `--version` makes WP-CLI
-  reject the flag. A reader who reruns the experiment gets the previous value back instead.
-- **Minimal fix:** replace the sentences from "Reintroducing `--version` by hand" through "still
-  decrypts after it." (lines 49-56) with a verified account. Exact text is in the task.
-- **Task:** R4-01 (from R3-01 step 3b).
-
-### 2. Category 5 (small, same task): case A's comment still says it pins bug 1's "cause"
-- **Where:** `tests/smoke/smoke.sh:280`: `# Pin bug 1's cause, not only its fix: ...`
-- **What is wrong:** bug 1's cause was `wp-env run` dropping the flag. The rest of the comment
-  correctly says what the rows pin: WP-CLI hands `--version` to `get()`, and `get()` rejects it.
-  So the rows pin WP-CLI's side of bug 1, not its cause. Only the opening clause is wrong.
-- **Minimal fix:** change the clause to "Pin WP-CLI's side of bug 1, not only its fix:". Change no
-  code and no assertion.
-- **Task:** R4-01 (from R3-01 step 2b).
+None.
 
 ## Spec issues
 
-- **`tests/smoke/SPEC.md` case A** still says the `--version=previous` row "pins bug 1's cause, not
-  only its fix". Round 3 raised this and left it to the operator. The cause was the `wp-env run`
-  wrapper, which the harness deliberately never goes through. What the row can pin is WP-CLI
-  rejecting an undeclared `--version`, and it now does. I have not queued a change, because this
-  is the operator's design document.
+- **`tests/smoke/SPEC.md:64`** still says the `--version=previous` row "pins bug 1's cause". The
+  cause was the `wp-env run` wrapper dropping the flag. The harness deliberately never goes
+  through that wrapper, so no row can pin it. What case A pins now is WP-CLI's side: it rejects
+  an undeclared `--version` with exit 1 and `unknown --version parameter`. Everything else on the
+  branch now says so: the journal, the `smoke.sh` comments, the `get()` docblock, and the
+  reference docs. This is the operator's design document, so I have not queued a change. A
+  one-line wording fix at merge would bring it into line.
 - **`docs/SPEC.md` §4** limits `src/` changes to places where the detailed spec calls for them.
-  This flight carries R1-01. The code matches `docs/spec/network.md`, no interface changed, and
-  the journal says so plainly. I agree with keeping it.
+  This branch carries R1-01, the root-key adoption across `wp core multisite-convert`. The code
+  matches what `docs/spec/network.md` already claimed, no interface changed, and the journal says
+  so plainly. I agree with keeping it, but the operator should know it is the one `src/` change.
 
 ## Manual checks still owed
 
 From HANDOFF.md and the progress log, all `NOT VERIFIED (human)`:
 
-- **P1-02:** `make smoke` on a host without Docker (MySQL on `127.0.0.1`, `DB_PASS` as needed)
-  provisions the install. Check the WP-CLI pin (2.12.0, SHA-256 `ce34ddd8…20d85c`) against the
-  release page by eye.
+- **P1-02:** run `make smoke` on a host without Docker (MySQL on `127.0.0.1`, `DB_PASS` as
+  needed) and confirm it provisions the install. Compare the WP-CLI pin (2.12.0, SHA-256
+  `ce34ddd8…20d85c`) with the release page by eye.
 - **P2-03:** `make smoke` on a host without Docker runs case A green.
 - **P3-03:** read the full TAP output once by eye for any line that shows a value or a key. My
   144-line run had none.
 - **P4-03:** run the uncatchable-fatal drop-in row on a PHP newer than 8.3 and confirm it is
-  still a fatal. The smoke runs on this branch used wp-env's `cli` container, which runs PHP 7.4.
+  still a fatal. The smoke runs on this branch used wp-env's `cli` container.
 - **P5-03:** the `smoke` CI job is green on PHP 7.4 and 8.3. `make smoke` on a host without
   Docker passes both the single-site and the multisite pass.
 - **P6-02:** a reader confirms that the P6-01 commit's three `not ok` groups match the detailed
@@ -106,16 +91,26 @@ From HANDOFF.md and the progress log, all `NOT VERIFIED (human)`:
   1. `make smoke` on a clean checkout with a local MySQL.
   2. The CI `smoke` job is green on 7.4 and 8.3.
   3. `npm run docs:build` renders the new journal entry in the sidebar in date order.
-  4. Read the journal entry for voice and for anything private. Do this after R4-01.
+  4. Read the journal entry for voice and for anything private.
+- **R4-01:** confirm the rewritten "What it found" paragraph reads correctly on the rendered docs
+  site.
 
 ## Notes
 
-- HANDOFF.md's round 3 section says the journal "now says what the reintroduction actually showed
-  (get() rejects the undeclared flag once `--slot` is renamed back)". That is the same inversion
-  as finding 1. Only the pipeline document is affected, so there is no separate task.
-- Journal line 20 is 109 columns, because R3-01 reflowed only the first half of that paragraph.
-  This is cosmetic, and the renderer ignores it.
-- The round 3 notes still apply and are too small for tasks:
-  - `SITE2_ID` and `SITE2_URL` are captured with bare substitutions, so a failing `site create`
-    aborts the run under `set -e` with no `not ok` line.
+- Journal line 22 is a stray short line (`` `generate-key`, ``) left by the R4-01 rewrap. The
+  paragraph is otherwise wrapped at 100 columns. Markdown ignores it.
+- `awk` counts line 86 of the journal as 104 bytes long, because each 🟡/🟢 emoji takes 4 bytes. It
+  displays at about 100 columns.
+- In the registration mutation, row 100 (`network-secret refuses on a single-site install`) still
+  passed. That row checks only for a non-zero exit, and an unregistered command also exits
+  non-zero. Row 101 (the explanatory message) caught the mutation, so the pair is sound. Row 100
+  alone would not be.
+- The rest of the journal's "reintroducing" sentence is accurate for P6-01's tree. Case A rows 37
+  and 38 were added later, and today a reintroduction would also fail them. The paragraph does not
+  claim the list is exhaustive.
+- Earlier rounds' notes still apply, and all are too small for tasks:
+  - `SITE2_ID` and `SITE2_URL` are captured with bare command substitutions, so a failing
+    `site create` aborts the run under `set -e` with no `not ok` line.
   - The diagnostic rule's `[^#]*` stops scanning a line at the first `#`.
+  - HANDOFF.md's round 3 summary still carries the inverted description of the reintroduction.
+    It is a pipeline document, not published.
