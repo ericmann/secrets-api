@@ -52,6 +52,14 @@ final class AWS_Secrets_Manager_Provider implements WP_Secrets_Provider {
 	private $secret_key;
 
 	/**
+	 * Emulator endpoint, e.g. Moto's http://host.docker.internal:5051. Empty in
+	 * production: real Secrets Manager is always reached at its regional host.
+	 *
+	 * @var string
+	 */
+	private $endpoint;
+
+	/**
 	 * Request-scoped only. Never the persistent object cache: WP_Secret
 	 * deliberately cannot round-trip a plaintext through wp_cache_set(), and
 	 * caching the raw value beside it would quietly undo that.
@@ -64,11 +72,14 @@ final class AWS_Secrets_Manager_Provider implements WP_Secrets_Provider {
 	 * @param string $region     AWS region, e.g. 'us-east-1'.
 	 * @param string $access_key Access key id.
 	 * @param string $secret_key Secret access key.
+	 * @param string $endpoint   Emulator endpoint override, e.g. Moto. Never set
+	 *                           in production; leave empty to reach real AWS.
 	 */
-	public function __construct( $region, $access_key, $secret_key ) {
+	public function __construct( $region, $access_key, $secret_key, $endpoint = '' ) {
 		$this->region     = $region;
 		$this->access_key = $access_key;
 		$this->secret_key = $secret_key;
+		$this->endpoint   = $endpoint;
 	}
 
 	// -- the provider contract -------------------------------------------------
@@ -310,6 +321,23 @@ final class AWS_Secrets_Manager_Provider implements WP_Secrets_Provider {
 	}
 
 	/**
+	 * The scope prefix for the current request: `wp-network/` for network
+	 * scope, or `wp/site/<blog_id>/` for site scope. Site scope is per site
+	 * because the shipped provider's option store is per site; a flat `wp/`
+	 * prefix would make every blog on a network share one secret.
+	 *
+	 * Read at call time (not cached), so a `switch_to_blog()` mid-request is
+	 * honoured.
+	 *
+	 * @param bool $network Whether this is network scope.
+	 *
+	 * @return string
+	 */
+	private function scope_prefix( $network ) {
+		return $network ? 'wp-network/' : 'wp/site/' . get_current_blog_id() . '/';
+	}
+
+	/**
 	 * Secrets Manager names allow alphanumerics and /_+=.@- so a namespaced
 	 * WordPress name maps across unchanged. Network-scope secrets get a prefix so
 	 * they cannot collide with a site-scope secret of the same name.
@@ -320,7 +348,7 @@ final class AWS_Secrets_Manager_Provider implements WP_Secrets_Provider {
 	 * @return string
 	 */
 	private function aws_name( $name, $network ) {
-		return ( $network ? 'wp-network/' : 'wp/' ) . $name;
+		return $this->scope_prefix( $network ) . $name;
 	}
 
 	/**
@@ -332,7 +360,7 @@ final class AWS_Secrets_Manager_Provider implements WP_Secrets_Provider {
 	 * @return string|null
 	 */
 	private function wp_name( $aws_name, $network ) {
-		$prefix = $network ? 'wp-network/' : 'wp/';
+		$prefix = $this->scope_prefix( $network );
 
 		if ( 0 !== strpos( $aws_name, $prefix ) ) {
 			return null;
@@ -364,13 +392,32 @@ final class AWS_Secrets_Manager_Provider implements WP_Secrets_Provider {
 	private function call( $target, array $payload ) {
 		$service   = 'secretsmanager';
 		$host      = "secretsmanager.{$this->region}.amazonaws.com";
+		$url       = "https://{$host}/";
 		$body      = wp_json_encode( $payload );
 		$amz_date  = gmdate( 'Ymd\THis\Z' );
 		$datestamp = gmdate( 'Ymd' );
 		$amz_target = "secretsmanager.{$target}";
 
+		/*
+		 * An emulator (Moto) is reached at its own host and port instead of the
+		 * real regional endpoint. The signed "host" header has to match exactly
+		 * what wp_remote_post() actually sends -- derived from the URL, the same
+		 * way WP_Http itself would -- or the emulator's own signature check fails.
+		 */
+		if ( '' !== $this->endpoint ) {
+			$url         = rtrim( $this->endpoint, '/' ) . '/';
+			$parsed      = wp_parse_url( $url );
+			$signed_host = isset( $parsed['host'] ) ? $parsed['host'] : $host;
+
+			if ( isset( $parsed['port'] ) ) {
+				$signed_host .= ':' . $parsed['port'];
+			}
+		} else {
+			$signed_host = $host;
+		}
+
 		$canonical_headers = "content-type:application/x-amz-json-1.1\n"
-			. "host:{$host}\n"
+			. "host:{$signed_host}\n"
 			. "x-amz-date:{$amz_date}\n"
 			. "x-amz-target:{$amz_target}\n";
 		$signed_headers = 'content-type;host;x-amz-date;x-amz-target';
@@ -387,7 +434,7 @@ final class AWS_Secrets_Manager_Provider implements WP_Secrets_Provider {
 		$signature = hash_hmac( 'sha256', $string_to_sign, $k_signing );
 
 		$response = wp_remote_post(
-			"https://{$host}/",
+			$url,
 			array(
 				'timeout' => 10,
 				'headers' => array(
@@ -463,6 +510,8 @@ if ( defined( 'WP_SECRETS_AWS_REGION' ) && defined( 'WP_SECRETS_AWS_KEY' ) && de
 	$GLOBALS['wp_secrets_provider'] = new AWS_Secrets_Manager_Provider(
 		WP_SECRETS_AWS_REGION,
 		WP_SECRETS_AWS_KEY,
-		WP_SECRETS_AWS_SECRET
+		WP_SECRETS_AWS_SECRET,
+		// For an emulator such as Moto during development. Never set in production.
+		defined( 'WP_SECRETS_AWS_ENDPOINT' ) ? (string) WP_SECRETS_AWS_ENDPOINT : ''
 	);
 }

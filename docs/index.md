@@ -64,9 +64,13 @@ directory holds everything longer than that.
 - [`0006-record-format-v2-not-read-compatible.md`](decisions/0006-record-format-v2-not-read-compatible.md) — a future record format bumps `v` rather than widening v1.
 - [`0007-fail-closed-on-a-broken-drop-in.md`](decisions/0007-fail-closed-on-a-broken-drop-in.md) — one provider per request, and a broken drop-in never falls back to the default.
 - [`0008-the-trac-ticket-replaces-thread-confirmation.md`](decisions/0008-the-trac-ticket-replaces-thread-confirmation.md) — additions are reviewed on the Trac ticket, after two more examples and a CLI smoke test.
+- [`0009-root-key-cached-for-the-request.md`](decisions/0009-root-key-cached-for-the-request.md) — the key manager unwraps the root key once per request instead of once per secret.
+- [`0010-cap-a-many-version-backend-to-two-slots.md`](decisions/0010-cap-a-many-version-backend-to-two-slots.md) — the Vault example caps `max_versions` at 2 and defines `PREVIOUS` as strictly N-1.
 
 ### journal/
 - [`2026-09-04-0-1-0-is-public.md`](journal/2026-09-04-0-1-0-is-public.md) — devlog: what 0.1.0 shipped, what it left out, and the road to 7.2.
+- [`2026-09-24-a-kms-keyring.md`](journal/2026-09-24-a-kms-keyring.md) — devlog: the first real `WP_Secrets_Keyring`, the root-key cache and `rotate --from` it drove, and what it found.
+- [`2026-09-24-a-vault-provider.md`](journal/2026-09-24-a-vault-provider.md) — devlog: the Vault KV v2 example, the AWS site-scope bug it found, and what stayed open.
 - [`2026-09-24-testing-the-cli-for-real.md`](journal/2026-09-24-testing-the-cli-for-real.md) — devlog: the WP-CLI smoke test, the root-key bug it found, and the last 🟡 coverage gap closing.
 - [`open-questions.md`](journal/open-questions.md) — what is still deliberately undecided.
 - [`proposal-questions.md`](journal/proposal-questions.md) — the five questions the proposal asked, and the answers so far.

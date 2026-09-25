@@ -86,3 +86,29 @@ the same unexplained cause). What is not known is why the split falls exactly al
 Left as-is: no coverage threshold gates anything in `make ci`. Trustworthy numbers, if wanted,
 should come from the non-Docker path against a host PHP with a coverage driver installed normally,
 not via a `pecl install` into an already-running container.
+
+
+---
+
+## 🟢 Examples run against an emulator, not live AWS
+
+`make test-examples` proves `examples/aws-secrets-manager/` and `examples/aws-kms-keyring/`
+against [Moto](https://github.com/getmoto/moto), which is what runs in CI and on every developer
+machine. Moto does not verify SigV4 signatures or IAM permissions the way real AWS does, so a
+signing bug that happens to produce a request Moto accepts anyway, or a policy missing a
+permission the example actually needs, is invisible to this suite. The live run against real AWS
+is the manual step named in `examples/aws-kms-keyring/README.md` and has not been run yet.
+
+---
+
+## 🟢 The Vault example's failure paths are simulated
+
+`Tests_Vault_Provider`'s sealed-Vault (503) and failed-flag-write cases are produced with
+`pre_http_request`, not a real sealed server — sealing and unsealing a Vault dev container inside
+the test run was judged not worth the added CI time. The unreachable case is real: the test points
+the provider at a closed local port (`http://127.0.0.1:1`), and the connection is really refused.
+OpenBao is not run in CI at all; the README says it implements the same KV v2 API, and one manual
+run against it is a human check whose result is recorded in a commit message rather than an
+automated one. Only the pinned Vault digest named in the Makefile comment and `ci.yml` is tested —
+a different Vault version, or a real OpenBao build, could behave differently and nothing here
+would catch it.

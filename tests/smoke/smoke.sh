@@ -70,7 +70,7 @@ list:--namespace --fields --field --format
 retire:--yes
 import-option:
 migrate-legacy:--dry-run --name --map --namespace --format
-rotate:--yes
+rotate:--from --yes
 generate-key:
 health:--format
 dropin:--verbose
@@ -563,8 +563,15 @@ case_c_rotation() {
 	assert_out_eq "good" "health reports no undecryptable secrets after rotation"
 	rm -f "$json_file"
 
-	# rotate --from=config (refused: same keyring on both sides) is added
-	# once build/kms-keyring lands --from.
+	# 4. --from=config is refused while the config keyring is still the
+	#    active one: there is no other keyring to re-wrap under.
+	run "${WP[@]}" secret rotate --from=config --yes
+	if [ "$STATUS" -ne 0 ]; then
+		ok "rotate --from=config refuses without a drop-in keyring"
+	else
+		not_ok "rotate --from=config refuses without a drop-in keyring" "exit status was 0"
+	fi
+	assert_err_contains "--from=config only applies" "rotate --from=config explains why it refused"
 }
 
 # --- case D: drop-in loading ---

@@ -314,7 +314,120 @@ class Tests_Secrets_WPSecretsKeyManager extends WP_UnitTestCase {
 		$this->assertSame( $master_before, $master_after );
 
 		// The old keyring alone is no longer sufficient: the stored root key is now
-		// wrapped under the new key.
-		$this->assertWPError( $manager_under_old_key->get_root_key() );
+		// wrapped under the new key. Checked with a fresh manager instance, since
+		// $manager_under_old_key's own cache was correctly primed by the rotation
+		// it just performed and is not the thing under test here.
+		$fresh_manager_under_old_key = new WP_Secrets_Key_Manager( $old_keyring );
+		$this->assertWPError( $fresh_manager_under_old_key->get_root_key() );
+	}
+
+	public function test_unwrap_is_called_once_across_repeated_master_key_derivations() {
+		$mock = new Mock_Keyring();
+		$root = random_bytes( 32 );
+		update_site_option( WP_Secrets_Key_Manager::ROOT_KEY_OPTION, $mock->wrap( $root ) );
+
+		$manager = new WP_Secrets_Key_Manager( $mock );
+
+		for ( $i = 0; $i < 5; $i++ ) {
+			$this->assertSame( 32, strlen( $manager->get_master_key( 'site', $i + 1 ) ) );
+			$this->assertSame( 32, strlen( $manager->get_master_key( 'network' ) ) );
+		}
+
+		$this->assertSame( 1, $mock->unwrap_call_count() );
+	}
+
+	/**
+	 * @runInSeparateProcess
+	 * @preserveGlobalState disabled
+	 */
+	public function test_unwrap_is_called_once_across_many_secret_reads() {
+		$mock = new Mock_Keyring();
+		$root = random_bytes( 32 );
+		update_site_option( WP_Secrets_Key_Manager::ROOT_KEY_OPTION, $mock->wrap( $root ) );
+
+		$GLOBALS['wp_secrets_keyring'] = $mock;
+
+		$this->assertNotWPError( wp_set_secret( 'conformance/root-key-cache', 'the-value' ) );
+
+		for ( $i = 0; $i < 10; $i++ ) {
+			$secret = wp_get_secret( 'conformance/root-key-cache' );
+			$this->assertInstanceOf( 'WP_Secret', $secret );
+			$this->assertSame( 'the-value', $secret->reveal() );
+		}
+
+		$this->assertSame( 1, $mock->unwrap_call_count() );
+	}
+
+	public function test_rotate_site_key_updates_the_cache_without_another_unwrap() {
+		$mock        = new Mock_Keyring();
+		$second_mock = new Mock_Keyring();
+		$root        = random_bytes( 32 );
+		update_site_option( WP_Secrets_Key_Manager::ROOT_KEY_OPTION, $mock->wrap( $root ) );
+
+		$manager  = new WP_Secrets_Key_Manager( $mock );
+		$root_key = $manager->get_root_key();
+
+		$this->assertNotWPError( $manager->rotate_site_key( $mock, $second_mock ) );
+
+		$this->assertSame( $root_key, $manager->get_root_key() );
+		$this->assertSame( 1, $mock->unwrap_call_count() );
+		$this->assertSame( 0, $second_mock->unwrap_call_count() );
+	}
+
+	public function test_a_changed_wrapped_value_is_unwrapped_again_rather_than_served_from_cache() {
+		$mock       = new Mock_Keyring();
+		$root       = random_bytes( 32 );
+		$other_root = random_bytes( 32 );
+		update_site_option( WP_Secrets_Key_Manager::ROOT_KEY_OPTION, $mock->wrap( $root ) );
+
+		$manager = new WP_Secrets_Key_Manager( $mock );
+		$this->assertSame( $root, $manager->get_root_key() );
+
+		update_site_option( WP_Secrets_Key_Manager::ROOT_KEY_OPTION, $mock->wrap( $other_root ) );
+
+		$this->assertSame( $other_root, $manager->get_root_key() );
+		$this->assertSame( 2, $mock->unwrap_call_count() );
+	}
+
+	public function test_an_unwrap_error_is_not_cached() {
+		$mock = new Mock_Keyring();
+		$root = random_bytes( 32 );
+		update_site_option( WP_Secrets_Key_Manager::ROOT_KEY_OPTION, $mock->wrap( $root ) );
+
+		$manager = new WP_Secrets_Key_Manager( $mock );
+
+		$mock->configure_fail_unwrap( true );
+		$this->assertWPError( $manager->get_root_key() );
+
+		$mock->configure_fail_unwrap( false );
+		$this->assertSame( $root, $manager->get_root_key() );
+
+		$this->assertSame( $root, $manager->get_root_key() );
+		$this->assertSame( 2, $mock->unwrap_call_count() );
+	}
+
+	public function test_generate_root_key_primes_the_cache() {
+		$mock = new Mock_Keyring();
+
+		$manager = new WP_Secrets_Key_Manager( $mock );
+		$manager->get_root_key();
+		$manager->get_master_key( 'site' );
+
+		$this->assertSame( 0, $mock->unwrap_call_count() );
+		$this->assertSame( 1, $mock->wrap_call_count() );
+	}
+
+	public function test_the_returned_root_key_is_a_copy_the_caller_can_zero() {
+		$mock = new Mock_Keyring();
+		$root = random_bytes( 32 );
+		update_site_option( WP_Secrets_Key_Manager::ROOT_KEY_OPTION, $mock->wrap( $root ) );
+
+		$manager = new WP_Secrets_Key_Manager( $mock );
+
+		$copy = $manager->get_root_key();
+		wp_secrets_memzero( $copy );
+
+		$this->assertSame( $root, $manager->get_root_key() );
+		$this->assertSame( 1, $mock->unwrap_call_count() );
 	}
 }

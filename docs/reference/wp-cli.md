@@ -192,18 +192,32 @@ wp network-secret retire <name> [--yes]
 
 ### `wp network-secret rotate`
 
-Re-wraps the root key under a new WP_SECRETS_KEY after a site-key change.
+Re-wraps the root key under the active keyring.
 
-No secret is re-encrypted: rotation only changes what the root key is
+There are two cases, chosen with --from. `--from=config-previous` (the
+default) is a site key change: the root key, currently wrapped under
+WP_SECRETS_KEY_PREVIOUS, is re-wrapped under the current WP_SECRETS_KEY.
+`--from=config` is moving the root key onto a new keyring: a secrets.php
+drop-in has installed one, and the root key, currently wrapped under the
+config keyring's WP_SECRETS_KEY, is re-wrapped under that new keyring. No
+secret is ever re-encrypted: rotation only changes what the root key is
 wrapped under, not the root key's own bytes.
 
 ```
-wp network-secret rotate [--yes]
+wp network-secret rotate [--from=<keyring>] [--yes]
 ```
 
 | Option | Description |
 |---|---|
+| `[--from=<keyring>]` | Which keyring currently wraps the root key. Default: `config-previous`. Options: `config-previous`, `config`. |
 | `[--yes]` | Skip the confirmation prompt. |
+
+**Examples**
+
+```
+    $ wp secret rotate --yes
+    $ wp secret rotate --from=config --yes
+```
 
 **Runs:** `after_wp_load`
 
@@ -417,18 +431,32 @@ wp secret retire <name> [--yes]
 
 ### `wp secret rotate`
 
-Re-wraps the root key under a new WP_SECRETS_KEY after a site-key change.
+Re-wraps the root key under the active keyring.
 
-No secret is re-encrypted: rotation only changes what the root key is
+There are two cases, chosen with --from. `--from=config-previous` (the
+default) is a site key change: the root key, currently wrapped under
+WP_SECRETS_KEY_PREVIOUS, is re-wrapped under the current WP_SECRETS_KEY.
+`--from=config` is moving the root key onto a new keyring: a secrets.php
+drop-in has installed one, and the root key, currently wrapped under the
+config keyring's WP_SECRETS_KEY, is re-wrapped under that new keyring. No
+secret is ever re-encrypted: rotation only changes what the root key is
 wrapped under, not the root key's own bytes.
 
 ```
-wp secret rotate [--yes]
+wp secret rotate [--from=<keyring>] [--yes]
 ```
 
 | Option | Description |
 |---|---|
+| `[--from=<keyring>]` | Which keyring currently wraps the root key. Default: `config-previous`. Options: `config-previous`, `config`. |
 | `[--yes]` | Skip the confirmation prompt. |
+
+**Examples**
+
+```
+    $ wp secret rotate --yes
+    $ wp secret rotate --from=config --yes
+```
 
 **Runs:** `after_wp_load`
 

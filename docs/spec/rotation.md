@@ -31,18 +31,31 @@ old value.
 `retire_previous()`, which removes the `previous` slot, writes the record, and fires
 `wp_secret_changed` with `retired`. When there is no previous slot, or no secret, it returns `true`:
 the requested state already holds. `wp secret retire <name> [--yes]` in
-`cli/class-wp-cli-secret-command.php` wraps it.
+`cli/class-wp-cli-secret-command.php` wraps it. `examples/vault-provider/secrets.php` implements
+`retire_previous()` as a Vault `destroy` of exactly version N-1, rather than a soft delete, since a
+soft-deleted version can still be undeleted and retiring is meant to make it gone for good.
 
-**Rotating the site key.** `wp secret rotate [--yes]` in `cli/class-wp-cli-secret-command.php`
-requires `WP_SECRETS_KEY_PREVIOUS` to be defined and calls
-`WP_Secrets_Key_Manager::rotate_site_key()` in `src/wp-includes/class-wp-secrets-key-manager.php`
-with `new WP_Secrets_Config_Key_Provider( true )` as the old keyring and
-`new WP_Secrets_Config_Key_Provider( false )` as the new one. The method unwraps the stored root
-key under the old keyring, wraps it under the new one, and updates the `_wp_secrets_root_key`
-site option. The root key's bytes do not change, so every derived master key is unchanged and no
-secret is re-encrypted. `wp secret generate-key` prints a base64 32-byte value for the new
-`WP_SECRETS_KEY`; it never writes `wp-config.php`. There is no public API function for site-key
-rotation; the method is reached through the CLI.
+**Rotating the site key.** `wp secret rotate [--from=<keyring>] [--yes]` in
+`cli/class-wp-cli-secret-command.php` calls `WP_Secrets_Key_Manager::rotate_site_key()` in
+`src/wp-includes/class-wp-secrets-key-manager.php`. The new keyring is always whatever keyring is
+currently active: a `secrets.php` drop-in's, if one is installed, otherwise
+`WP_Secrets_Config_Key_Provider( false )`. `--from` names the old keyring, the one that currently
+wraps the stored root key:
+
+- `config-previous` (the default) requires `WP_SECRETS_KEY_PREVIOUS` to be defined and unwraps
+  with it, via `new WP_Secrets_Config_Key_Provider( true )`. This is a site-key change: the same
+  keyring, a new key.
+- `config` unwraps with the current `WP_SECRETS_KEY`, via `new WP_Secrets_Config_Key_Provider( false )`.
+  This is adoption: the root key has not moved, but a new keyring, such as a KMS-backed drop-in,
+  has just been installed over it.
+
+Either way, the command refuses with an error rather than a silent no-op if the old and new
+keyrings resolve to the same configuration. The method unwraps the stored root key under the old
+keyring, wraps it under the new one, and updates the `_wp_secrets_root_key` site option. The root
+key's bytes do not change, so every derived master key is unchanged and no secret is re-encrypted.
+`wp secret generate-key` prints a base64 32-byte value for the new `WP_SECRETS_KEY`; it never
+writes `wp-config.php`. There is no public API function for site-key rotation; the method is
+reached through the CLI.
 
 **Flagging for rotation.** Every slot carries `needs_rotation`. `wp_import_option_as_secret()`
 sets it to `true`; ordinary writes set `false`. It surfaces in `wp_list_secrets()`, in the Site
@@ -66,6 +79,8 @@ a second function would invite two paths to the same state.
 
 **Site-key rotation is CLI-only.** The proposal does not place it. Changing the wrapping key needs
 both the old and the new constant present in `wp-config.php` at once, which is an operator's
-deployment step and not something a plugin should trigger from a request.
+deployment step and not something a plugin should trigger from a request. Moving the root key onto
+a newly installed keyring is the same kind of deployment step, so it is the same command with a
+different `--from`, not a second one.
 
 [proposal]: https://make.wordpress.org/core/2026/08/25/proposal-a-secrets-api-for-wordpress-7-2/

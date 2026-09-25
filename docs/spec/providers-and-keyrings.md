@@ -49,6 +49,16 @@ a plaintext" holds.
 derived from `wp-config.php`. Its constructor takes a boolean to read `WP_SECRETS_KEY_PREVIOUS`
 instead, used only during site-key rotation. See [envelope-encryption.md](envelope-encryption.md).
 
+**Root-key caching.** `WP_Secrets_Key_Manager` keeps one unwrapped copy of the root key for the
+rest of the request, in memory only, never in the object cache. The cache is keyed on the stored
+wrapped value: `get_root_key()` serves the cached bytes only when the value currently in
+`get_site_option()` still matches the one the cache was unwrapped from, so a rotation, a re-wrap,
+or a restore that changes the stored value is always unwrapped fresh rather than served stale. An
+unwrap error is never cached. Root-key generation and `rotate_site_key()` both prime the cache
+with the value they just produced, at no extra cost. Callers of `get_root_key()` still receive a
+copy and are responsible for zeroing it; the manager's own cached copy is not theirs to zero. See
+`tests/phpunit/test-wp-secrets-key-manager.php` for the coverage.
+
 **Drop-in loading.** `wp_secrets_api_load_dropin()` in `secrets-api.php` requires
 `wp-content/secrets.php` inside `try`/`catch ( \Throwable )`, then type-checks all three globals.
 A missing global is fine. A throw or a wrong type sets `$GLOBALS['wp_secrets_dropin_broken']`.
@@ -68,7 +78,9 @@ common host integration is a keyring alone: three methods.
 `src/wp-includes/secrets.php`. `WP_SECRETS_ERROR_PROVIDER_READ_ONLY` for writes a provider
 refuses. A conformance suite, `WP_Secrets_Provider_Conformance` in
 `tests/includes/class-wp-secrets-provider-conformance.php`, runs against the shipped provider and
-can be extended for a third-party one.
+can be extended for a third-party one. Two provider examples exist,
+`examples/aws-secrets-manager/` and `examples/vault-provider/`, and `make test-examples` runs the
+conformance suite against the Vault one on a real server.
 
 **Plugin-only detail.** `secrets-api.php` sets `$GLOBALS['wp_secrets_store']` to a
 `Secrets_API_Prototype_Fallback_Store` wrapping `WP_Secrets_Option_Store` before the drop-in
@@ -95,5 +107,13 @@ the rule.
 security controls. A drop-in is fully trusted code and could already read every secret by
 implementing the keyring. They exist so Site Health, a reviewer, and a future settings screen can
 see what a provider claims.
+
+**One unwrap per request.** The proposal does not discuss how often a keyring gets called.
+Without the cache, a remote keyring pays one round trip per secret read -- a master key derivation
+for every `wp_get_secret()` call, each unwrapping the same root key again. Left uncached, every
+remote keyring implementation would have to build its own memoisation to be usable at any real
+secret count, each hand-rolled and each a chance to get the memory-only, never-in-the-object-cache
+rule wrong. The fix belongs in the key manager, once, so it reaches core with the rest of the
+patch rather than becoming a burden on every keyring author. `docs/decisions/0009-root-key-cached-for-the-request.md` records the decision.
 
 [proposal]: https://make.wordpress.org/core/2026/08/25/proposal-a-secrets-api-for-wordpress-7-2/

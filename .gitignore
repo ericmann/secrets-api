@@ -6,6 +6,7 @@
 /phpcs.xml
 /phpunit.xml
 /phpunit-multisite.xml
+/phpunit-examples.xml
 /phpstan.neon
 .DS_Store
 

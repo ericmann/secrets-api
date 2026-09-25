@@ -82,9 +82,20 @@ them.
 
 ## Naming
 
-WordPress names map across unchanged, under a scope prefix: `acme/stripe-key` becomes
-`wp/acme/stripe-key`, and network-scope secrets use `wp-network/`. Secrets Manager allows
-alphanumerics plus `/_+=.@-`, so no escaping is needed.
+WordPress names map across unchanged, under a scope prefix. Site-scope secrets are per site:
+`acme/stripe-key` becomes `wp/site/1/acme/stripe-key` on a single site, or on blog 1 of a network;
+on another blog it becomes `wp/site/<blog_id>/acme/stripe-key`. Network-scope secrets are
+unchanged: `wp-network/acme/stripe-key`. Secrets Manager allows alphanumerics plus `/_+=.@-`, so no
+escaping is needed. The IAM resource pattern below (`secret:wp/*`) still matches both shapes.
+
+### Upgrading from an earlier copy of this example
+
+Before this change, site-scope secrets lived at `wp/<name>`, with no blog ID — so on a network,
+every site read and wrote the *same* AWS secret for a given name. They now live at
+`wp/site/1/<name>` (site 1) and `wp/site/<blog_id>/<name>` elsewhere. This is a rename on AWS's
+side: create the new secret from the old value, then delete the old one. The example ships no
+compatibility read before 1.0, because a read that fell back to the flat name would silently share
+secrets across blogs again.
 
 ## The part worth pointing at
 
@@ -123,4 +134,31 @@ class Tests_AWS_Secrets_Manager_Provider extends WP_Secrets_Provider_Conformance
 That checks the properties `implements WP_Secrets_Provider` cannot: absence reported as `null`
 rather than an error, deleting something absent succeeding, fingerprints stable for the same
 value, and listings never containing a plaintext. It makes real API calls, so point it at a
-throwaway AWS account.
+throwaway AWS account. The repository itself now runs this class against Moto, an AWS emulator, in
+`make test-examples` — see the next section.
+
+## Run it against an emulator
+
+`examples/aws-secrets-manager/tests/test-aws-secrets-manager-conformance.php` runs the conformance
+suite above against [Moto](https://github.com/getmoto/moto) instead of real AWS, so it can run
+without credentials or cost. Start it:
+
+```sh
+docker pull motoserver/moto:latest
+docker run -d --name secrets-api-moto-kms -p 5051:5000 motoserver/moto:latest
+curl -sf http://localhost:5051/moto-api/   # 200 once it is up
+```
+
+The fourth constructor argument, `$endpoint`, points the provider at Moto instead of real AWS —
+this is what `WP_SECRETS_AWS_ENDPOINT` sets when defined, and it is never set in production.
+`phpunit-examples.xml.dist` already points `WP_SECRETS_TEST_AWS_ENDPOINT` at
+`http://host.docker.internal:5051`, which is where the tests-cli container reaches a Moto
+container published on the host. Then, run from the repository root so `$(basename "$PWD")`
+resolves to the plugin's directory name:
+
+```sh
+npx @wordpress/env run --env-cwd="wp-content/plugins/$(basename "$PWD")" tests-cli vendor/bin/phpunit -c phpunit-examples.xml.dist
+```
+
+or, without wp-env, `make test-examples`. Not part of `make ci`: it needs Moto running, and the
+separate examples CI job runs it against a pinned Moto service container.

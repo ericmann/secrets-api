@@ -47,6 +47,7 @@ target list.
 | `make compat` | PHPCompatibilityWP at `testVersion 7.4-` |
 | `make analyse` | phpstan |
 | `make test` / `make test-ms` | phpunit, single site / multisite |
+| `make test-examples` | phpunit against `examples/*/tests`, needs Moto running (see `examples/README.md`); not part of `make ci` |
 | `make coverage` | phpunit with an HTML coverage report (see `docs/journal/test-coverage-gaps.md` re: wp-env) |
 | `make reference` / `make reference-check` | regenerate `docs/reference/` from docblocks / fail if it is stale |
 | `make smoke` | provision a throwaway WordPress in `.smoke/` and drive `wp secret` / `wp network-secret` end to end (needs MySQL and network access) |
@@ -146,7 +147,11 @@ Nothing there is loaded by the plugin, and it's excluded from `make ci` so those
 never become this project's. Read its README before writing one: a key-management service (AWS
 KMS, Google Cloud KMS) is a `WP_Secrets_Keyring` and takes three methods, while a secret store
 (Secrets Manager, Parameter Store) is a `WP_Secrets_Provider` and takes eight. People routinely
-pick the wrong one and pay for it in per-operation API calls.
+pick the wrong one and pay for it in per-operation API calls. Start from
+[`examples/aws-kms-keyring/`](examples/aws-kms-keyring/) — it is the smaller interface, and it is
+what most hosts are actually after: key custody moves to the KMS and nothing else changes. Two
+`WP_Secrets_Provider` examples ship alongside it, AWS Secrets Manager and HashiCorp Vault KV v2.
+`make test-examples` runs all three against Moto and a Vault dev server.
 
 ## Contributing
 
@@ -164,7 +169,8 @@ stores credentials, and a flaw in it is a flaw in the thing protecting everythin
 
 CI (`.github/workflows/ci.yml`) is a thin wrapper around the `make` targets above, running on
 github.com's hosted runners: static analysis gates a PHP 7.4/8.0/8.3 × WordPress latest/trunk
-matrix plus a multisite job and a PHP 7.4/8.3 smoke job driving a real `wp` binary. See
+matrix plus a multisite job, a PHP 7.4/8.3 smoke job driving a real `wp` binary, and an
+`examples` job that runs the platform bindings against Moto and Vault service containers. See
 [`docs/reference/ci.md`](docs/reference/ci.md).
 
 ## License

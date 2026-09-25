@@ -96,7 +96,10 @@ hosted pipeline.
 **github.com, hosted runners.** Static analysis gates a PHP 7.4 / 8.0 / 8.3 × WordPress
 latest / trunk matrix, plus a multisite job. `shivammathur/setup-php` provides the interpreter and
 asks for the `sodium` extension by name. The whole API is built on libsodium, so relying on
-whatever the runner image happens to ship wasn't good enough.
+whatever the runner image happens to ship wasn't good enough. The `examples` job is the only one
+with service containers beyond the database: a pinned Moto instance, which the AWS Secrets Manager
+conformance run and the AWS KMS keyring tests run against, and a pinned Vault dev server for the
+Vault example. It runs `make test-examples` single site and multisite.
 
 The workflow declares `permissions: contents: read`. Nothing in it writes to the repository,
 publishes anything, or needs a token beyond reading the code under test.
@@ -124,6 +127,7 @@ person pasted.
 | `test` | 7.4, 8.0, 8.3 | latest, trunk | Single site |
 | `test-multisite` | 8.3 | latest | Multisite suite |
 | `smoke` | 7.4, 8.3 | latest | WP-CLI end to end, single site then multisite |
+| `examples` | 8.3 | latest | `make test-examples` against Moto (an AWS emulator) and a Vault dev server, both pinned by digest, single site then multisite. Not part of `make ci`. |
 | `reference-docs` | 8.3 | — | `bin/gen-reference.php --check`: the committed docs/reference/ matches the source. No Composer install. |
 
 The 7.4 leg is not optional. Core's floor is 7.4 and `src/` must run there; PHPCompatibilityWP

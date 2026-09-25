@@ -185,6 +185,86 @@ jobs:
 
       - run: make test-ms
 
+  # Runs the platform examples (examples/*/secrets.php) against a Moto
+  # server (an AWS emulator, for the KMS and Secrets Manager examples) and a
+  # Vault dev server, single site then multisite. It sits outside `make ci`
+  # because the other jobs and the no-Docker local path provide no service
+  # containers. The examples stay unlinted: they are single files a host copies
+  # out, not part of this plugin's own coding-standard surface.
+  examples:
+    name: Examples (Moto, Vault)
+    needs: static
+    runs-on: ubuntu-latest
+    env:
+      WP_SECRETS_TEST_AWS_ENDPOINT: http://127.0.0.1:5000
+      VAULT_ADDR: http://127.0.0.1:8200
+      VAULT_TOKEN: dev-root
+    services:
+      mysql:
+        image: mysql:8.0
+        env:
+          MYSQL_ALLOW_EMPTY_PASSWORD: 'yes'
+          MYSQL_DATABASE: wordpress_test
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=5
+      # Pinned by digest, resolved from motoserver/moto:latest on 2026-09-24.
+      moto:
+        image: motoserver/moto@sha256:91fd602a21f49cf9eb82fdf474015a3c131d40104c8297ea6a2ca920708ae32c
+        ports:
+          - 5000:5000
+      # Pinned by the same digest as the Makefile comment above test-examples.
+      vault:
+        image: hashicorp/vault@sha256:47f14a6acb98f48d798a07df7c83f23a6e636e1cf724c5f8ff165cb32667a1e2
+        env:
+          VAULT_DEV_ROOT_TOKEN_ID: dev-root
+        ports:
+          - 8200:8200
+        options: >-
+          --cap-add=IPC_LOCK
+          --health-cmd="wget -qO- http://127.0.0.1:8200/v1/sys/health"
+          --health-interval=5s
+          --health-timeout=3s
+          --health-retries=10
+    steps:
+      - name: Check out
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Set up PHP
+        uses: shivammathur/setup-php@f3e473d116dcccaddc5834248c87452386958240 # 2.37.2
+        with:
+          php-version: '8.3'
+          extensions: sodium, mysqli
+          coverage: none
+          tools: composer
+
+      - name: Cache Composer packages
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ~/.cache/composer
+          key: composer-${{ runner.os }}-php8.3-${{ hashFiles('composer.lock') }}
+          restore-keys: composer-${{ runner.os }}-php8.3-
+
+      - name: Install dependencies and the WordPress test suite
+        run: make install WP_VERSION=latest DB_HOST=127.0.0.1
+
+      - name: Wait for Moto
+        run: |
+          for i in $(seq 1 30); do
+            if curl -sf http://127.0.0.1:5000/moto-api/ >/dev/null; then
+              exit 0
+            fi
+            sleep 1
+          done
+          echo "Moto never answered on http://127.0.0.1:5000/moto-api/" >&2
+          exit 1
+
+      - run: make test-examples
+
   # A dispatch-layer smoke test, not another correctness suite: three real
   # dispatch bugs (--version=previous returning the current value,
   # --format rejected for want of a description line, and migrate-legacy

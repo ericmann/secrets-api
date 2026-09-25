@@ -86,19 +86,45 @@ class Tests_Secrets_ThreeStateContract extends WP_UnitTestCase {
 	}
 
 	/**
-	 * Written under the ambient salt-fallback key (WP_SECRETS_KEY is not yet
-	 * defined), then read back after WP_SECRETS_KEY is defined to something unusable
-	 * -- simulating an operator setting the constant wrong after secrets already
-	 * exist. get_master_key() must fail before decryption is ever attempted, since a
-	 * usable key was never obtained.
+	 * An operator sets the constant wrong after secrets exist: WP_SECRETS_KEY is
+	 * defined with a value that cannot serve as a usable key once secrets already
+	 * exist under the site's real key. wp_get_secret() must fail with WP_Error, not
+	 * silently return null as if the secret never existed.
+	 *
+	 * The write goes through a hand-built WP_Secrets_Libsodium_Provider rather than
+	 * wp_set_secret() so it bypasses the static _wp_secrets_get_key_manager(), whose
+	 * request-scoped root-key cache (ADR 0009) would otherwise keep serving the
+	 * already-unwrapped key and mask the misconfiguration this test defines below.
 	 *
 	 * @runInSeparateProcess
 	 * @preserveGlobalState disabled
 	 */
 	public function test_key_unavailable_is_wp_error_not_null() {
+		$provider = new WP_Secrets_Libsodium_Provider(
+			new WP_Secrets_Option_Store(),
+			new WP_Secrets_Key_Manager( new WP_Secrets_Config_Key_Provider() )
+		);
+		$provider->set( 'myplugin/api-key', 'value' );
+
+		define( 'WP_SECRETS_KEY', 424242 );
+
+		$result = wp_get_secret( 'myplugin/api-key' );
+
+		$this->assertNotNull( $result );
+		$this->assertWPError( $result );
+		$this->assertSame( WP_SECRETS_ERROR_KEY_UNAVAILABLE, $result->get_error_code() );
+	}
+
+	/**
+	 * Written under the ambient salt-fallback key, then read back after the stored
+	 * wrapped root key has been corrupted -- simulating the option row being
+	 * damaged after secrets already exist. get_master_key() must fail before
+	 * decryption is ever attempted, since a usable root key was never obtained.
+	 */
+	public function test_a_corrupted_wrapped_root_key_is_wp_error_not_null() {
 		wp_set_secret( 'myplugin/api-key', 'value' );
 
-		define( 'WP_SECRETS_KEY', 424242 ); // Defined, but not a usable string.
+		update_site_option( WP_Secrets_Key_Manager::ROOT_KEY_OPTION, 'not-a-valid-wrapped-value' );
 
 		$result = wp_get_secret( 'myplugin/api-key' );
 

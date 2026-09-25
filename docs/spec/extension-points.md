@@ -62,7 +62,9 @@ read-only really does refuse writes with `secret_provider_read_only`. Where the 
 variation it adapts: a read-only provider is never asked to round-trip a value, and the skipped
 checks are reported as skipped rather than passing quietly. The suite lives in
 `tests/includes/class-wp-secrets-provider-conformance.php` and runs against the shipped provider,
-so there is a known-good subject to compare failures against.
+so there is a known-good subject to compare failures against. It also runs against the Vault
+provider example on a real dev server in `make test-examples`, so there is a second known-good
+subject whose backend does not share the two-slot shape.
 
 **The two inner interfaces.** The store and keyring are the internals of the shipped provider,
 and either can still be replaced on its own. A host who wants their own key custody but is happy
@@ -120,9 +122,28 @@ material, never a secret value. In a real deployment a KMS or HSM sits behind th
 shipped default, `WP_Secrets_Config_Key_Provider`, wraps the root key with a key derived from
 `wp-config.php`, since that is the only thing guaranteed to exist on every WordPress install.
 
+`wrap()` must be non-deterministic: two calls on the same 32 bytes must return two different
+wrapped values. `WP_Secrets_Key_Manager::rotate_site_key()` stores the re-wrapped root key with
+`update_site_option()`, which reports an unchanged value as a failure the same way `update_option()`
+does, so a keyring that ever produced the same wrapped output twice would make rotation
+indistinguishable from a storage error. `unwrap()` returns `WP_Error` for anything it did not
+produce, garbage, a truncated value, or a single tampered byte, and never throws: a caller holding
+`is_wp_error()` as its only failure signal must never receive a plausible-looking wrong key instead
+of a clear failure.
+
 `get_key_source()` returns a short human-readable string for Site Health, so an operator can see
 whether they are on the config-derived default or something they wired up themselves. It
 describes the key; it never contains the key material.
+
+**The keyring conformance suite** mirrors the provider one. `WP_Secrets_Keyring_Conformance` in
+`tests/includes/class-wp-secrets-keyring-conformance.php` is an abstract test case with a
+`keyring()` method to implement. It checks that `wrap()` of 32 random bytes returns a non-empty
+string that `unwrap()` returns to the same bytes; that two `wrap()` calls on the same bytes never
+match; that `unwrap()` of garbage, of a truncated value, and of a value with one flipped byte each
+returns `WP_Error`; and that `get_key_source()` is a non-empty string. It runs against the shipped
+`WP_Secrets_Config_Key_Provider` and against `Mock_Keyring`, the same way the provider suite runs
+against the shipped provider. `examples/aws-kms-keyring/` runs it against a real
+`WP_Secrets_Keyring` implementation, AWS KMS, reached through Moto in `make test-examples`.
 
 ```php
 // wp-content/secrets.php
