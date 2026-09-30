@@ -11,7 +11,7 @@ directory holds everything longer than that.
 | Directory | Holds |
 |---|---|
 | [`spec/`](spec/) | The contracts an implementation must honour. |
-| [`reference/`](reference/) | How-to material: running CI, migrating from the prototype, a drop-in skeleton. |
+| [`reference/`](reference/) | How-to material: running CI, migrating from the prototype, a drop-in skeleton, platform examples, host-managed keys. |
 | [`decisions/`](decisions/) | Why the design is the way it is. One decision per file. |
 | [`journal/`](journal/) | Running records: open questions, community answers, known test gaps. Dated. |
 | [`changelog/`](changelog/) | Release notes, one page per release from 0.2.0 on. |
@@ -25,7 +25,9 @@ directory holds everything longer than that.
   [`spec/extension-points.md`](spec/extension-points.md), then
   [`decisions/0001-provider-as-outermost-extension-point.md`](decisions/0001-provider-as-outermost-extension-point.md) for why the provider is
   shaped the way it is, then [`reference/drop-in-example.php`](reference/drop-in-example.php)
-  and [`../examples/`](../examples/) for something to copy.
+  and [`reference/examples.md`](reference/examples.md) for something to copy.
+- **Hosting platform that wants to own a site's key, its rotation, and its history:**
+  [`reference/host-managed-keys.md`](reference/host-managed-keys.md).
 - **Moving off the Displace prototype:**
   [`reference/migrating-from-displace.md`](reference/migrating-from-displace.md).
 - **Contributing:** [`reference/ci.md`](reference/ci.md) to get the suite running, then
@@ -50,6 +52,8 @@ directory holds everything longer than that.
 - [`ci.md`](reference/ci.md) — local, Docker-free, and air-gapped test runs; the hosted matrix; action pinning.
 - [`migrating-from-displace.md`](reference/migrating-from-displace.md) — read-time upgrade from the prototype format and the bulk migration command.
 - [`drop-in-example.php`](reference/drop-in-example.php) — a runnable `secrets.php` skeleton.
+- [`examples.md`](reference/examples.md) — the AWS KMS, AWS Secrets Manager, and Vault drop-ins, and which to start from.
+- [`host-managed-keys.md`](reference/host-managed-keys.md) — a host owning the site key: environment variable, host keyring, or host provider.
 - [`functions.md`](reference/functions.md) — every function, generated from docblocks.
 - [`classes.md`](reference/classes.md) — every class and interface with public constants and methods, generated.
 - [`hooks.md`](reference/hooks.md) — every action and filter, generated.

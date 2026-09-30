@@ -1,7 +1,7 @@
 ---
 title: "Open questions"
 description: "What this implementation deliberately did not decide, with the conservative choice made in the meantime."
-date: 2026-09-24
+date: 2026-09-30
 ---
 
 # Open questions
@@ -79,6 +79,22 @@ reporting `BOUNDARY_PROVIDER` still depends on a working keyring and root key fo
 is inherited from the AWS example rather than introduced by Vault, and stays as-is. Where the code
 is: `AWS_Secrets_Manager_Provider::build_secret()` in `examples/aws-secrets-manager/secrets.php`,
 and `Vault_KV2_Provider::build_secret()` in `examples/vault-provider/secrets.php`.
+
+---
+
+## Re-wrapping under a newer version of the same keyring
+
+🟢 Tracking only.
+
+`wp secret rotate` accepts `--from=config-previous` and `--from=config`, both of which name the
+config keyring as the old one. A host keyring that versions its own wrapping key has no
+command for re-wrapping the root key under its newest version so an old version can be destroyed.
+A versioned `unwrap()` keeps reading old versions, so nothing breaks in the meantime; this
+matters only when a host wants to retire a key version. `WP_Secrets_Key_Manager::rotate_site_key()`
+in `src/wp-includes/class-wp-secrets-key-manager.php` already accepts the same keyring as both
+old and new, so the likely answer is a `--from=active` value on the CLI rather than new API
+surface. Raised by a host asking how a platform could own rotation and key history; see
+[host-managed-keys.md](../reference/host-managed-keys.md).
 
 ---
 
