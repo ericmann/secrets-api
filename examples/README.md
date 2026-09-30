@@ -4,8 +4,8 @@ Working examples of connecting this API to a cloud provider. Nothing in this dir
 by the plugin; you copy one into a `wp-content/secrets.php` drop-in. They're excluded from
 `make ci` so their SDK dependencies stay out of the plugin's.
 
-This will probably become a submodule once there's more than one, which is why it sits at the top
-level instead of under `docs/`.
+This may become a submodule as it grows, which is why it sits at the top level instead of under
+`docs/`.
 
 ## Examples in this directory
 
@@ -13,6 +13,12 @@ level instead of under `docs/`.
   root key; secrets stay in WordPress's own options tables.
 - [`aws-secrets-manager/`](aws-secrets-manager/README.md) — a `WP_Secrets_Provider`. AWS Secrets
   Manager holds the secret itself; WordPress becomes a consumer rather than a custodian.
+- [`vault-provider/`](vault-provider/README.md) — a `WP_Secrets_Provider` for HashiCorp Vault's
+  KV v2 secrets engine (and OpenBao).
+
+The documentation site covers all three in
+[`docs/reference/examples.md`](../docs/reference/examples.md), and a host that wants to own the
+site's key in [`docs/reference/host-managed-keys.md`](../docs/reference/host-managed-keys.md).
 
 ## Which interface do you need?
 
@@ -32,13 +38,6 @@ The mistake to avoid is reaching for KMS and writing a `WP_Secrets_Provider`. Yo
 call per secret read, hit the 4,096-byte payload ceiling on anything bigger than a token, and pay
 per operation for work WordPress already does locally. AWS says as much in its own `Encrypt`
 documentation: *"You don't need to use the `Encrypt` operation to encrypt a data key."*
-
-## In this directory
-
-- [`aws-secrets-manager/`](aws-secrets-manager/README.md) — a `WP_Secrets_Provider` for AWS
-  Secrets Manager.
-- [`vault-provider/`](vault-provider/README.md) — a `WP_Secrets_Provider` for HashiCorp Vault's
-  KV v2 secrets engine.
 
 ## Start with a KMS keyring
 
