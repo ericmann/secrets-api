@@ -19,9 +19,9 @@ questions, asking whether providers could stand in for a retrieval filter, but n
 
 | Interface | File | Methods |
 |---|---|---|
-| `WP_Secrets_Provider` | `src/wp-includes/interface-wp-secrets-provider.php` | `get()`, `set()`, `delete()`, `retire_previous()`, `list_secrets()`, `get_label()`, `get_protection_boundary()`, `is_writable()` |
-| `WP_Secrets_Store` | `src/wp-includes/interface-wp-secrets-store.php` | `get()`, `set()`, `delete()`, `list_names()` |
-| `WP_Secrets_Keyring` | `src/wp-includes/interface-wp-secrets-keyring.php` | `wrap()`, `unwrap()`, `get_key_source()` |
+| `WP_Secrets_Provider` | `src/wp-includes/secrets/interface-wp-secrets-provider.php` | `get()`, `set()`, `delete()`, `retire_previous()`, `list_secrets()`, `get_label()`, `get_protection_boundary()`, `is_writable()` |
+| `WP_Secrets_Store` | `src/wp-includes/secrets/interface-wp-secrets-store.php` | `get()`, `set()`, `delete()`, `list_names()` |
+| `WP_Secrets_Keyring` | `src/wp-includes/secrets/interface-wp-secrets-keyring.php` | `wrap()`, `unwrap()`, `get_key_source()` |
 
 `WP_Secrets_Provider` also declares `BOUNDARY_WORDPRESS` and `BOUNDARY_PROVIDER` for
 `get_protection_boundary()`.
@@ -38,15 +38,15 @@ otherwise `WP_Secrets_Option_Store`. `_wp_secrets_get_key_manager()` returns a
 `WP_Secrets_Broken_Keyring` when the drop-in is broken.
 
 **The shipped provider.** `WP_Secrets_Libsodium_Provider` in
-`src/wp-includes/class-wp-secrets-libsodium-provider.php` is composed from a store and a key
+`src/wp-includes/secrets/class-wp-secrets-libsodium-provider.php` is composed from a store and a key
 manager. It reports `BOUNDARY_WORDPRESS`, `is_writable()` true, and a label built from the
 keyring's `get_key_source()`. Its store only ever receives record arrays; its keyring only ever
 receives 32 bytes of root key material. This is the provider in which the proposal's "never handed
 a plaintext" holds.
 
 **The default keyring.** `WP_Secrets_Config_Key_Provider` in
-`src/wp-includes/class-wp-secrets-config-key-provider.php` wraps the root key under a site key
-derived from `wp-config.php`. Its constructor takes a boolean to read `WP_SECRETS_KEY_PREVIOUS`
+`src/wp-includes/secrets/class-wp-secrets-config-key-provider.php` wraps the root key under a site
+key derived from `wp-config.php`. Its constructor takes a boolean to read `WP_SECRETS_KEY_PREVIOUS`
 instead, used only during site-key rotation. See [envelope-encryption.md](envelope-encryption.md).
 
 **Root-key caching.** `WP_Secrets_Key_Manager` keeps one unwrapped copy of the root key for the

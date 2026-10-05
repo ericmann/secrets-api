@@ -18,13 +18,13 @@ because core cannot know when a third-party integration has finished draining th
 Three distinct operations exist at 0.1.0. None runs on a schedule.
 
 **Rotating a value.** Calling `wp_set_secret()` on an existing name is the rotation.
-`WP_Secrets_Libsodium_Provider::set()` in `src/wp-includes/class-wp-secrets-libsodium-provider.php`
-reads the prior record, encrypts the new value into `current`, and moves the old `current` to
-`previous` through `demote_slot()`, which decrypts under the `current` binding and re-encrypts
-under `previous`. If the outgoing slot cannot be decrypted, it is dropped and the write proceeds,
-so a corrupted record never blocks its own repair. The `wp_secret_changed` action fires with
-`updated`. During the drain, `wp_get_secret( $name, WP_Secret_Version::PREVIOUS )` returns the
-old value.
+`WP_Secrets_Libsodium_Provider::set()` in
+`src/wp-includes/secrets/class-wp-secrets-libsodium-provider.php` reads the prior record, encrypts
+the new value into `current`, and moves the old `current` to `previous` through `demote_slot()`,
+which decrypts under the `current` binding and re-encrypts under `previous`. If the outgoing slot
+cannot be decrypted, it is dropped and the write proceeds, so a corrupted record never blocks its
+own repair. The `wp_secret_changed` action fires with `updated`. During the drain, `wp_get_secret(
+$name, WP_Secret_Version::PREVIOUS )` returns the old value.
 
 **Retiring the previous value.** `wp_retire_secret_version()` and
 `wp_retire_network_secret_version()` in `src/wp-includes/secrets.php` call the provider's
@@ -37,8 +37,8 @@ soft-deleted version can still be undeleted and retiring is meant to make it gon
 
 **Rotating the site key.** `wp secret rotate [--from=<keyring>] [--yes]` in
 `cli/class-wp-cli-secret-command.php` calls `WP_Secrets_Key_Manager::rotate_site_key()` in
-`src/wp-includes/class-wp-secrets-key-manager.php`. The new keyring is always whatever keyring is
-currently active: a `secrets.php` drop-in's, if one is installed, otherwise
+`src/wp-includes/secrets/class-wp-secrets-key-manager.php`. The new keyring is always whatever
+keyring is currently active: a `secrets.php` drop-in's, if one is installed, otherwise
 `WP_Secrets_Config_Key_Provider( false )`. `--from` names the old keyring, the one that currently
 wraps the stored root key:
 

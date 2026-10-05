@@ -14,18 +14,18 @@ history" in the [proposal][proposal].
 
 ## As built
 
-**The constants.** `WP_Secret_Version` in `src/wp-includes/class-wp-secret-version.php` is a
+**The constants.** `WP_Secret_Version` in `src/wp-includes/secrets/class-wp-secret-version.php` is a
 `final class` with `const CURRENT = 'current'` and `const PREVIOUS = 'previous'`. The constant
 values double as the record's array keys.
 
 **Validation.** `_wp_secrets_get()` in `src/wp-includes/secrets.php` accepts only those two values
-and returns `WP_SECRETS_ERROR_INVALID_ARGUMENT` with a `_doing_it_wrong()` notice for anything
-else. `WP_Secrets_Cipher::validate_common()` in `src/wp-includes/class-wp-secrets-cipher.php`
+and returns `WP_SECRETS_ERROR_INVALID_ARGUMENT` with a `_doing_it_wrong()` notice for anything else.
+`WP_Secrets_Cipher::validate_common()` in `src/wp-includes/secrets/class-wp-secrets-cipher.php`
 checks the same set before any cryptographic operation.
 
 **Two slots, one previous.** `WP_Secrets_Libsodium_Provider::set()` in
-`src/wp-includes/class-wp-secrets-libsodium-provider.php` writes the new value to `current` and
-demotes the outgoing `current` to `previous`. Whatever was already in `previous` is not carried
+`src/wp-includes/secrets/class-wp-secrets-libsodium-provider.php` writes the new value to `current`
+and demotes the outgoing `current` to `previous`. Whatever was already in `previous` is not carried
 forward, so a third write discards the oldest value.
 
 **Slot is part of the ciphertext binding.** The slot name is one of the fields in the AAD

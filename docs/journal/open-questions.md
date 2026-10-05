@@ -1,7 +1,7 @@
 ---
 title: "Open questions"
 description: "What this implementation deliberately did not decide, with the conservative choice made in the meantime."
-date: 2026-09-30
+date: 2026-10-05
 ---
 
 # Open questions
@@ -87,13 +87,13 @@ and `Vault_KV2_Provider::build_secret()` in `examples/vault-provider/secrets.php
 🟢 Tracking only.
 
 `wp secret rotate` accepts `--from=config-previous` and `--from=config`, both of which name the
-config keyring as the old one. A host keyring that versions its own wrapping key has no
-command for re-wrapping the root key under its newest version so an old version can be destroyed.
-A versioned `unwrap()` keeps reading old versions, so nothing breaks in the meantime; this
-matters only when a host wants to retire a key version. `WP_Secrets_Key_Manager::rotate_site_key()`
-in `src/wp-includes/class-wp-secrets-key-manager.php` already accepts the same keyring as both
-old and new, so the likely answer is a `--from=active` value on the CLI rather than new API
-surface. Raised by a host asking how a platform could own rotation and key history; see
+config keyring as the old one. A host keyring that versions its own wrapping key has no command for
+re-wrapping the root key under its newest version so an old version can be destroyed. A versioned
+`unwrap()` keeps reading old versions, so nothing breaks in the meantime; this matters only when a
+host wants to retire a key version. `WP_Secrets_Key_Manager::rotate_site_key()` in
+`src/wp-includes/secrets/class-wp-secrets-key-manager.php` already accepts the same keyring as both
+old and new, so the likely answer is a `--from=active` value on the CLI rather than new API surface.
+Raised by a host asking how a platform could own rotation and key history; see
 [host-managed-keys.md](../reference/host-managed-keys.md).
 
 ---

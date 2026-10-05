@@ -305,7 +305,7 @@ it there at all.
 
 **Since:** 7.2.0
 
-**Source:** [`src/wp-includes/class-wp-secret.php`](../../src/wp-includes/class-wp-secret.php)
+**Source:** [`src/wp-includes/secrets/class-wp-secret.php`](../../src/wp-includes/secrets/class-wp-secret.php)
 
 ### Methods
 
@@ -558,7 +558,7 @@ and this class ships in core, whose minimum supported PHP version is 7.4.
 
 **Since:** 7.2.0
 
-**Source:** [`src/wp-includes/class-wp-secret-version.php`](../../src/wp-includes/class-wp-secret-version.php)
+**Source:** [`src/wp-includes/secrets/class-wp-secret-version.php`](../../src/wp-includes/secrets/class-wp-secret-version.php)
 
 ### Constants
 
@@ -583,7 +583,7 @@ did not choose. Every operation fails closed instead.
 
 **Since:** 7.2.0
 
-**Source:** [`src/wp-includes/class-wp-secrets-broken-keyring.php`](../../src/wp-includes/class-wp-secrets-broken-keyring.php)
+**Source:** [`src/wp-includes/secrets/class-wp-secrets-broken-keyring.php`](../../src/wp-includes/secrets/class-wp-secrets-broken-keyring.php)
 
 ### Methods
 
@@ -649,7 +649,7 @@ at the exact moment nobody is watching.
 
 **Since:** 7.2.0
 
-**Source:** [`src/wp-includes/class-wp-secrets-broken-provider.php`](../../src/wp-includes/class-wp-secrets-broken-provider.php)
+**Source:** [`src/wp-includes/secrets/class-wp-secrets-broken-provider.php`](../../src/wp-includes/secrets/class-wp-secrets-broken-provider.php)
 
 ### Methods
 
@@ -798,7 +798,7 @@ closed instead.
 
 **Since:** 7.2.0
 
-**Source:** [`src/wp-includes/class-wp-secrets-broken-store.php`](../../src/wp-includes/class-wp-secrets-broken-store.php)
+**Source:** [`src/wp-includes/secrets/class-wp-secrets-broken-store.php`](../../src/wp-includes/secrets/class-wp-secrets-broken-store.php)
 
 ### Methods
 
@@ -888,7 +888,7 @@ slot's worth of material, encrypt or decrypt it correctly.
 
 **Since:** 7.2.0
 
-**Source:** [`src/wp-includes/class-wp-secrets-cipher.php`](../../src/wp-includes/class-wp-secrets-cipher.php)
+**Source:** [`src/wp-includes/secrets/class-wp-secrets-cipher.php`](../../src/wp-includes/secrets/class-wp-secrets-cipher.php)
 
 ### Constants
 
@@ -994,7 +994,7 @@ rotation can unwrap under the old key before wrapping under the new one.
 
 **Since:** 7.2.0
 
-**Source:** [`src/wp-includes/class-wp-secrets-config-key-provider.php`](../../src/wp-includes/class-wp-secrets-config-key-provider.php)
+**Source:** [`src/wp-includes/secrets/class-wp-secrets-config-key-provider.php`](../../src/wp-includes/secrets/class-wp-secrets-config-key-provider.php)
 
 ### Constants
 
@@ -1094,7 +1094,7 @@ keyring (a KMS or HSM call) is invoked once per request, not once per secret.
 
 **Since:** 7.2.0
 
-**Source:** [`src/wp-includes/class-wp-secrets-key-manager.php`](../../src/wp-includes/class-wp-secrets-key-manager.php)
+**Source:** [`src/wp-includes/secrets/class-wp-secrets-key-manager.php`](../../src/wp-includes/secrets/class-wp-secrets-key-manager.php)
 
 ### Constants
 
@@ -1203,7 +1203,7 @@ shipping.
 
 **Since:** 7.2.0
 
-**Source:** [`src/wp-includes/interface-wp-secrets-keyring.php`](../../src/wp-includes/interface-wp-secrets-keyring.php)
+**Source:** [`src/wp-includes/secrets/interface-wp-secrets-keyring.php`](../../src/wp-includes/secrets/interface-wp-secrets-keyring.php)
 
 ### Methods
 
@@ -1284,7 +1284,7 @@ distinction matters.
 
 **Since:** 7.2.0
 
-**Source:** [`src/wp-includes/class-wp-secrets-libsodium-provider.php`](../../src/wp-includes/class-wp-secrets-libsodium-provider.php)
+**Source:** [`src/wp-includes/secrets/class-wp-secrets-libsodium-provider.php`](../../src/wp-includes/secrets/class-wp-secrets-libsodium-provider.php)
 
 ### Methods
 
@@ -1475,7 +1475,7 @@ same table; on a real network, network-scope rows live in wp_sitemeta instead.
 
 **Since:** 7.2.0
 
-**Source:** [`src/wp-includes/class-wp-secrets-option-store.php`](../../src/wp-includes/class-wp-secrets-option-store.php)
+**Source:** [`src/wp-includes/secrets/class-wp-secrets-option-store.php`](../../src/wp-includes/secrets/class-wp-secrets-option-store.php)
 
 ### Constants
 
@@ -1601,7 +1601,7 @@ Every implementation shares these contracts:
 
 **Since:** 7.2.0
 
-**Source:** [`src/wp-includes/interface-wp-secrets-provider.php`](../../src/wp-includes/interface-wp-secrets-provider.php)
+**Source:** [`src/wp-includes/secrets/interface-wp-secrets-provider.php`](../../src/wp-includes/secrets/interface-wp-secrets-provider.php)
 
 ### Constants
 
@@ -1791,7 +1791,7 @@ WP_Secrets_Provider::is_writable().
 
 **Since:** 7.2.0
 
-**Source:** [`src/wp-includes/interface-wp-secrets-store.php`](../../src/wp-includes/interface-wp-secrets-store.php)
+**Source:** [`src/wp-includes/secrets/interface-wp-secrets-store.php`](../../src/wp-includes/secrets/interface-wp-secrets-store.php)
 
 ### Methods
 

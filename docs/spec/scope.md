@@ -19,12 +19,13 @@ scope", and "Timeline" in the [proposal][proposal].
 `Requires PHP: 7.4`.
 
 **Core-bound versus plugin-only.** Everything under `src/` is written to be copied into
-`wordpress-develop` unchanged: `src/wp-includes/` holds the API and
+`wordpress-develop` unchanged: `src/wp-includes/secrets.php` holds the public functions,
+`src/wp-includes/secrets/` holds the classes and interfaces, and
 `src/wp-admin/includes/secrets-site-health.php` holds Site Health. `plugin/` and `cli/` are never
 copied. `tests/phpunit/test-architecture.php` enforces the boundary: no reference to `WP_CLI`,
 `plugin/`, or `cli/` under `src/`; no self-guarding `function_exists()` or `class_exists()`; every
-file carries `@since 7.2.0`; only the `default` text domain; no subdirectory other than the two
-core paths; no prototype-compatibility symbol.
+file carries `@since 7.2.0`; only the `default` text domain; no subdirectory other than the
+three core paths; no prototype-compatibility symbol.
 
 **The core patch.** Trac ticket [#66187](https://core.trac.wordpress.org/ticket/66187), under
 review in [WordPress/wordpress-develop#13759](https://github.com/WordPress/wordpress-develop/pull/13759).
