@@ -18,25 +18,25 @@ does not name a specific cipher, and does not mention additional authenticated d
 The 0.1.0 code has four layers, not two. Exactly one value is ever stored wrapped.
 
 1. **Site key.** `WP_Secrets_Config_Key_Provider::get_site_key()` in
-   `src/wp-includes/class-wp-secrets-config-key-provider.php` derives 32 bytes from
+   `src/wp-includes/secrets/class-wp-secrets-config-key-provider.php` derives 32 bytes from
    `wp-config.php`, in priority order: `WP_SECRETS_KEY` when it is the canonical base64 encoding
    of exactly 32 bytes (used raw); `WP_SECRETS_KEY` of any other shape (hashed with
    `sodium_crypto_generichash()` to 32 bytes); otherwise `LOGGED_IN_KEY . LOGGED_IN_SALT` hashed
    the same way. The literal `wp-config-sample.php` placeholder is rejected as unusable.
 2. **Root key.** `WP_Secrets_Key_Manager::generate_root_key()` in
-   `src/wp-includes/class-wp-secrets-key-manager.php` draws 32 random bytes once per install,
-   wraps them with the keyring, and stores the result under the `_wp_secrets_root_key` site
+   `src/wp-includes/secrets/class-wp-secrets-key-manager.php` draws 32 random bytes once per
+   install, wraps them with the keyring, and stores the result under the `_wp_secrets_root_key` site
    option via `add_site_option()`, handling the two-requests-race by re-reading the winner. The
-   default keyring wraps with `sodium_crypto_aead_xchacha20poly1305_ietf_encrypt()` under the
-   fixed AAD `wp-secrets-root-key-v1`, storing `nonce . ciphertext` base64-encoded. The key
-   manager keeps the unwrapped root key in memory for the rest of the request, so a remote
-   keyring is invoked once per request rather than once per secret; see
+   default keyring wraps with `sodium_crypto_aead_xchacha20poly1305_ietf_encrypt()` under the fixed
+   AAD `wp-secrets-root-key-v1`, storing `nonce . ciphertext` base64-encoded. The key manager keeps
+   the unwrapped root key in memory for the rest of the request, so a remote keyring is invoked once
+   per request rather than once per secret; see
    [providers-and-keyrings.md](providers-and-keyrings.md).
 3. **Master key.** `WP_Secrets_Key_Manager::get_master_key()` derives a per-scope master key from
    the root key on demand with `sodium_crypto_kdf_derive_from_key()`. Master keys are never
    stored. See [network.md](network.md) for the subkey and context values.
 4. **Data key and value.** `WP_Secrets_Cipher::encrypt_value()` in
-   `src/wp-includes/class-wp-secrets-cipher.php` draws a fresh 32-byte data key and a fresh
+   `src/wp-includes/secrets/class-wp-secrets-cipher.php` draws a fresh 32-byte data key and a fresh
    24-byte nonce per slot, wraps the data key under the master key, then encrypts the value under
    the data key with a second fresh nonce. Both calls use
    `sodium_crypto_aead_xchacha20poly1305_ietf_encrypt()`.
@@ -49,7 +49,7 @@ therefore cannot be replayed under a different name, slot, scope, or site. The `
 safe because `wp_secrets_validate_name()` runs first and the permitted character set excludes it.
 
 **Record shape.** `WP_Secrets_Libsodium_Provider::set()` in
-`src/wp-includes/class-wp-secrets-libsodium-provider.php` assembles
+`src/wp-includes/secrets/class-wp-secrets-libsodium-provider.php` assembles
 `array( 'v' => WP_SECRETS_RECORD_VERSION, 'current' => $slot, 'previous' => $slot )`, where each
 slot carries base64 `dk`, `dk_nonce`, `ct`, `nonce`, plus `fingerprint`, `created`, and
 `needs_rotation`. `WP_SECRETS_RECORD_VERSION` is `1`, defined in `src/wp-includes/secrets.php`.

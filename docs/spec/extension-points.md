@@ -23,7 +23,7 @@ tables. That is the default and nothing more. A platform that protects credentia
 HSM, or its own control panel implements the same interface and stands on equal footing. The
 interface has eight methods: `get()`, `set()`, `delete()`, `retire_previous()`, `list_secrets()`,
 `get_label()`, `get_protection_boundary()`, and `is_writable()`, in
-`src/wp-includes/interface-wp-secrets-provider.php`.
+`src/wp-includes/secrets/interface-wp-secrets-provider.php`.
 
 Every provider has to be **stronger than the default, never weaker**. A provider still cannot
 store a plaintext where the default would have stored ciphertext. Taking a value over an
@@ -69,7 +69,7 @@ subject whose backend does not share the two-slot shape.
 **The two inner interfaces.** The store and keyring are the internals of the shipped provider,
 and either can still be replaced on its own. A host who wants their own key custody but is happy
 with WordPress's storage swaps the keyring and writes no provider at all. Both live in
-`src/wp-includes/`, and both are part of the API surface intended for core.
+`src/wp-includes/secrets/`, and both are part of the API surface intended for core.
 
 **`WP_Secrets_Store`: where records live.**
 

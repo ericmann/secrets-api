@@ -22,7 +22,7 @@ the two constants with `WP_SECRETS_ERROR_INVALID_ARGUMENT` plus `_doing_it_wrong
 function-local static.
 
 **The three states, in the shipped provider.** `WP_Secrets_Libsodium_Provider::get()` in
-`src/wp-includes/class-wp-secrets-libsodium-provider.php`, in order:
+`src/wp-includes/secrets/class-wp-secrets-libsodium-provider.php`, in order:
 
 - An invalid name returns `WP_Error` (`WP_SECRETS_ERROR_INVALID_NAME`). A caller mistake is never
   reported as absence.
@@ -54,7 +54,7 @@ every source file and fails the build if one appears. The only hook in core-boun
 `wp_secret_changed` action, fired from the provider's `set()`, `delete()`, and
 `retire_previous()`, carrying fingerprints and never values.
 
-**`WP_Secret`.** In `src/wp-includes/class-wp-secret.php`, the plaintext is never a declared
+**`WP_Secret`.** In `src/wp-includes/secrets/class-wp-secret.php`, the plaintext is never a declared
 property. It lives in a private static array keyed by `spl_object_id()`, so `var_export()` and
 `print_r()` cannot reach it. `__toString()`, `__debugInfo()`, and `jsonSerialize()` return
 `[secret:{name}]`. `__sleep()`, `__wakeup()`, `__serialize()`, `__unserialize()`, and `__clone()`

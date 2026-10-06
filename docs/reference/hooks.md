@@ -36,4 +36,4 @@ retrieval path. Fingerprints are readable; values are never passed.
 
 **Fired from:**
 
-- [`src/wp-includes/class-wp-secrets-libsodium-provider.php`](../../src/wp-includes/class-wp-secrets-libsodium-provider.php) (3 call sites)
+- [`src/wp-includes/secrets/class-wp-secrets-libsodium-provider.php`](../../src/wp-includes/secrets/class-wp-secrets-libsodium-provider.php) (3 call sites)

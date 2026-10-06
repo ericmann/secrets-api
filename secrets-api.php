@@ -88,19 +88,19 @@ function wp_secrets_api_bootstrap() {
 	 */
 	$core_bound = array(
 		'secrets.php',
-		'class-wp-secret-version.php',
-		'class-wp-secret.php',
-		'interface-wp-secrets-provider.php',
-		'interface-wp-secrets-keyring.php',
-		'class-wp-secrets-config-key-provider.php',
-		'class-wp-secrets-broken-keyring.php',
-		'class-wp-secrets-cipher.php',
-		'class-wp-secrets-key-manager.php',
-		'interface-wp-secrets-store.php',
-		'class-wp-secrets-option-store.php',
-		'class-wp-secrets-broken-store.php',
-		'class-wp-secrets-libsodium-provider.php',
-		'class-wp-secrets-broken-provider.php',
+		'secrets/class-wp-secret-version.php',
+		'secrets/class-wp-secret.php',
+		'secrets/interface-wp-secrets-provider.php',
+		'secrets/interface-wp-secrets-keyring.php',
+		'secrets/class-wp-secrets-config-key-provider.php',
+		'secrets/class-wp-secrets-broken-keyring.php',
+		'secrets/class-wp-secrets-cipher.php',
+		'secrets/class-wp-secrets-key-manager.php',
+		'secrets/interface-wp-secrets-store.php',
+		'secrets/class-wp-secrets-option-store.php',
+		'secrets/class-wp-secrets-broken-store.php',
+		'secrets/class-wp-secrets-libsodium-provider.php',
+		'secrets/class-wp-secrets-broken-provider.php',
 	);
 
 	foreach ( $core_bound as $file ) {

@@ -23,7 +23,7 @@ a `$network` boolean passed to the provider. A site-scope call never reads a net
 the reverse; the scope is part of the storage prefix and of the AAD.
 
 **Key derivation.** `WP_Secrets_Key_Manager::get_master_key( $scope, $site_id )` in
-`src/wp-includes/class-wp-secrets-key-manager.php`:
+`src/wp-includes/secrets/class-wp-secrets-key-manager.php`:
 
 | Scope | Subkey id | Context | Result |
 |---|---|---|---|
@@ -39,11 +39,12 @@ options row, since conversion does not move it; the first `get_site_option()` mi
 network falls back to that row, adopts it into `wp_sitemeta`, and removes the stranded copy, so
 secrets written before conversion keep decrypting.
 
-**Storage.** `WP_Secrets_Option_Store` in `src/wp-includes/class-wp-secrets-option-store.php` uses
-the prefix `_wp_secret_` with `get_option()` for site scope and `_wp_network_secret_` with
-`get_site_option()` for network scope. `list_names()` queries `wp_sitemeta` filtered by
-`get_current_network_id()` when multisite and network scope, and `wp_options` otherwise.
-`WP_SECRETS_MAX_NAME_LENGTH` (172) is 191 minus the longer prefix.
+**Storage.** `WP_Secrets_Option_Store` in
+`src/wp-includes/secrets/class-wp-secrets-option-store.php` uses the prefix `_wp_secret_` with
+`get_option()` for site scope and `_wp_network_secret_` with `get_site_option()` for network scope.
+`list_names()` queries `wp_sitemeta` filtered by `get_current_network_id()` when multisite and
+network scope, and `wp_options` otherwise. `WP_SECRETS_MAX_NAME_LENGTH` (172) is 191 minus the
+longer prefix.
 
 **AAD.** `WP_Secrets_Cipher::build_aad()` includes the scope and the site id (`0` for network), so
 a site-scope record from one blog cannot be decrypted as another blog's, and a network record

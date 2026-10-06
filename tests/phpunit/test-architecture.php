@@ -143,13 +143,16 @@ class Tests_Secrets_Architecture extends WP_UnitTestCase {
 	}
 
 	/**
-	 * The src/ directory mirrors wordpress-develop's own directory shape: everything
-	 * lives directly under wp-includes or wp-admin/includes, with no additional
-	 * subdirectories a core patch would have to flatten.
+	 * The src/ directory mirrors wordpress-develop's own directory shape: the public
+	 * functions in wp-includes/secrets.php, the classes and interfaces in
+	 * wp-includes/secrets/ (as abilities-api/ and ai-client/ do in core), and Site
+	 * Health in wp-admin/includes, with no other subdirectories a core patch would
+	 * have to rearrange.
 	 */
 	public function test_src_has_no_unexpected_subdirectories() {
 		$allowed = array(
 			WP_SECRETS_API_PLUGIN_DIR . 'src/wp-includes',
+			WP_SECRETS_API_PLUGIN_DIR . 'src/wp-includes/secrets',
 			WP_SECRETS_API_PLUGIN_DIR . 'src/wp-admin',
 			WP_SECRETS_API_PLUGIN_DIR . 'src/wp-admin/includes',
 		);
@@ -248,6 +251,7 @@ class Tests_Secrets_Architecture extends WP_UnitTestCase {
 		$files = glob( WP_SECRETS_API_PLUGIN_DIR . 'plugin/*.php' );
 		$files = array_merge( $files, glob( WP_SECRETS_API_PLUGIN_DIR . 'cli/*.php' ) );
 		$files = array_merge( $files, glob( WP_SECRETS_API_PLUGIN_DIR . 'src/wp-includes/*.php' ) );
+		$files = array_merge( $files, glob( WP_SECRETS_API_PLUGIN_DIR . 'src/wp-includes/secrets/*.php' ) );
 
 		foreach ( $files as $file ) {
 			$contents = file_get_contents( $file );
