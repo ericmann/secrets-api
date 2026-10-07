@@ -24,7 +24,7 @@ scope", and "Timeline" in the [proposal][proposal].
 `src/wp-admin/includes/secrets-site-health.php` holds Site Health. `plugin/` and `cli/` are never
 copied. `tests/phpunit/test-architecture.php` enforces the boundary: no reference to `WP_CLI`,
 `plugin/`, or `cli/` under `src/`; no self-guarding `function_exists()` or `class_exists()`; every
-file carries `@since 7.2.0`; only the `default` text domain; no subdirectory other than the
+file carries `@since 7.2.0`; no text domain passed to a translation function; no subdirectory other than the
 three core paths; no prototype-compatibility symbol.
 
 **The core patch.** Trac ticket [#66187](https://core.trac.wordpress.org/ticket/66187), under

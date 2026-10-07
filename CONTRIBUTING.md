@@ -35,7 +35,7 @@ if you would rather not set up a test database. See the README for both.
 A few conventions that matter more than style:
 
 - **`src/` is written to be copied verbatim into `wordpress-develop`.** Same paths, core coding
-  standards, the `default` text domain, `@since 7.2.0`, PHP 7.4 syntax, and no reference to
+  standards, no text domain on translation calls, `@since 7.2.0`, PHP 7.4 syntax, and no reference to
   anything that only exists in this plugin. Several architectural tests read the source and
   enforce exactly this.
 - **Those architectural tests are never weakened to make a build green.** If one fails, either the

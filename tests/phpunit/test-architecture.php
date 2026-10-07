@@ -124,21 +124,30 @@ class Tests_Secrets_Architecture extends WP_UnitTestCase {
 	}
 
 	/**
-	 * The src/ directory uses only the 'default' text domain, since it ships as core
-	 * rather than as a plugin with its own domain.
+	 * The src/ directory passes no text domain to a translation function. It ships as
+	 * core, and core's own calls omit the argument rather than naming 'default'.
 	 */
-	public function test_src_uses_only_the_default_text_domain() {
+	public function test_src_passes_no_text_domain() {
 		foreach ( $this->src_files() as $file ) {
+			$source  = file_get_contents( $file );
 			$matches = array();
+
+			/*
+			 * A string literal after the text is a domain for these functions, and
+			 * after the text and its context for the _x() family.
+			 */
+			$literal = "(?:'(?:[^'\\\\]|\\\\.)*'|\"(?:[^\"\\\\]|\\\\.)*\")";
+
 			preg_match_all(
-				"/\b(?:__|_e|_x|_ex|_n|_nx)\(\s*(?:'(?:[^'\\\\]|\\\\.)*'|\"(?:[^\"\\\\]|\\\\.)*\")\s*(?:,\s*(?:'(?:[^'\\\\]|\\\\.)*'|\"(?:[^\"\\\\]|\\\\.)*\")\s*)?,\s*'([a-z0-9_-]+)'\s*\)/",
-				file_get_contents( $file ),
+				"/\b(?:(?:__|_e|esc_html__|esc_html_e|esc_attr__|esc_attr_e)\(\s*{$literal}|(?:_x|_ex|esc_html_x|esc_attr_x)\(\s*{$literal}\s*,\s*{$literal})\s*,\s*({$literal})\s*\)/",
+				$source,
 				$matches
 			);
 
-			foreach ( $matches[1] as $domain ) {
-				$this->assertSame( 'default', $domain, "Non-default text domain \"{$domain}\" found in {$file}." );
-			}
+			$this->assertSame( array(), $matches[1], "A text domain is passed to a translation function in {$file}." );
+
+			// The explicit 'default' domain in any argument position, _n() included.
+			$this->assertSame( 0, preg_match( "/,\s*'default'\s*\)/", $source ), "The 'default' text domain is passed explicitly in {$file}." );
 		}
 	}
 
