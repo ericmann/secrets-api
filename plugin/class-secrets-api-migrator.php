@@ -57,6 +57,9 @@ final class Secrets_API_Migrator {
 	 *
 	 * @param array $args Migration options, as described above.
 	 *
+	 * @phpstan-param array{dry_run?: bool, name?: string|null, map?: array<string, string>, namespace?: string} $args
+	 * @phpstan-return array{vendor_detected: bool, entries: list<array{legacy_key: string|null, new_name: string|null, status: string, message: string, fingerprint?: string}>}
+	 *
 	 * @return array {
 	 *     @type bool  $vendor_detected Whether the vendored AI plugin class exists.
 	 *     @type array $entries         One report entry per legacy key, each with
@@ -66,14 +69,15 @@ final class Secrets_API_Migrator {
 	 * }
 	 */
 	public function migrate( $args = array() ) {
-		$args = wp_parse_args(
-			$args,
+		// What wp_parse_args() does for an array, spelled out so the defaults keep their types.
+		$args = array_merge(
 			array(
 				'dry_run'   => false,
 				'name'      => null,
 				'map'       => array(),
 				'namespace' => '',
-			)
+			),
+			$args
 		);
 
 		$reader = new Secrets_API_Legacy_Reader();
@@ -118,6 +122,9 @@ final class Secrets_API_Migrator {
 	 * @param Secrets_API_Legacy_Reader $reader The legacy reader.
 	 * @param string                    $key    Legacy key.
 	 * @param array                     $args   Resolved args from migrate().
+	 *
+	 * @phpstan-param array{dry_run: bool, name: string|null, map: array<string, string>, namespace: string} $args
+	 * @phpstan-return array{legacy_key: string|null, new_name: string|null, status: string, message: string, fingerprint?: string}
 	 *
 	 * @return array One report entry.
 	 */
@@ -199,6 +206,8 @@ final class Secrets_API_Migrator {
 	 *
 	 * @param string $key  Prototype key.
 	 * @param array  $args Resolved args from migrate().
+	 *
+	 * @phpstan-param array{dry_run: bool, name: string|null, map: array<string, string>, namespace: string} $args
 	 *
 	 * @return string
 	 */

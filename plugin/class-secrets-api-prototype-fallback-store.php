@@ -79,7 +79,7 @@ final class Secrets_API_Prototype_Fallback_Store implements WP_Secrets_Store {
 	 * @param string $name    The secret's namespaced name.
 	 * @param bool   $network Whether this is a network-scope secret.
 	 *
-	 * @return array|null|WP_Error
+	 * @return array<mixed>|null|WP_Error
 	 */
 	public function get( $name, $network = false ) {
 		$record = $this->inner->get( $name, $network );
@@ -112,9 +112,13 @@ final class Secrets_API_Prototype_Fallback_Store implements WP_Secrets_Store {
 	 * read-only store all end up reporting the secret as absent, which is what it
 	 * is as far as the current format is concerned.
 	 *
+	 * The one exception is the read back after a successful write: if the inner
+	 * store errors there, its WP_Error is passed through, because by then the
+	 * secret does exist in the current format and "absent" would be untrue.
+	 *
 	 * @param string $name The secret's namespaced name.
 	 *
-	 * @return array|null
+	 * @return array<mixed>|null|WP_Error
 	 */
 	private function upgrade_from_prototype( $name ) {
 		$prototype_key = $this->prototype_key_for( $name );
@@ -217,9 +221,9 @@ final class Secrets_API_Prototype_Fallback_Store implements WP_Secrets_Store {
 	/**
 	 * Writes a current-format record. Delegated unchanged.
 	 *
-	 * @param string $name    The secret's namespaced name.
-	 * @param array  $record  The record to store.
-	 * @param bool   $network Whether this is a network-scope secret.
+	 * @param string       $name    The secret's namespaced name.
+	 * @param array<mixed> $record  The record to store.
+	 * @param bool         $network Whether this is a network-scope secret.
 	 *
 	 * @return bool|WP_Error
 	 */
@@ -250,7 +254,7 @@ final class Secrets_API_Prototype_Fallback_Store implements WP_Secrets_Store {
 	 *
 	 * @param bool $network Whether to list network-scope secrets.
 	 *
-	 * @return array|WP_Error
+	 * @return string[]|WP_Error
 	 */
 	public function list_names( $network = false ) {
 		return $this->inner->list_names( $network );

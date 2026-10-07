@@ -17,6 +17,8 @@
 	<exclude-pattern>/site/*</exclude-pattern>
 	<!-- .smoke/ is bin/smoke-install.sh's throwaway install: all of WordPress core, plus a symlink back to this repository that would otherwise send phpcs into a cycle. -->
 	<exclude-pattern>/.smoke/*</exclude-pattern>
+	<!-- tests/phpstan/ holds a PHPStan extension copied unchanged from wordpress-develop, which keeps it under a different standard. -->
+	<exclude-pattern>/tests/phpstan/*</exclude-pattern>
 
 	<arg name="extensions" value="php"/>
 	<arg name="basepath" value="."/>

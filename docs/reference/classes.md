@@ -87,7 +87,7 @@ Lists every legacy secret's bare key name. Still read-only: a listing, not a val
 public function list_keys()
 ```
 
-**Returns:** `array|WP_Error` List of bare key names on success. WP_Error on failure.
+**Returns:** `string[]|WP_Error` List of bare key names on success. WP_Error on failure.
 
 ## `Secrets_API_Migrator`
 
@@ -234,7 +234,7 @@ public function get( $name, $network = false )
 | `$name` | `string` | The secret's namespaced name. |
 | `$network` | `bool` | Whether this is a network-scope secret. |
 
-**Returns:** `array|null|WP_Error`
+**Returns:** `array<mixed>|null|WP_Error`
 
 #### `Secrets_API_Prototype_Fallback_Store::has_current_record()`
 
@@ -268,7 +268,7 @@ public function list_names( $network = false )
 |---|---|---|
 | `$network` | `bool` | Whether to list network-scope secrets. |
 
-**Returns:** `array|WP_Error`
+**Returns:** `string[]|WP_Error`
 
 #### `Secrets_API_Prototype_Fallback_Store::set()`
 
@@ -281,7 +281,7 @@ public function set( $name, $record, $network = false )
 | Parameter | Type | Description |
 |---|---|---|
 | `$name` | `string` | The secret's namespaced name. |
-| `$record` | `array` | The record to store. |
+| `$record` | `array<mixed>` | The record to store. |
 | `$network` | `bool` | Whether this is a network-scope secret. |
 
 **Returns:** `bool|WP_Error`
@@ -370,7 +370,7 @@ var_export() limitation.
 public function __debugInfo(): array
 ```
 
-**Returns:** `array`
+**Returns:** `array<string, string>`
 
 **Since:** 7.2.0
 
@@ -439,7 +439,7 @@ public function __unserialize( $data )
 
 | Parameter | Type | Description |
 |---|---|---|
-| `$data` | `array` | Ignored. |
+| `$data` | `array<mixed>` | Ignored. |
 
 **Returns:** `void`
 
@@ -863,7 +863,7 @@ public function set( $name, $record, $network = false )
 | Parameter | Type | Description |
 |---|---|---|
 | `$name` | `string` | Ignored. |
-| `$record` | `array` | Ignored. |
+| `$record` | `array<mixed>` | Ignored. |
 | `$network` | `bool` | Ignored. |
 
 **Returns:** `WP_Error`
@@ -1516,7 +1516,7 @@ public function get( $name, $network = false )
 | `$name` | `string` | The secret's namespaced name. |
 | `$network` | `bool` | Whether this is a network-scope secret. |
 
-**Returns:** `array|null|WP_Error`
+**Returns:** `array<mixed>|null|WP_Error`
 
 **Since:** 7.2.0
 
@@ -1532,7 +1532,7 @@ public function list_names( $network = false )
 |---|---|---|
 | `$network` | `bool` | Whether to list network-scope secrets. |
 
-**Returns:** `array|WP_Error`
+**Returns:** `string[]|WP_Error`
 
 **Since:** 7.2.0
 
@@ -1547,7 +1547,7 @@ public function set( $name, $record, $network = false )
 | Parameter | Type | Description |
 |---|---|---|
 | `$name` | `string` | The secret's namespaced name. |
-| `$record` | `array` | The record to store. |
+| `$record` | `array<mixed>` | The record to store. |
 | `$network` | `bool` | Whether this is a network-scope secret. |
 
 **Returns:** `true|WP_Error`
@@ -1825,7 +1825,7 @@ public function get( $name, $network = false )
 | `$name` | `string` | The secret's namespaced name. |
 | `$network` | `bool` | Whether this is a network-scope secret. |
 
-**Returns:** `array|null|WP_Error` The record array if it exists. Null if it does not. WP_Error if it could not be determined which.
+**Returns:** `array<mixed>|null|WP_Error` The record array if it exists. Null if it does not. WP_Error if it could not be determined which.
 
 **Since:** 7.2.0
 
@@ -1841,7 +1841,7 @@ public function list_names( $network = false )
 |---|---|---|
 | `$network` | `bool` | Whether to list network-scope secrets. |
 
-**Returns:** `array|WP_Error` Array of secret names on success. WP_Error on failure.
+**Returns:** `string[]|WP_Error` Array of secret names on success. WP_Error on failure.
 
 **Since:** 7.2.0
 
@@ -1856,7 +1856,7 @@ public function set( $name, $record, $network = false )
 | Parameter | Type | Description |
 |---|---|---|
 | `$name` | `string` | The secret's namespaced name. |
-| `$record` | `array` | The record to store. |
+| `$record` | `array<mixed>` | The record to store. |
 | `$network` | `bool` | Whether this is a network-scope secret. |
 
 **Returns:** `bool|WP_Error` True on success. WP_Error on failure, including when the store does not accept writes.

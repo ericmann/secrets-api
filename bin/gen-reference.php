@@ -894,11 +894,13 @@ final class Secrets_API_Reference_Generator {
 					break;
 
 				case 'param':
-					if ( preg_match( '/^(\S+)\s+(&?\.{0,3}\$\w+)\s*(.*)$/s', $value, $m ) ) {
+					list( $type, $rest ) = $this->split_type( $value );
+
+					if ( '' !== $type && preg_match( '/^(&?\.{0,3}\$\w+)\s*(.*)$/s', $rest, $m ) ) {
 						$parsed['params'][] = array(
-							'type'        => $m[1],
-							'name'        => $m[2],
-							'description' => trim( $m[3] ),
+							'type'        => $type,
+							'name'        => $m[1],
+							'description' => trim( $m[2] ),
 						);
 					} else {
 						$parsed['params'][] = array(
@@ -1083,11 +1085,43 @@ final class Secrets_API_Reference_Generator {
 	private function render_typed_text( $value ) {
 		$value = trim( preg_replace( '/\s+/', ' ', $value ) );
 
-		if ( preg_match( '/^(\S+)\s*(.*)$/s', $value, $m ) ) {
-			return '`' . $m[1] . '`' . ( '' !== $m[2] ? ' ' . $m[2] : '' );
+		list( $type, $rest ) = $this->split_type( $value );
+
+		if ( '' !== $type ) {
+			return '`' . $type . '`' . ( '' !== $rest ? ' ' . $rest : '' );
 		}
 
 		return $value;
+	}
+
+	/**
+	 * Splits a tag value into its leading type and whatever follows it.
+	 *
+	 * A type ends at the first whitespace outside any brackets, so a generic such
+	 * as `array<string, mixed>` stays in one piece.
+	 *
+	 * @param string $value Tag value, type first.
+	 *
+	 * @return string[] The type, then the remainder with leading whitespace removed.
+	 */
+	private function split_type( $value ) {
+		$value  = ltrim( $value );
+		$depth  = 0;
+		$length = strlen( $value );
+
+		for ( $i = 0; $i < $length; $i++ ) {
+			$char = $value[ $i ];
+
+			if ( '<' === $char || '{' === $char || '(' === $char ) {
+				++$depth;
+			} elseif ( '>' === $char || '}' === $char || ')' === $char ) {
+				--$depth;
+			} elseif ( 0 === $depth && ctype_space( $char ) ) {
+				return array( substr( $value, 0, $i ), ltrim( substr( $value, $i ) ) );
+			}
+		}
+
+		return array( $value, '' );
 	}
 
 	/**

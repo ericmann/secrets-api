@@ -54,6 +54,8 @@ define( 'WP_SECRETS_API_PLUGIN_DIR', plugin_dir_path( __FILE__ ) );
  *    secret read on the site would flow through it. All-or-nothing is the only safe
  *    granularity here.
  *
+ * @global string $wp_version The WordPress version string.
+ *
  * @return void
  */
 function wp_secrets_api_bootstrap() {
@@ -347,12 +349,12 @@ function wp_secrets_api_uninstall() {
 /**
  * Grants manage_network_secrets to super admins.
  *
- * @param array   $allcaps All capabilities of the user.
- * @param array   $caps    Required primitive capabilities for the requested capability.
- * @param array   $args    Arguments passed to current_user_can().
- * @param WP_User $user    The user object.
+ * @param array<string, bool> $allcaps All capabilities of the user.
+ * @param string[]            $caps    Required primitive capabilities for the requested capability.
+ * @param array<mixed>        $args    Arguments passed to current_user_can().
+ * @param WP_User             $user    The user object.
  *
- * @return array
+ * @return array<string, bool>
  */
 function wp_secrets_api_grant_network_cap_to_super_admins( $allcaps, $caps, $args, $user ) {
 	if ( is_multisite() && in_array( WP_SECRETS_CAP_MANAGE_NETWORK, $caps, true ) && is_super_admin( $user->ID ) ) {

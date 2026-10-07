@@ -1,8 +1,18 @@
 includes:
 	- vendor/szepeviktor/phpstan-wordpress/extension.neon
 
+services:
+	# Core documents globals with `@global Type $name` on the function docblock, and
+	# core's own PHPStan setup reads those tags through this visitor. It is core's
+	# tests/phpstan/GlobalDocBlockVisitor.php, copied unchanged, so that src/ is
+	# analyzed here the way it will be in wordpress-develop.
+	-
+		class: WordPress\PHPStan\GlobalDocBlockVisitor
+		tags:
+			- phpstan.parser.richParserNodeVisitor
+
 parameters:
-	level: 5
+	level: 10
 	phpVersion: 70400
 	paths:
 		- src
@@ -17,3 +27,13 @@ parameters:
 	bootstrapFiles:
 		- tests/phpstan-bootstrap.php
 	treatPhpDocTypesAsCertain: false
+	ignoreErrors:
+		# Interpolating a `$wpdb` table name into the query handed to prepare() is the
+		# core idiom, and core's own signature for prepare() takes a plain string. The
+		# `literal-string` here comes from the WordPress stubs, which are stricter than
+		# the method they describe; core's PHPStan run does not report these lines.
+		-
+			message: '#^Parameter \#1 \$query of method wpdb::prepare\(\) expects literal-string, non-falsy-string given\.$#'
+			paths:
+				- src/wp-includes/secrets/class-wp-secrets-option-store.php
+				- plugin/class-secrets-api-legacy-reader.php
