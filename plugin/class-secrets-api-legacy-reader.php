@@ -52,7 +52,9 @@ final class Secrets_API_Legacy_Reader {
 	 * Lists every legacy secret's bare key name. Still read-only: a listing, not a
 	 * value.
 	 *
-	 * @return array|WP_Error List of bare key names on success. WP_Error on failure.
+	 * @global wpdb $wpdb WordPress database abstraction object.
+	 *
+	 * @return string[]|WP_Error List of bare key names on success. WP_Error on failure.
 	 */
 	public function list_keys() {
 		global $wpdb;
@@ -73,6 +75,10 @@ final class Secrets_API_Legacy_Reader {
 		$keys = array();
 
 		foreach ( $option_names as $option_name ) {
+			if ( ! is_string( $option_name ) ) {
+				continue;
+			}
+
 			$keys[] = substr( $option_name, strlen( self::SECRET_OPTION_PREFIX ) );
 		}
 
@@ -179,7 +185,7 @@ final class Secrets_API_Legacy_Reader {
 	 * raw-base64-bytes candidate here, because the legacy system never produced
 	 * one. See this class's docblock.
 	 *
-	 * @return array|WP_Error List of raw 32-byte candidate keys.
+	 * @return string[]|WP_Error List of raw 32-byte candidate keys.
 	 */
 	private function candidate_site_keys() {
 		$candidates = array();

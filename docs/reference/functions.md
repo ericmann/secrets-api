@@ -248,12 +248,12 @@ function wp_secrets_api_grant_network_cap_to_super_admins( $allcaps, $caps, $arg
 
 | Parameter | Type | Description |
 |---|---|---|
-| `$allcaps` | `array` | All capabilities of the user. |
-| `$caps` | `array` | Required primitive capabilities for the requested capability. |
-| `$args` | `array` | Arguments passed to current_user_can(). |
+| `$allcaps` | `array<string, bool>` | All capabilities of the user. |
+| `$caps` | `string[]` | Required primitive capabilities for the requested capability. |
+| `$args` | `array<mixed>` | Arguments passed to current_user_can(). |
 | `$user` | `WP_User` | The user object. |
 
-**Returns:** `array`
+**Returns:** `array<string, bool>`
 
 **Source:** [`secrets-api.php`](../../secrets-api.php)
 
@@ -351,7 +351,7 @@ in that case, and it removes the live reference from this scope without touching
 the memory the string used to occupy.
 
 ```php
-function wp_secrets_memzero( &$value )
+function wp_secrets_memzero( &$value ): void
 ```
 
 | Parameter | Type | Description |
@@ -427,9 +427,9 @@ function wp_secrets_site_health_debug_info( $info )
 
 | Parameter | Type | Description |
 |---|---|---|
-| `$info` | `array` | Existing debug information sections. |
+| `$info` | `array<string, array<string, mixed>>` | Existing debug information sections. |
 
-**Returns:** `array`
+**Returns:** `array<string, array<string, mixed>>`
 
 **Since:** 7.2.0
 
@@ -533,9 +533,9 @@ function wp_secrets_site_health_tests( $tests )
 
 | Parameter | Type | Description |
 |---|---|---|
-| `$tests` | `array` | Existing Site Health tests. |
+| `$tests` | `array<string, array<string, array<string, mixed>>>` | Existing Site Health tests. |
 
-**Returns:** `array`
+**Returns:** `array<string, array<string, array<string, mixed>>>`
 
 **Since:** 7.2.0
 

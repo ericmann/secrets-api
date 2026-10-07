@@ -62,14 +62,22 @@ class WP_CLI_Secret_Command {
 	 *
 	 * @when after_wp_load
 	 *
-	 * @param array $args       Positional arguments.
-	 * @param array $assoc_args Associative arguments.
+	 * @param string[]                   $args       Positional arguments.
+	 * @param array<string, string|bool> $assoc_args Associative arguments.
 	 */
-	public function set( $args, $assoc_args ) {
+	public function set( $args, $assoc_args ): void {
 		$name = $args[0];
 
 		if ( isset( $assoc_args['stdin'] ) ) {
-			$value = rtrim( file_get_contents( 'php://stdin' ), "\r\n" );
+			$stdin = file_get_contents( 'php://stdin' );
+
+			if ( false === $stdin ) {
+				WP_CLI::error( 'Could not read a value from STDIN.' );
+
+				return;
+			}
+
+			$value = rtrim( $stdin, "\r\n" );
 		} elseif ( isset( $args[1] ) ) {
 			WP_CLI::warning( 'Passing a secret value as a command argument leaks it into shell history. Use --stdin instead.' );
 			$value = $args[1];
@@ -142,10 +150,10 @@ class WP_CLI_Secret_Command {
 	 *
 	 * @when after_wp_load
 	 *
-	 * @param array $args       Positional arguments.
-	 * @param array $assoc_args Associative arguments.
+	 * @param string[]                   $args       Positional arguments.
+	 * @param array<string, string|bool> $assoc_args Associative arguments.
 	 */
-	public function get( $args, $assoc_args ) {
+	public function get( $args, $assoc_args ): void {
 		$name    = $args[0];
 		$version = ( isset( $assoc_args['slot'] ) && WP_Secret_Version::PREVIOUS === $assoc_args['slot'] )
 			? WP_Secret_Version::PREVIOUS
@@ -186,14 +194,31 @@ class WP_CLI_Secret_Command {
 		);
 
 		if ( isset( $assoc_args['field'] ) ) {
-			WP_CLI::line( isset( $item[ $assoc_args['field'] ] ) ? $item[ $assoc_args['field'] ] : '' );
+			$field = $this->string_arg( $assoc_args, 'field' );
+
+			WP_CLI::line( isset( $item[ $field ] ) ? $item[ $field ] : '' );
 
 			return;
 		}
 
-		$format = isset( $assoc_args['format'] ) ? $assoc_args['format'] : 'table';
+		$format = $this->string_arg( $assoc_args, 'format', 'table' );
 
 		\WP_CLI\Utils\format_items( $format, array( $item ), array( 'name', 'fingerprint', 'value' ) );
+	}
+
+	/**
+	 * Reads an associative argument that carries a value.
+	 *
+	 * A flag passed without a value arrives as boolean true. That is not a usable
+	 * value for an argument that needs one, so it is treated as absent.
+	 *
+	 * @param array<string, string|bool> $assoc_args Associative arguments.
+	 * @param string                     $key        The argument's name.
+	 * @param string                     $fallback   Returned when the argument is absent.
+	 * @return string
+	 */
+	protected function string_arg( $assoc_args, $key, $fallback = '' ) {
+		return isset( $assoc_args[ $key ] ) && is_string( $assoc_args[ $key ] ) ? $assoc_args[ $key ] : $fallback;
 	}
 
 	/**
@@ -227,10 +252,10 @@ class WP_CLI_Secret_Command {
 	 *
 	 * @when after_wp_load
 	 *
-	 * @param array $args       Positional arguments.
-	 * @param array $assoc_args Associative arguments.
+	 * @param string[]                   $args       Positional arguments.
+	 * @param array<string, string|bool> $assoc_args Associative arguments.
 	 */
-	public function delete( $args, $assoc_args ) {
+	public function delete( $args, $assoc_args ): void {
 		$name = $args[0];
 
 		WP_CLI::confirm( sprintf( 'Delete secret "%s"? This cannot be undone.', $name ), $assoc_args );
@@ -273,11 +298,11 @@ class WP_CLI_Secret_Command {
 	 *
 	 * @when after_wp_load
 	 *
-	 * @param array $args       Positional arguments.
-	 * @param array $assoc_args Associative arguments.
+	 * @param string[]                   $args       Positional arguments.
+	 * @param array<string, string|bool> $assoc_args Associative arguments.
 	 */
-	public function list( $args, $assoc_args ) {
-		$namespace = isset( $assoc_args['namespace'] ) ? $assoc_args['namespace'] : '';
+	public function list( $args, $assoc_args ): void {
+		$namespace = $this->string_arg( $assoc_args, 'namespace' );
 
 		$entries = $this->network ? wp_list_network_secrets( $namespace ) : wp_list_secrets( $namespace );
 
@@ -287,11 +312,9 @@ class WP_CLI_Secret_Command {
 			return;
 		}
 
-		$fields = isset( $assoc_args['fields'] )
-			? explode( ',', $assoc_args['fields'] )
-			: array( 'name', 'fingerprint', 'created', 'has_previous', 'needs_rotation' );
+		$fields = explode( ',', $this->string_arg( $assoc_args, 'fields', 'name,fingerprint,created,has_previous,needs_rotation' ) );
 
-		$format = isset( $assoc_args['format'] ) ? $assoc_args['format'] : 'table';
+		$format = $this->string_arg( $assoc_args, 'format', 'table' );
 
 		/*
 		 * 'ids' is handled here rather than by the shared formatter, which expects
@@ -299,15 +322,17 @@ class WP_CLI_Secret_Command {
 		 * "Array". Names are this API's identifiers, so they are what 'ids' means.
 		 */
 		if ( 'ids' === $format ) {
-			WP_CLI::line( implode( ' ', wp_list_pluck( $entries, 'name' ) ) );
+			WP_CLI::line( implode( ' ', array_column( $entries, 'name' ) ) );
 
 			return;
 		}
 
 		// One value per line, for `for n in $(wp secret list --field=name)`.
 		if ( isset( $assoc_args['field'] ) ) {
+			$field = $this->string_arg( $assoc_args, 'field' );
+
 			foreach ( $entries as $entry ) {
-				WP_CLI::line( isset( $entry[ $assoc_args['field'] ] ) ? $entry[ $assoc_args['field'] ] : '' );
+				WP_CLI::line( isset( $entry[ $field ] ) ? (string) $entry[ $field ] : '' );
 			}
 
 			return;
@@ -329,10 +354,10 @@ class WP_CLI_Secret_Command {
 	 *
 	 * @when after_wp_load
 	 *
-	 * @param array $args       Positional arguments.
-	 * @param array $assoc_args Associative arguments.
+	 * @param string[]                   $args       Positional arguments.
+	 * @param array<string, string|bool> $assoc_args Associative arguments.
 	 */
-	public function retire( $args, $assoc_args ) {
+	public function retire( $args, $assoc_args ): void {
 		$name = $args[0];
 
 		WP_CLI::confirm( sprintf( 'Retire the previous version of "%s"? This clears it permanently.', $name ), $assoc_args );
@@ -364,9 +389,9 @@ class WP_CLI_Secret_Command {
 	 *
 	 * @when after_wp_load
 	 *
-	 * @param array $args Positional arguments.
+	 * @param string[] $args Positional arguments.
 	 */
-	public function import_option( $args ) {
+	public function import_option( $args ): void {
 		if ( $this->network ) {
 			WP_CLI::error( 'Importing an option as a network-scope secret is not supported.' );
 
@@ -428,10 +453,10 @@ class WP_CLI_Secret_Command {
 	 *
 	 * @when after_wp_load
 	 *
-	 * @param array $args       Positional arguments.
-	 * @param array $assoc_args Associative arguments.
+	 * @param string[]                   $args       Positional arguments.
+	 * @param array<string, string|bool> $assoc_args Associative arguments.
 	 */
-	public function migrate_legacy( $args, $assoc_args ) {
+	public function migrate_legacy( $args, $assoc_args ): void {
 		if ( $this->network ) {
 			WP_CLI::error( 'The legacy format has no network-scope equivalent.' );
 
@@ -440,22 +465,20 @@ class WP_CLI_Secret_Command {
 
 		$map = array();
 
-		if ( isset( $assoc_args['map'] ) ) {
-			foreach ( explode( ',', $assoc_args['map'] ) as $pair ) {
-				$parts = explode( ':', $pair, 2 );
+		foreach ( explode( ',', $this->string_arg( $assoc_args, 'map' ) ) as $pair ) {
+			$parts = explode( ':', $pair, 2 );
 
-				if ( 2 === count( $parts ) ) {
-					$map[ $parts[0] ] = $parts[1];
-				}
+			if ( 2 === count( $parts ) ) {
+				$map[ $parts[0] ] = $parts[1];
 			}
 		}
 
 		$report = ( new Secrets_API_Migrator() )->migrate(
 			array(
 				'dry_run'   => isset( $assoc_args['dry-run'] ),
-				'name'      => isset( $assoc_args['name'] ) ? $assoc_args['name'] : null,
+				'name'      => isset( $assoc_args['name'] ) ? $this->string_arg( $assoc_args, 'name' ) : null,
 				'map'       => $map,
-				'namespace' => isset( $assoc_args['namespace'] ) ? $assoc_args['namespace'] : '',
+				'namespace' => $this->string_arg( $assoc_args, 'namespace' ),
 			)
 		);
 
@@ -474,7 +497,7 @@ class WP_CLI_Secret_Command {
 			);
 		}
 
-		$format = isset( $assoc_args['format'] ) ? $assoc_args['format'] : 'table';
+		$format = $this->string_arg( $assoc_args, 'format', 'table' );
 
 		\WP_CLI\Utils\format_items( $format, $items, array( 'legacy_key', 'new_name', 'status', 'message' ) );
 
@@ -518,11 +541,11 @@ class WP_CLI_Secret_Command {
 	 *
 	 * @when after_wp_load
 	 *
-	 * @param array $args       Positional arguments.
-	 * @param array $assoc_args Associative arguments.
+	 * @param string[]                   $args       Positional arguments.
+	 * @param array<string, string|bool> $assoc_args Associative arguments.
 	 */
-	public function rotate( $args, $assoc_args ) {
-		$from = isset( $assoc_args['from'] ) ? $assoc_args['from'] : 'config-previous';
+	public function rotate( $args, $assoc_args ): void {
+		$from = $this->string_arg( $assoc_args, 'from', 'config-previous' );
 
 		if ( ! in_array( $from, array( 'config-previous', 'config' ), true ) ) {
 			WP_CLI::error( sprintf( 'Unknown --from value "%s". Use config-previous or config.', $from ) );
@@ -592,7 +615,7 @@ class WP_CLI_Secret_Command {
 	 *
 	 * @when after_wp_load
 	 */
-	public function generate_key() {
+	public function generate_key(): void {
 		WP_CLI::line( base64_encode( random_bytes( 32 ) ) ); // phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.obfuscation_base64_encode -- encoding key bytes for display, not obfuscating code.
 	}
 
@@ -613,10 +636,10 @@ class WP_CLI_Secret_Command {
 	 *
 	 * @when after_wp_load
 	 *
-	 * @param array $args       Positional arguments.
-	 * @param array $assoc_args Associative arguments.
+	 * @param string[]                   $args       Positional arguments.
+	 * @param array<string, string|bool> $assoc_args Associative arguments.
 	 */
-	public function health( $args, $assoc_args ) {
+	public function health( $args, $assoc_args ): void {
 		$results = array(
 			wp_secrets_site_health_test_key_source(),
 			wp_secrets_site_health_test_undecryptable(),
@@ -632,7 +655,7 @@ class WP_CLI_Secret_Command {
 			);
 		}
 
-		$format = isset( $assoc_args['format'] ) ? $assoc_args['format'] : 'table';
+		$format = $this->string_arg( $assoc_args, 'format', 'table' );
 
 		\WP_CLI\Utils\format_items( $format, $items, array( 'check', 'status' ) );
 
@@ -653,10 +676,10 @@ class WP_CLI_Secret_Command {
 	 *
 	 * @when after_wp_load
 	 *
-	 * @param array $args       Positional arguments.
-	 * @param array $assoc_args Associative arguments.
+	 * @param string[]                   $args       Positional arguments.
+	 * @param array<string, string|bool> $assoc_args Associative arguments.
 	 */
-	public function dropin( $args = array(), $assoc_args = array() ) {
+	public function dropin( $args = array(), $assoc_args = array() ): void {
 		$key_manager = _wp_secrets_get_key_manager();
 
 		WP_CLI::log( sprintf( 'Drop-in active: %s', wp_using_secrets_dropin() ? 'yes' : 'no' ) );

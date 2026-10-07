@@ -17,6 +17,11 @@
 		"wp-coding-standards/wpcs": "^3.1",
 		"yoast/phpunit-polyfills": "^2.0"
 	},
+	"autoload-dev": {
+		"psr-4": {
+			"WordPress\\PHPStan\\": "tests/phpstan/"
+		}
+	},
 	"config": {
 		"allow-plugins": {
 			"dealerdirect/phpcodesniffer-composer-installer": true

@@ -12,7 +12,7 @@ right and the workflow is wrong.
 ```sh
 make lint      # phpcs
 make compat    # PHPCompatibilityWP, testVersion 7.4-
-make analyse   # phpstan
+make analyse   # phpstan, level 10
 make test      # phpunit, single site
 make test-ms   # phpunit, multisite
 make reference-check  # docs/reference/ matches the source docblocks
@@ -142,6 +142,30 @@ missed. PHP 8.5 deprecates `ReflectionMethod::setAccessible()` and `ReflectionPr
 which have done nothing since 8.1, and the test suite treats deprecations as errors. Tests that reach
 a private member through reflection call `setAccessible( true )` only when `PHP_VERSION_ID < 80100`,
 as core's own tests do.
+
+## Static analysis
+
+`make analyse` runs PHPStan at level 10, its strictest, over `src/`, `plugin/`, `cli/`, and
+`secrets-api.php`. `src/` is analyzed a second time inside wordpress-develop, under core's own
+configuration, and it has to be clean in both places.
+
+Two things in `phpstan.neon.dist` exist because of that:
+
+- **`tests/phpstan/GlobalDocBlockVisitor.php`** is core's file, copied unchanged. Core documents a
+  global with `@global wpdb $wpdb` on the function's docblock, and core's PHPStan setup reads that
+  tag through this visitor. Without it, `$wpdb` is untyped here and typed there.
+- **One ignored message**, for interpolating a `$wpdb` table name into the query given to
+  `prepare()`. The WordPress stubs ask for a literal string, which core's own signature does not.
+
+The tests are not analyzed here. They need the WordPress test classes, which the `static` job does
+not install. The files under `tests/phpunit/` that also ship in the core patch are checked at
+level 10 in wordpress-develop and copied back.
+
+A test that passes the wrong type on purpose carries the comment core's tests use for that:
+
+```php
+$result = wp_set_secret( 'myplugin/key', array() ); // @phpstan-ignore argument.type (Intentionally passing an invalid value.)
+```
 
 ## Publishing the docs site
 

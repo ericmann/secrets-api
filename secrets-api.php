@@ -3,7 +3,7 @@
  * Plugin Name:       Secrets API
  * Plugin URI:        https://github.com/ericmann/secrets-api
  * Description:       Feature plugin for the WordPress Secrets API proposed for 7.2. Encrypted, versioned credential storage with pluggable storage and keyring back ends.
- * Version:           0.2.1
+ * Version:           0.2.2
  * Requires at least: 6.6
  * Requires PHP:      7.4
  * License:           GPL-2.0-or-later
@@ -25,7 +25,7 @@ defined( 'ABSPATH' ) || exit;
 /**
  * Plugin version.
  */
-define( 'WP_SECRETS_API_PLUGIN_VERSION', '0.2.1' );
+define( 'WP_SECRETS_API_PLUGIN_VERSION', '0.2.2' );
 
 /**
  * The WordPress version expected to ship the Secrets API in core.
@@ -53,6 +53,8 @@ define( 'WP_SECRETS_API_PLUGIN_DIR', plugin_dir_path( __FILE__ ) );
  *    An mu-plugin that declared wp_get_secret() first would silently win, and every
  *    secret read on the site would flow through it. All-or-nothing is the only safe
  *    granularity here.
+ *
+ * @global string $wp_version The WordPress version string.
  *
  * @return void
  */
@@ -347,12 +349,12 @@ function wp_secrets_api_uninstall() {
 /**
  * Grants manage_network_secrets to super admins.
  *
- * @param array   $allcaps All capabilities of the user.
- * @param array   $caps    Required primitive capabilities for the requested capability.
- * @param array   $args    Arguments passed to current_user_can().
- * @param WP_User $user    The user object.
+ * @param array<string, bool> $allcaps All capabilities of the user.
+ * @param string[]            $caps    Required primitive capabilities for the requested capability.
+ * @param array<mixed>        $args    Arguments passed to current_user_can().
+ * @param WP_User             $user    The user object.
  *
- * @return array
+ * @return array<string, bool>
  */
 function wp_secrets_api_grant_network_cap_to_super_admins( $allcaps, $caps, $args, $user ) {
 	if ( is_multisite() && in_array( WP_SECRETS_CAP_MANAGE_NETWORK, $caps, true ) && is_super_admin( $user->ID ) ) {
