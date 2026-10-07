@@ -68,7 +68,7 @@ final class Secrets_API_Migrator {
 	 *                                  value.
 	 * }
 	 */
-	public function migrate( $args = array() ) {
+	public function migrate( array $args = array() ): array {
 		// What wp_parse_args() does for an array, spelled out so the defaults keep their types.
 		$args = array_merge(
 			array(
@@ -128,7 +128,7 @@ final class Secrets_API_Migrator {
 	 *
 	 * @return array One report entry.
 	 */
-	private function migrate_one( $reader, $key, array $args ) {
+	private function migrate_one( Secrets_API_Legacy_Reader $reader, string $key, array $args ): array {
 		$new_name = $this->new_name_for( $key, $args );
 
 		$entry = array(
@@ -211,7 +211,7 @@ final class Secrets_API_Migrator {
 	 *
 	 * @return string
 	 */
-	private function new_name_for( $key, array $args ) {
+	private function new_name_for( string $key, array $args ): string {
 		if ( isset( $args['map'][ $key ] ) ) {
 			return $args['map'][ $key ];
 		}
@@ -236,7 +236,7 @@ final class Secrets_API_Migrator {
 	 *
 	 * @return bool|WP_Error
 	 */
-	private function has_current_record( $name ) {
+	private function has_current_record( string $name ) {
 		$store = _wp_secrets_get_store();
 
 		if ( $store instanceof Secrets_API_Prototype_Fallback_Store ) {
@@ -265,7 +265,7 @@ final class Secrets_API_Migrator {
 	 *                         case the new-format write may still have happened,
 	 *                         but is reported as an error rather than a success.
 	 */
-	private function write_new_secret( $reader, $key, $new_name ) {
+	private function write_new_secret( Secrets_API_Legacy_Reader $reader, string $key, string $new_name ) {
 		$plaintext = $reader->get( $key );
 
 		if ( is_wp_error( $plaintext ) ) {

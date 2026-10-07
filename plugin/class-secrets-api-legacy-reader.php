@@ -94,7 +94,7 @@ final class Secrets_API_Legacy_Reader {
 	 *
 	 * @return string|WP_Error Plaintext on success. WP_Error on failure.
 	 */
-	public function get( $key ) {
+	public function get( string $key ) {
 		$wrapped_master = get_option( self::MASTER_KEY_OPTION );
 
 		if ( ! is_string( $wrapped_master ) || '' === $wrapped_master ) {
@@ -154,7 +154,7 @@ final class Secrets_API_Legacy_Reader {
 	 * @return string|WP_Error Raw 32-byte master key, or WP_Error if no candidate
 	 *                          opened it.
 	 */
-	private function unwrap_master_key( $wrapped_master ) {
+	private function unwrap_master_key( string $wrapped_master ) {
 		$candidates = $this->candidate_site_keys();
 
 		if ( is_wp_error( $candidates ) ) {
@@ -237,7 +237,7 @@ final class Secrets_API_Legacy_Reader {
 	 *
 	 * @return string|WP_Error
 	 */
-	private function open( $encoded, $key ) {
+	private function open( string $encoded, string $key ) {
 		$raw = base64_decode( $encoded, true ); // phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.obfuscation_base64_decode -- decoding a legacy encrypted record, not obfuscating code.
 
 		if ( false === $raw || strlen( $raw ) <= SODIUM_CRYPTO_SECRETBOX_NONCEBYTES ) {

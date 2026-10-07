@@ -58,7 +58,7 @@ define( 'WP_SECRETS_API_PLUGIN_DIR', plugin_dir_path( __FILE__ ) );
  *
  * @return void
  */
-function wp_secrets_api_bootstrap() {
+function wp_secrets_api_bootstrap(): void {
 	global $wp_version;
 
 	$symbol_taken = function_exists( 'wp_get_secret' );
@@ -214,7 +214,7 @@ function wp_secrets_api_bootstrap() {
  *
  * @return void
  */
-function wp_secrets_api_notice_superseded() {
+function wp_secrets_api_notice_superseded(): void {
 	if ( ! current_user_can( 'activate_plugins' ) ) {
 		return;
 	}
@@ -230,7 +230,7 @@ function wp_secrets_api_notice_superseded() {
  *
  * @return void
  */
-function wp_secrets_api_notice_conflict() {
+function wp_secrets_api_notice_conflict(): void {
 	if ( ! current_user_can( 'activate_plugins' ) ) {
 		return;
 	}
@@ -275,7 +275,7 @@ function wp_secrets_api_notice_conflict() {
  *
  * @return void
  */
-function wp_secrets_api_load_dropin() {
+function wp_secrets_api_load_dropin(): void {
 	static $loaded = false;
 
 	if ( $loaded ) {
@@ -323,7 +323,7 @@ function wp_secrets_api_load_dropin() {
  *
  * @return void
  */
-function wp_secrets_api_activate() {
+function wp_secrets_api_activate(): void {
 	$administrator = get_role( 'administrator' );
 
 	if ( $administrator ) {
@@ -338,7 +338,7 @@ function wp_secrets_api_activate() {
  *
  * @return void
  */
-function wp_secrets_api_uninstall() {
+function wp_secrets_api_uninstall(): void {
 	$administrator = get_role( 'administrator' );
 
 	if ( $administrator ) {

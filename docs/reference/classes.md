@@ -70,7 +70,7 @@ already exists.
 Reads and decrypts a legacy secret.
 
 ```php
-public function get( $key )
+public function get( string $key )
 ```
 
 | Parameter | Type | Description |
@@ -140,7 +140,7 @@ $args accepts:
                     the prototype spelled it.
 
 ```php
-public function migrate( $args = array() )
+public function migrate( array $args = array() ): array
 ```
 
 | Parameter | Type | Description |
@@ -211,7 +211,7 @@ public function __construct( WP_Secrets_Store $inner )
 Deletes a current-format record. The prototype's row is left alone, so a delete followed by a read will inherit the prototype value again rather than reporting absence -- the same answer the site would have given before the Secrets API was installed at all.
 
 ```php
-public function delete( $name, $network = false )
+public function delete( string $name, bool $network = false )
 ```
 
 | Parameter | Type | Description |
@@ -226,7 +226,7 @@ public function delete( $name, $network = false )
 Reads a record, falling back to the prototype format on a miss.
 
 ```php
-public function get( $name, $network = false )
+public function get( string $name, bool $network = false )
 ```
 
 | Parameter | Type | Description |
@@ -247,7 +247,7 @@ to describe. That is not just a cosmetic reporting problem; it would make
 `--dry-run` write.
 
 ```php
-public function has_current_record( $name )
+public function has_current_record( string $name )
 ```
 
 | Parameter | Type | Description |
@@ -261,7 +261,7 @@ public function has_current_record( $name )
 Lists current-format names only. Prototype rows that have not been read yet are not listed: they are not secrets of this API until something asks for one by name. `wp secret migrate-legacy --dry-run` is the way to see what is still sitting in the old format.
 
 ```php
-public function list_names( $network = false )
+public function list_names( bool $network = false )
 ```
 
 | Parameter | Type | Description |
@@ -275,7 +275,7 @@ public function list_names( $network = false )
 Writes a current-format record. Delegated unchanged.
 
 ```php
-public function set( $name, $record, $network = false )
+public function set( string $name, array $record, bool $network = false )
 ```
 
 | Parameter | Type | Description |
@@ -343,7 +343,7 @@ Nothing outside this API constructs a WP_Secret in normal use; the values
 passed here come from _wp_secrets_get() having just decrypted them.
 
 ```php
-public function __construct( $name, $value, $fingerprint )
+public function __construct( string $name, $value, string $fingerprint )
 ```
 
 | Parameter | Type | Description |
@@ -352,7 +352,7 @@ public function __construct( $name, $value, $fingerprint )
 | `$value` | `string` | The decrypted plaintext. |
 | `$fingerprint` | `string` | Keyed fingerprint of $value. |
 
-**Throws:** `InvalidArgumentException` If any argument is not a non-empty string (value may be empty, but must be a string).
+**Throws:** `InvalidArgumentException` If $name or $fingerprint is empty, or if $value is not a string. $value may be empty.
 
 **Since:** 7.2.0
 
@@ -422,7 +422,7 @@ Masks the instance for string conversion.
 Covers error_log( $secret ) and any other implicit string coercion.
 
 ```php
-public function __toString()
+public function __toString(): string
 ```
 
 **Returns:** `string`
@@ -434,7 +434,7 @@ public function __toString()
 Refuses unserialization outright.
 
 ```php
-public function __unserialize( $data )
+public function __unserialize( array $data ): void
 ```
 
 | Parameter | Type | Description |
@@ -468,7 +468,7 @@ Returns the keyed fingerprint of the plaintext.
 Stable for a given value on a given site; not a value-recovery oracle.
 
 ```php
-public function fingerprint()
+public function fingerprint(): string
 ```
 
 **Returns:** `string`
@@ -480,7 +480,7 @@ public function fingerprint()
 Returns the secret's namespaced name.
 
 ```php
-public function get_name()
+public function get_name(): string
 ```
 
 **Returns:** `string`
@@ -492,7 +492,7 @@ public function get_name()
 Masks the instance for json_encode().
 
 ```php
-public function jsonSerialize()
+public function jsonSerialize(): string
 ```
 
 **Returns:** `string`
@@ -532,7 +532,7 @@ behaves normally, so such a secret still lists, still reports a stable
 fingerprint, and still masks itself in every output path.
 
 ```php
-public static function withheld( $name, $fingerprint, $reason )
+public static function withheld( string $name, string $fingerprint, WP_Error $reason ): WP_Secret
 ```
 
 | Parameter | Type | Description |
@@ -543,7 +543,7 @@ public static function withheld( $name, $fingerprint, $reason )
 
 **Returns:** `WP_Secret`
 
-**Throws:** `InvalidArgumentException` If $reason is not a WP_Error, or if $name or $fingerprint fail the constructor's checks.
+**Throws:** `InvalidArgumentException` If $name or $fingerprint fail the constructor's checks.
 
 **Since:** 7.2.0
 
@@ -592,7 +592,7 @@ did not choose. Every operation fails closed instead.
 Describes the broken state, for Site Health.
 
 ```php
-public function get_key_source()
+public function get_key_source(): string
 ```
 
 **Returns:** `string`
@@ -604,7 +604,7 @@ public function get_key_source()
 Always fails closed.
 
 ```php
-public function unwrap( $wrapped )
+public function unwrap( string $wrapped ): WP_Error
 ```
 
 | Parameter | Type | Description |
@@ -620,7 +620,7 @@ public function unwrap( $wrapped )
 Always fails closed.
 
 ```php
-public function wrap( $key_material )
+public function wrap( string $key_material ): WP_Error
 ```
 
 | Parameter | Type | Description |
@@ -658,7 +658,7 @@ at the exact moment nobody is watching.
 Always an error.
 
 ```php
-public function delete( $name, $network = false )
+public function delete( string $name, bool $network = false ): WP_Error
 ```
 
 | Parameter | Type | Description |
@@ -675,7 +675,7 @@ public function delete( $name, $network = false )
 Always an error.
 
 ```php
-public function get( $name, $version, $network = false )
+public function get( string $name, string $version, bool $network = false ): WP_Error
 ```
 
 | Parameter | Type | Description |
@@ -693,7 +693,7 @@ public function get( $name, $version, $network = false )
 Says plainly that the drop-in is the problem.
 
 ```php
-public function get_label()
+public function get_label(): string
 ```
 
 **Returns:** `string`
@@ -708,7 +708,7 @@ Whatever was meant to protect these secrets is not WordPress, and is not
 working.
 
 ```php
-public function get_protection_boundary()
+public function get_protection_boundary(): string
 ```
 
 **Returns:** `string`
@@ -720,7 +720,7 @@ public function get_protection_boundary()
 Nothing is writable while the drop-in is broken.
 
 ```php
-public function is_writable()
+public function is_writable(): bool
 ```
 
 **Returns:** `bool`
@@ -732,7 +732,7 @@ public function is_writable()
 Always an error.
 
 ```php
-public function list_secrets( $name_prefix = '', $network = false )
+public function list_secrets( string $name_prefix = '', bool $network = false ): WP_Error
 ```
 
 | Parameter | Type | Description |
@@ -749,7 +749,7 @@ public function list_secrets( $name_prefix = '', $network = false )
 Always an error.
 
 ```php
-public function retire_previous( $name, $network = false )
+public function retire_previous( string $name, bool $network = false ): WP_Error
 ```
 
 | Parameter | Type | Description |
@@ -766,7 +766,7 @@ public function retire_previous( $name, $network = false )
 Always an error.
 
 ```php
-public function set( $name, $value, $network = false, $needs_rotation = false, $action = null )
+public function set( string $name, $value, bool $network = false, bool $needs_rotation = false, ?string $action = null ): WP_Error
 ```
 
 | Parameter | Type | Description |
@@ -807,7 +807,7 @@ closed instead.
 Always fails closed.
 
 ```php
-public function delete( $name, $network = false )
+public function delete( string $name, bool $network = false ): WP_Error
 ```
 
 | Parameter | Type | Description |
@@ -824,7 +824,7 @@ public function delete( $name, $network = false )
 Always fails closed.
 
 ```php
-public function get( $name, $network = false )
+public function get( string $name, bool $network = false ): WP_Error
 ```
 
 | Parameter | Type | Description |
@@ -841,7 +841,7 @@ public function get( $name, $network = false )
 Always fails closed.
 
 ```php
-public function list_names( $network = false )
+public function list_names( bool $network = false ): WP_Error
 ```
 
 | Parameter | Type | Description |
@@ -857,7 +857,7 @@ public function list_names( $network = false )
 Always fails closed.
 
 ```php
-public function set( $name, $record, $network = false )
+public function set( string $name, array $record, bool $network = false ): WP_Error
 ```
 
 | Parameter | Type | Description |
@@ -905,7 +905,7 @@ slot's worth of material, encrypt or decrypt it correctly.
 Decrypts a single record slot back to its plaintext.
 
 ```php
-public function decrypt_value( $master_key, $scope, $site_id, $name, $slot, $record )
+public function decrypt_value( string $master_key, string $scope, int $site_id, string $name, string $slot, $record )
 ```
 
 | Parameter | Type | Description |
@@ -926,7 +926,7 @@ public function decrypt_value( $master_key, $scope, $site_id, $name, $slot, $rec
 Encrypts a plaintext into a single record slot.
 
 ```php
-public function encrypt_value( $master_key, $scope, $site_id, $name, $slot, $plaintext )
+public function encrypt_value( string $master_key, string $scope, int $site_id, string $name, string $slot, $plaintext )
 ```
 
 | Parameter | Type | Description |
@@ -954,7 +954,7 @@ decrypted plaintext and compare -- never trust a fingerprint read back from a
 record, which sits outside the AAD and is not authenticated.
 
 ```php
-public function fingerprint( $master_key, $plaintext )
+public function fingerprint( string $master_key, $plaintext )
 ```
 
 | Parameter | Type | Description |
@@ -1010,7 +1010,7 @@ rotation can unwrap under the old key before wrapping under the new one.
 Constructor.
 
 ```php
-public function __construct( $use_previous_key = false )
+public function __construct( bool $use_previous_key = false )
 ```
 
 | Parameter | Type | Description |
@@ -1024,7 +1024,7 @@ public function __construct( $use_previous_key = false )
 Describes the active key source, for Site Health.
 
 ```php
-public function get_key_source()
+public function get_key_source(): string
 ```
 
 **Returns:** `string`
@@ -1036,7 +1036,7 @@ public function get_key_source()
 Unwraps key material previously wrapped by wrap().
 
 ```php
-public function unwrap( $wrapped )
+public function unwrap( string $wrapped )
 ```
 
 | Parameter | Type | Description |
@@ -1052,7 +1052,7 @@ public function unwrap( $wrapped )
 Wraps raw key material under the derived site key.
 
 ```php
-public function wrap( $key_material )
+public function wrap( string $key_material )
 ```
 
 | Parameter | Type | Description |
@@ -1130,7 +1130,7 @@ need to describe the active keyring without duplicating the logic that resolves
 it.
 
 ```php
-public function get_keyring()
+public function get_keyring(): WP_Secrets_Keyring
 ```
 
 **Returns:** `WP_Secrets_Keyring`
@@ -1142,7 +1142,7 @@ public function get_keyring()
 Derives a scope's master key from the root key.
 
 ```php
-public function get_master_key( $scope, $site_id = null )
+public function get_master_key( string $scope, ?int $site_id = null )
 ```
 
 | Parameter | Type | Description |
@@ -1212,7 +1212,7 @@ shipping.
 A human-readable description of the key source, for Site Health.
 
 ```php
-public function get_key_source()
+public function get_key_source(): string
 ```
 
 **Returns:** `string`
@@ -1224,7 +1224,7 @@ public function get_key_source()
 Unwraps (decrypts) previously wrapped key material.
 
 ```php
-public function unwrap( $wrapped )
+public function unwrap( string $wrapped )
 ```
 
 | Parameter | Type | Description |
@@ -1245,7 +1245,7 @@ re-wrapped value with update_site_option(), which reports an unchanged value
 as a failure, and WP_Secrets_Keyring_Conformance checks this.
 
 ```php
-public function wrap( $key_material )
+public function wrap( string $key_material )
 ```
 
 | Parameter | Type | Description |
@@ -1308,7 +1308,7 @@ public function __construct( WP_Secrets_Store $store, WP_Secrets_Key_Manager $ke
 Shared implementation behind wp_delete_secret() and wp_delete_network_secret().
 
 ```php
-public function delete( $name, $network = false )
+public function delete( string $name, bool $network = false )
 ```
 
 | Parameter | Type | Description |
@@ -1325,7 +1325,7 @@ public function delete( $name, $network = false )
 Shared implementation behind wp_get_secret() and wp_get_network_secret().
 
 ```php
-public function get( $name, $version, $network = false )
+public function get( string $name, string $version, bool $network = false )
 ```
 
 | Parameter | Type | Description |
@@ -1347,7 +1347,7 @@ is only half the answer, and which key source is in use is the half an
 operator cannot otherwise see.
 
 ```php
-public function get_label()
+public function get_label(): string
 ```
 
 **Returns:** `string`
@@ -1359,7 +1359,7 @@ public function get_label()
 Protection happens inside WordPress for this provider.
 
 ```php
-public function get_protection_boundary()
+public function get_protection_boundary(): string
 ```
 
 **Returns:** `string`
@@ -1375,7 +1375,7 @@ separate capability flag to consult, and the shipped store accepts writes
 unconditionally.
 
 ```php
-public function is_writable()
+public function is_writable(): bool
 ```
 
 **Returns:** `bool`
@@ -1400,7 +1400,7 @@ is never used to gate anything; nothing in this codebase performs a security
 decision based on a fingerprint returned from this function.
 
 ```php
-public function list_secrets( $name_prefix = '', $network = false )
+public function list_secrets( string $name_prefix = '', bool $network = false )
 ```
 
 | Parameter | Type | Description |
@@ -1423,7 +1423,7 @@ explicit operator action" but names no function; this is this implementation's
 name for it, pending confirmation in the comments thread.
 
 ```php
-public function retire_previous( $name, $network = false )
+public function retire_previous( string $name, bool $network = false )
 ```
 
 | Parameter | Type | Description |
@@ -1443,7 +1443,7 @@ Backs wp_set_secret(), wp_set_network_secret(), and wp_import_option_as_secret()
 which select their behavior through the last two parameters.
 
 ```php
-public function set( $name, $value, $network = false, $needs_rotation = false, $action = null )
+public function set( string $name, $value, bool $network = false, bool $needs_rotation = false, ?string $action = null )
 ```
 
 | Parameter | Type | Description |
@@ -1491,7 +1491,7 @@ same table; on a real network, network-scope rows live in wp_sitemeta instead.
 Deletes a secret's record.
 
 ```php
-public function delete( $name, $network = false )
+public function delete( string $name, bool $network = false )
 ```
 
 | Parameter | Type | Description |
@@ -1508,7 +1508,7 @@ public function delete( $name, $network = false )
 Reads a secret's stored record.
 
 ```php
-public function get( $name, $network = false )
+public function get( string $name, bool $network = false )
 ```
 
 | Parameter | Type | Description |
@@ -1525,7 +1525,7 @@ public function get( $name, $network = false )
 Lists the names of every secret in this store, for this scope.
 
 ```php
-public function list_names( $network = false )
+public function list_names( bool $network = false )
 ```
 
 | Parameter | Type | Description |
@@ -1541,7 +1541,7 @@ public function list_names( $network = false )
 Writes a secret's record.
 
 ```php
-public function set( $name, $record, $network = false )
+public function set( string $name, array $record, bool $network = false )
 ```
 
 | Parameter | Type | Description |
@@ -1623,7 +1623,7 @@ deleted, for the reason given on set(). A provider that can tell nothing was
 there to delete fires nothing.
 
 ```php
-public function delete( $name, $network = false )
+public function delete( string $name, bool $network = false )
 ```
 
 | Parameter | Type | Description |
@@ -1645,7 +1645,7 @@ view, and keeping them distinct would require a provider to enumerate names
 it has never heard of.
 
 ```php
-public function get( $name, $version, $network = false )
+public function get( string $name, string $version, bool $network = false )
 ```
 
 | Parameter | Type | Description |
@@ -1667,7 +1667,7 @@ Describes the protection, not the vendor's marketing: "AWS KMS
 Never key material, never a credential, never a value.
 
 ```php
-public function get_label()
+public function get_label(): string
 ```
 
 **Returns:** `string`
@@ -1685,7 +1685,7 @@ they currently have no way to answer, and the one hosts asked to be able to
 answer honestly.
 
 ```php
-public function get_protection_boundary()
+public function get_protection_boundary(): string
 ```
 
 **Returns:** `string`
@@ -1702,7 +1702,7 @@ disable its save control before an operator types a credential into a field
 that will only reject it.
 
 ```php
-public function is_writable()
+public function is_writable(): bool
 ```
 
 **Returns:** `bool`
@@ -1714,7 +1714,7 @@ public function is_writable()
 Lists secrets by name and metadata. Never values.
 
 ```php
-public function list_secrets( $name_prefix = '', $network = false )
+public function list_secrets( string $name_prefix = '', bool $network = false )
 ```
 
 | Parameter | Type | Description |
@@ -1738,7 +1738,7 @@ has been cleared, for the reason given on set(). Nothing fires when there was
 no previous version to clear.
 
 ```php
-public function retire_previous( $name, $network = false )
+public function retire_previous( string $name, bool $network = false )
 ```
 
 | Parameter | Type | Description |
@@ -1768,7 +1768,7 @@ the situation it matters most, so WP_Secrets_Provider_Conformance checks it.
 A write that fails fires nothing.
 
 ```php
-public function set( $name, $value, $network = false, $needs_rotation = false, $action = null )
+public function set( string $name, $value, bool $network = false, bool $needs_rotation = false, ?string $action = null )
 ```
 
 | Parameter | Type | Description |
@@ -1810,7 +1810,7 @@ WP_Secrets_Provider::is_writable().
 Deletes a secret's record.
 
 ```php
-public function delete( $name, $network = false )
+public function delete( string $name, bool $network = false )
 ```
 
 | Parameter | Type | Description |
@@ -1827,7 +1827,7 @@ public function delete( $name, $network = false )
 Reads a secret's stored record.
 
 ```php
-public function get( $name, $network = false )
+public function get( string $name, bool $network = false )
 ```
 
 | Parameter | Type | Description |
@@ -1844,7 +1844,7 @@ public function get( $name, $network = false )
 Lists the names of every secret in this store, for this scope. Never a value.
 
 ```php
-public function list_names( $network = false )
+public function list_names( bool $network = false )
 ```
 
 | Parameter | Type | Description |
@@ -1860,7 +1860,7 @@ public function list_names( $network = false )
 Writes a secret's record.
 
 ```php
-public function set( $name, $record, $network = false )
+public function set( string $name, array $record, bool $network = false )
 ```
 
 | Parameter | Type | Description |

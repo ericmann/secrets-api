@@ -91,7 +91,7 @@ final class AWS_Secrets_Manager_Provider implements WP_Secrets_Provider {
 	 *
 	 * @return WP_Secret|null|WP_Error
 	 */
-	public function get( $name, $version, $network = false ) {
+	public function get( string $name, string $version, bool $network = false ) {
 		$stage = isset( self::STAGES[ $version ] ) ? self::STAGES[ $version ] : 'AWSCURRENT';
 		$key   = $this->aws_name( $name, $network ) . '@' . $stage;
 
@@ -135,7 +135,7 @@ final class AWS_Secrets_Manager_Provider implements WP_Secrets_Provider {
 	 *
 	 * @return true|WP_Error
 	 */
-	public function set( $name, $value, $network = false, $needs_rotation = false, $action = null ) {
+	public function set( string $name, $value, bool $network = false, bool $needs_rotation = false, ?string $action = null ) {
 		$aws_name = $this->aws_name( $name, $network );
 
 		// PutSecretValue rotates AWSCURRENT -> AWSPREVIOUS for us, which is the
@@ -182,7 +182,7 @@ final class AWS_Secrets_Manager_Provider implements WP_Secrets_Provider {
 			time(),
 			'',
 			'',
-			(bool) $network
+			$network
 		);
 
 		return true;
@@ -194,7 +194,7 @@ final class AWS_Secrets_Manager_Provider implements WP_Secrets_Provider {
 	 *
 	 * @return true|WP_Error
 	 */
-	public function delete( $name, $network = false ) {
+	public function delete( string $name, bool $network = false ) {
 		$result = $this->call(
 			'DeleteSecret',
 			array(
@@ -215,7 +215,7 @@ final class AWS_Secrets_Manager_Provider implements WP_Secrets_Provider {
 		$this->memo = array();
 
 		/** This action is documented in WP_Secrets_Libsodium_Provider::set(). */
-		do_action( 'wp_secret_changed', $name, 'deleted', get_current_user_id(), time(), '', '', (bool) $network );
+		do_action( 'wp_secret_changed', $name, 'deleted', get_current_user_id(), time(), '', '', $network );
 
 		return true;
 	}
@@ -231,7 +231,7 @@ final class AWS_Secrets_Manager_Provider implements WP_Secrets_Provider {
 	 *
 	 * @return true
 	 */
-	public function retire_previous( $name, $network = false ) {
+	public function retire_previous( string $name, bool $network = false ) {
 		return true;
 	}
 
@@ -241,7 +241,7 @@ final class AWS_Secrets_Manager_Provider implements WP_Secrets_Provider {
 	 *
 	 * @return array|WP_Error
 	 */
-	public function list_secrets( $name_prefix = '', $network = false ) {
+	public function list_secrets( string $name_prefix = '', bool $network = false ) {
 		$response = $this->call( 'ListSecrets', array( 'MaxResults' => 100 ) );
 
 		if ( is_wp_error( $response ) ) {
@@ -305,21 +305,21 @@ final class AWS_Secrets_Manager_Provider implements WP_Secrets_Provider {
 	/**
 	 * @return string
 	 */
-	public function get_label() {
+	public function get_label(): string {
 		return sprintf( 'AWS Secrets Manager (%s)', $this->region );
 	}
 
 	/**
 	 * @return string
 	 */
-	public function get_protection_boundary() {
+	public function get_protection_boundary(): string {
 		return self::BOUNDARY_PROVIDER;
 	}
 
 	/**
 	 * @return bool
 	 */
-	public function is_writable() {
+	public function is_writable(): bool {
 		return true;
 	}
 

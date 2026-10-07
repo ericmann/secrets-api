@@ -107,7 +107,7 @@ final class AWS_KMS_Keyring implements WP_Secrets_Keyring {
 	 *
 	 * @return string|WP_Error
 	 */
-	public function wrap( $key_material ) {
+	public function wrap( string $key_material ) {
 		if ( ! is_string( $key_material ) || '' === $key_material ) {
 			return new WP_Error( WP_SECRETS_ERROR_INVALID_VALUE, 'AWS_KMS_Keyring: key material must be a non-empty string.' );
 		}
@@ -139,7 +139,7 @@ final class AWS_KMS_Keyring implements WP_Secrets_Keyring {
 	 *
 	 * @return string|WP_Error
 	 */
-	public function unwrap( $wrapped ) {
+	public function unwrap( string $wrapped ) {
 		if ( ! is_string( $wrapped ) || '' === $wrapped || 0 !== strpos( $wrapped, self::PREFIX ) ) {
 			// The most likely adoption failure -- a root key wrapped by the
 			// config keyring -- turned into a specific, actionable error
@@ -180,7 +180,7 @@ final class AWS_KMS_Keyring implements WP_Secrets_Keyring {
 	/**
 	 * @return string
 	 */
-	public function get_key_source() {
+	public function get_key_source(): string {
 		return sprintf( 'AWS KMS key %s in %s', $this->key_id, $this->region );
 	}
 

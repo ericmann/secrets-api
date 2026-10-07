@@ -81,7 +81,7 @@ final class Secrets_API_Prototype_Fallback_Store implements WP_Secrets_Store {
 	 *
 	 * @return array<mixed>|null|WP_Error
 	 */
-	public function get( $name, $network = false ) {
+	public function get( string $name, bool $network = false ) {
 		$record = $this->inner->get( $name, $network );
 
 		// Only an outright miss is a candidate. A WP_Error means the store is
@@ -120,7 +120,7 @@ final class Secrets_API_Prototype_Fallback_Store implements WP_Secrets_Store {
 	 *
 	 * @return array<mixed>|null|WP_Error
 	 */
-	private function upgrade_from_prototype( $name ) {
+	private function upgrade_from_prototype( string $name ) {
 		$prototype_key = $this->prototype_key_for( $name );
 
 		if ( null === $prototype_key ) {
@@ -170,7 +170,7 @@ final class Secrets_API_Prototype_Fallback_Store implements WP_Secrets_Store {
 	 *
 	 * @return bool
 	 */
-	public function has_current_record( $name ) {
+	public function has_current_record( string $name ) {
 		return is_array( $this->inner->get( $name, false ) );
 	}
 
@@ -198,8 +198,8 @@ final class Secrets_API_Prototype_Fallback_Store implements WP_Secrets_Store {
 	 * @return string|null The prototype key, or null if this name can never
 	 *                      correspond to one.
 	 */
-	private function prototype_key_for( $name ) {
-		if ( ! is_string( $name ) || '' === $name ) {
+	private function prototype_key_for( string $name ): ?string {
+		if ( '' === $name ) {
 			return null;
 		}
 
@@ -227,7 +227,7 @@ final class Secrets_API_Prototype_Fallback_Store implements WP_Secrets_Store {
 	 *
 	 * @return bool|WP_Error
 	 */
-	public function set( $name, $record, $network = false ) {
+	public function set( string $name, array $record, bool $network = false ) {
 		return $this->inner->set( $name, $record, $network );
 	}
 
@@ -242,7 +242,7 @@ final class Secrets_API_Prototype_Fallback_Store implements WP_Secrets_Store {
 	 *
 	 * @return bool|WP_Error
 	 */
-	public function delete( $name, $network = false ) {
+	public function delete( string $name, bool $network = false ) {
 		return $this->inner->delete( $name, $network );
 	}
 
@@ -256,7 +256,7 @@ final class Secrets_API_Prototype_Fallback_Store implements WP_Secrets_Store {
 	 *
 	 * @return string[]|WP_Error
 	 */
-	public function list_names( $network = false ) {
+	public function list_names( bool $network = false ) {
 		return $this->inner->list_names( $network );
 	}
 }

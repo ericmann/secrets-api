@@ -98,7 +98,7 @@ final class Vault_KV2_Provider implements WP_Secrets_Provider {
 	 *
 	 * @return WP_Secret|null|WP_Error
 	 */
-	public function get( $name, $version, $network = false ) {
+	public function get( string $name, string $version, bool $network = false ) {
 		$vault_path = $this->vault_path( $name, $network );
 		$memo_key   = $vault_path . '#' . $version;
 
@@ -159,7 +159,7 @@ final class Vault_KV2_Provider implements WP_Secrets_Provider {
 	 *
 	 * @return true|WP_Error
 	 */
-	public function set( $name, $value, $network = false, $needs_rotation = false, $action = null ) {
+	public function set( string $name, $value, bool $network = false, bool $needs_rotation = false, ?string $action = null ) {
 		$vault_path = $this->vault_path( $name, $network );
 		$meta       = $this->read_metadata( $name, $network );
 
@@ -202,14 +202,14 @@ final class Vault_KV2_Provider implements WP_Secrets_Provider {
 			time(),
 			'',
 			'',
-			(bool) $network
+			$network
 		);
 
 		// The value and the rotation flag are two requests, not a transaction
 		// (see the file docblock): the action above already fired for the
 		// value write, and a flag failure is reported or logged separately
 		// rather than undoing what already landed.
-		$wanted = (bool) $needs_rotation;
+		$wanted = $needs_rotation;
 		$had    = $this->flag_is_set( $meta );
 
 		if ( $wanted !== $had ) {
@@ -246,7 +246,7 @@ final class Vault_KV2_Provider implements WP_Secrets_Provider {
 	 *
 	 * @return true|WP_Error
 	 */
-	public function delete( $name, $network = false ) {
+	public function delete( string $name, bool $network = false ) {
 		$vault_path = $this->vault_path( $name, $network );
 		$result     = $this->request( 'DELETE', $this->url( 'metadata', $vault_path ) );
 
@@ -261,7 +261,7 @@ final class Vault_KV2_Provider implements WP_Secrets_Provider {
 		 *
 		 * Providers own firing this -- see WP_Secrets_Provider::set().
 		 */
-		do_action( 'wp_secret_changed', $name, 'deleted', get_current_user_id(), time(), '', '', (bool) $network );
+		do_action( 'wp_secret_changed', $name, 'deleted', get_current_user_id(), time(), '', '', $network );
 
 		return true;
 	}
@@ -275,7 +275,7 @@ final class Vault_KV2_Provider implements WP_Secrets_Provider {
 	 *
 	 * @return true|WP_Error
 	 */
-	public function retire_previous( $name, $network = false ) {
+	public function retire_previous( string $name, bool $network = false ) {
 		$vault_path = $this->vault_path( $name, $network );
 		$meta       = $this->read_metadata( $name, $network );
 
@@ -301,7 +301,7 @@ final class Vault_KV2_Provider implements WP_Secrets_Provider {
 
 		$this->memo = array();
 
-		do_action( 'wp_secret_changed', $name, 'retired', get_current_user_id(), time(), '', '', (bool) $network );
+		do_action( 'wp_secret_changed', $name, 'retired', get_current_user_id(), time(), '', '', $network );
 
 		return true;
 	}
@@ -314,7 +314,7 @@ final class Vault_KV2_Provider implements WP_Secrets_Provider {
 	 *
 	 * @return array|WP_Error
 	 */
-	public function list_secrets( $name_prefix = '', $network = false ) {
+	public function list_secrets( string $name_prefix = '', bool $network = false ) {
 		$base = $this->scope_prefix( $network );
 
 		if ( '' !== $name_prefix ) {
@@ -393,14 +393,14 @@ final class Vault_KV2_Provider implements WP_Secrets_Provider {
 	/**
 	 * @return string
 	 */
-	public function get_label() {
+	public function get_label(): string {
 		return sprintf( 'HashiCorp Vault (%s, mount %s)', $this->addr, $this->mount );
 	}
 
 	/**
 	 * @return string
 	 */
-	public function get_protection_boundary() {
+	public function get_protection_boundary(): string {
 		return self::BOUNDARY_PROVIDER;
 	}
 
@@ -410,7 +410,7 @@ final class Vault_KV2_Provider implements WP_Secrets_Provider {
 	 *
 	 * @return bool
 	 */
-	public function is_writable() {
+	public function is_writable(): bool {
 		return true;
 	}
 
