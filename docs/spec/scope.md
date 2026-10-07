@@ -15,7 +15,7 @@ scope", and "Timeline" in the [proposal][proposal].
 
 ## As built
 
-**The plugin.** `secrets-api.php` declares version `0.2.2`, `Requires at least: 6.6`, and
+**The plugin.** `secrets-api.php` declares version `0.2.3`, `Requires at least: 6.6`, and
 `Requires PHP: 7.4`.
 
 **Core-bound versus plugin-only.** Everything under `src/` is written to be copied into
@@ -24,7 +24,7 @@ scope", and "Timeline" in the [proposal][proposal].
 `src/wp-admin/includes/secrets-site-health.php` holds Site Health. `plugin/` and `cli/` are never
 copied. `tests/phpunit/test-architecture.php` enforces the boundary: no reference to `WP_CLI`,
 `plugin/`, or `cli/` under `src/`; no self-guarding `function_exists()` or `class_exists()`; every
-file carries `@since 7.2.0`; only the `default` text domain; no subdirectory other than the
+file carries `@since 7.2.0`; no text domain passed to a translation function; no subdirectory other than the
 three core paths; no prototype-compatibility symbol.
 
 **The core patch.** Trac ticket [#66187](https://core.trac.wordpress.org/ticket/66187), under
@@ -51,7 +51,7 @@ the named surface, all in `src/wp-includes/secrets.php` unless noted:
 - Five network-scope functions; see [network.md](network.md).
 - `wp_secrets_validate_name()`, `wp_secrets_memzero()`, `wp_using_secrets_dropin()`,
   `wp_secrets_provider_is_writable()`, `wp_secrets_provider_label()`.
-- The `wp_secret_changed` action, fired from the shipped provider.
+- The `wp_secret_changed` action, fired by the provider: the shipped one, and any that replaces it.
 - `WP_Secret::get_name()` and `WP_Secret::withheld()`.
 - `WP_Secrets_Provider`, `WP_Secrets_Store`, `WP_Secrets_Keyring`, and their shipped and
   fail-closed implementations; see [providers-and-keyrings.md](providers-and-keyrings.md).

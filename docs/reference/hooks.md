@@ -31,6 +31,7 @@ retrieval path. Fingerprints are readable; values are never passed.
 | `$timestamp` | `int` | Unix timestamp of the change. |
 | `$old_fingerprint` | `string` | The previous fingerprint, or '' if none. |
 | `$new_fingerprint` | `string` | The new fingerprint, or '' if the secret was deleted. |
+| `$network` | `bool` | Whether the secret is network-scope. A site-scope secret belongs to the current site. |
 
 **Since:** 7.2.0
 

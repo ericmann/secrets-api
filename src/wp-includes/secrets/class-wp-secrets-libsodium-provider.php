@@ -79,7 +79,7 @@ final class WP_Secrets_Libsodium_Provider implements WP_Secrets_Provider {
 
 		return sprintf(
 			/* translators: %s: Human-readable description of the key source. */
-			__( 'WordPress (libsodium), key source: %s', 'default' ),
+			__( 'WordPress (libsodium), key source: %s' ),
 			$keyring->get_key_source()
 		);
 	}
@@ -123,7 +123,7 @@ final class WP_Secrets_Libsodium_Provider implements WP_Secrets_Provider {
 		if ( ! is_array( $record ) || ! array_key_exists( 'v', $record ) || ! array_key_exists( 'current', $record ) ) {
 			return new WP_Error(
 				WP_SECRETS_ERROR_RECORD_MALFORMED,
-				__( 'The stored secret record is missing required fields.', 'default' )
+				__( 'The stored secret record is missing required fields.' )
 			);
 		}
 
@@ -132,7 +132,7 @@ final class WP_Secrets_Libsodium_Provider implements WP_Secrets_Provider {
 				WP_SECRETS_ERROR_RECORD_UNSUPPORTED_VERSION,
 				sprintf(
 					/* translators: %s: Unrecognized record format version. */
-					__( 'Secret record format version "%s" is not supported.', 'default' ),
+					__( 'Secret record format version "%s" is not supported.' ),
 					is_scalar( $record['v'] ) ? $record['v'] : gettype( $record['v'] )
 				)
 			);
@@ -141,7 +141,7 @@ final class WP_Secrets_Libsodium_Provider implements WP_Secrets_Provider {
 		if ( ! is_array( $record['current'] ) ) {
 			return new WP_Error(
 				WP_SECRETS_ERROR_RECORD_MALFORMED,
-				__( 'The stored secret record is missing required fields.', 'default' )
+				__( 'The stored secret record is missing required fields.' )
 			);
 		}
 
@@ -296,7 +296,7 @@ final class WP_Secrets_Libsodium_Provider implements WP_Secrets_Provider {
 		if ( ! is_string( $value ) ) {
 			return new WP_Error(
 				WP_SECRETS_ERROR_INVALID_VALUE,
-				__( 'Secret values must be strings.', 'default' )
+				__( 'Secret values must be strings.' )
 			);
 		}
 
@@ -387,6 +387,8 @@ final class WP_Secrets_Libsodium_Provider implements WP_Secrets_Provider {
 		 * @param int    $timestamp       Unix timestamp of the change.
 		 * @param string $old_fingerprint The previous fingerprint, or '' if none.
 		 * @param string $new_fingerprint The new fingerprint, or '' if the secret was deleted.
+		 * @param bool   $network         Whether the secret is network-scope. A site-scope
+		 *                                secret belongs to the current site.
 		 */
 		do_action(
 			'wp_secret_changed',
@@ -395,7 +397,8 @@ final class WP_Secrets_Libsodium_Provider implements WP_Secrets_Provider {
 			get_current_user_id(),
 			$new_slot['created'],
 			$old_fingerprint,
-			$new_slot['fingerprint']
+			$new_slot['fingerprint'],
+			(bool) $network
 		);
 
 		return true;
@@ -525,7 +528,8 @@ final class WP_Secrets_Libsodium_Provider implements WP_Secrets_Provider {
 				get_current_user_id(),
 				time(),
 				$this->stored_fingerprint( $existing ),
-				''
+				'',
+				(bool) $network
 			);
 		}
 
@@ -591,7 +595,8 @@ final class WP_Secrets_Libsodium_Provider implements WP_Secrets_Provider {
 			get_current_user_id(),
 			time(),
 			$retired_fingerprint,
-			''
+			'',
+			(bool) $network
 		);
 
 		return true;

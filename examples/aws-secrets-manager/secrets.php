@@ -116,7 +116,7 @@ final class AWS_Secrets_Manager_Provider implements WP_Secrets_Provider {
 			if ( ! isset( $response['SecretString'] ) ) {
 				return new WP_Error(
 					WP_SECRETS_ERROR_RECORD_MALFORMED,
-					__( 'Secrets Manager returned a binary secret; this provider stores strings.', 'default' )
+					__( 'Secrets Manager returned a binary secret; this provider stores strings.', 'secrets-api' )
 				);
 			}
 
@@ -181,7 +181,8 @@ final class AWS_Secrets_Manager_Provider implements WP_Secrets_Provider {
 			get_current_user_id(),
 			time(),
 			'',
-			''
+			'',
+			(bool) $network
 		);
 
 		return true;
@@ -207,9 +208,16 @@ final class AWS_Secrets_Manager_Provider implements WP_Secrets_Provider {
 			return true;
 		}
 
+		if ( is_wp_error( $result ) ) {
+			return $result;
+		}
+
 		$this->memo = array();
 
-		return is_wp_error( $result ) ? $result : true;
+		/** This action is documented in WP_Secrets_Libsodium_Provider::set(). */
+		do_action( 'wp_secret_changed', $name, 'deleted', get_current_user_id(), time(), '', '', (bool) $network );
+
+		return true;
 	}
 
 	/**

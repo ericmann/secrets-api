@@ -96,8 +96,10 @@ final class Example_Platform_Provider implements WP_Secrets_Provider {
 	 * Refused: this platform's credentials are managed in its own tooling.
 	 *
 	 * A writable provider stores the value, then fires the `wp_secret_changed`
-	 * action itself, with the previous and new fingerprints and never the value.
-	 * The API does not fire it on the provider's behalf.
+	 * action itself, with the previous and new fingerprints, `$network` as the
+	 * last argument, and never the value. The same goes for delete() and
+	 * retire_previous(). The API does not fire it on the provider's behalf, and
+	 * WP_Secrets_Provider_Conformance checks that a writable provider does.
 	 *
 	 * @param string      $name           The secret's namespaced name.
 	 * @param string      $value          The plaintext value.

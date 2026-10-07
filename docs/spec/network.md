@@ -22,6 +22,11 @@ does not name the network-scope functions.
 a `$network` boolean passed to the provider. A site-scope call never reads a network record and
 the reverse; the scope is part of the storage prefix and of the AAD.
 
+**The change hook.** `wp_secret_changed` passes `$network` as its seventh and last argument, so a
+listener can tell a network secret from a site secret of the same name. A site-scope change
+belongs to the current site, which the listener reads from `get_current_blog_id()`. See
+[ADR 0012](../decisions/0012-the-change-hook-stays-with-the-provider.md).
+
 **Key derivation.** `WP_Secrets_Key_Manager::get_master_key( $scope, $site_id )` in
 `src/wp-includes/secrets/class-wp-secrets-key-manager.php`:
 

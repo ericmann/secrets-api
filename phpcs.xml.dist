@@ -57,15 +57,25 @@
 	<rule ref="WordPress.WP.I18n">
 		<properties>
 			<!--
-				src/ uses the "default" domain because it is core-bound; plugin-only code
-				uses the plugin's own domain. An architectural test at commit 9 enforces
-				that src/ never uses anything but "default".
+				src/ is core-bound, so its calls pass no text domain at all, as core's own
+				do. "default" is listed so that omitting the argument is allowed.
+				Plugin-only code uses the plugin's own domain. An architectural test
+				enforces that src/ never passes a domain.
 			-->
 			<property name="text_domain" type="array">
 				<element value="default"/>
 				<element value="secrets-api"/>
 			</property>
 		</properties>
+	</rule>
+
+	<!--
+		With text domains configured, the sniff warns about any call that omits one and
+		suggests naming "default". In src/ omitting it is the point: core does not pass
+		a domain for its own strings, and review on the core patch asked for the same.
+	-->
+	<rule ref="WordPress.WP.I18n.MissingArgDomainDefault">
+		<exclude-pattern>/src/*</exclude-pattern>
 	</rule>
 
 	<rule ref="WordPress.NamingConventions.PrefixAllGlobals">

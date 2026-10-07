@@ -159,7 +159,8 @@ secret; `wp secret get` reports the real fingerprint for one secret at a time.
   question rather than a promise: a provider reporting `BOUNDARY_PROVIDER` still depends on local
   key material for one feature.
 - **`wp_secret_changed` carries blank fingerprints** for the same reason listing does — this
-  provider never fingerprints without a value already in hand.
+  provider never fingerprints without a value already in hand. It does pass the scope, as every
+  provider must.
 
 ## OpenBao
 
