@@ -51,7 +51,7 @@ the named surface, all in `src/wp-includes/secrets.php` unless noted:
 - Five network-scope functions; see [network.md](network.md).
 - `wp_secrets_validate_name()`, `wp_secrets_memzero()`, `wp_using_secrets_dropin()`,
   `wp_secrets_provider_is_writable()`, `wp_secrets_provider_label()`.
-- The `wp_secret_changed` action, fired from the shipped provider.
+- The `wp_secret_changed` action, fired by the provider: the shipped one, and any that replaces it.
 - `WP_Secret::get_name()` and `WP_Secret::withheld()`.
 - `WP_Secrets_Provider`, `WP_Secrets_Store`, `WP_Secrets_Keyring`, and their shipped and
   fail-closed implementations; see [providers-and-keyrings.md](providers-and-keyrings.md).

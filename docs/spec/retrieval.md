@@ -52,7 +52,9 @@ the exit-code contract (2, not 1).
 path. `test_no_apply_filters_anywhere_in_src()` in `tests/phpunit/test-architecture.php` reads
 every source file and fails the build if one appears. The only hook in core-bound code is the
 `wp_secret_changed` action, fired from the provider's `set()`, `delete()`, and
-`retire_previous()`, carrying fingerprints and never values.
+`retire_previous()`, carrying fingerprints and the scope and never values. Every provider has to
+fire it, not only the shipped one, and `WP_Secrets_Provider_Conformance` checks that
+([ADR 0012](../decisions/0012-the-change-hook-stays-with-the-provider.md)).
 
 **`WP_Secret`.** In `src/wp-includes/secrets/class-wp-secret.php`, the plaintext is never a declared
 property. It lives in a private static array keyed by `spl_object_id()`, so `var_export()` and

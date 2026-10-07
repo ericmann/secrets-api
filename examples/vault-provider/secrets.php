@@ -201,7 +201,8 @@ final class Vault_KV2_Provider implements WP_Secrets_Provider {
 			get_current_user_id(),
 			time(),
 			'',
-			''
+			'',
+			(bool) $network
 		);
 
 		// The value and the rotation flag are two requests, not a transaction
@@ -260,7 +261,7 @@ final class Vault_KV2_Provider implements WP_Secrets_Provider {
 		 *
 		 * Providers own firing this -- see WP_Secrets_Provider::set().
 		 */
-		do_action( 'wp_secret_changed', $name, 'deleted', get_current_user_id(), time(), '', '' );
+		do_action( 'wp_secret_changed', $name, 'deleted', get_current_user_id(), time(), '', '', (bool) $network );
 
 		return true;
 	}
@@ -300,7 +301,7 @@ final class Vault_KV2_Provider implements WP_Secrets_Provider {
 
 		$this->memo = array();
 
-		do_action( 'wp_secret_changed', $name, 'retired', get_current_user_id(), time(), '', '' );
+		do_action( 'wp_secret_changed', $name, 'retired', get_current_user_id(), time(), '', '', (bool) $network );
 
 		return true;
 	}
