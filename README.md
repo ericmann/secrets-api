@@ -47,7 +47,7 @@ target list.
 |---|---|
 | `make lint` / `make lint-fix` | phpcs / phpcbf |
 | `make compat` | PHPCompatibilityWP at `testVersion 7.4-` |
-| `make analyse` | phpstan |
+| `make analyse` | phpstan at level 10 |
 | `make test` / `make test-ms` | phpunit, single site / multisite |
 | `make test-examples` | phpunit against `examples/*/tests`, needs Moto running (see `examples/README.md`); not part of `make ci` |
 | `make coverage` | phpunit with an HTML coverage report (see `docs/journal/test-coverage-gaps.md` re: wp-env) |
