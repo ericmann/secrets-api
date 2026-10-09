@@ -2,7 +2,7 @@
 /**
  * WP-CLI: wp secret
  *
- * Never copied to core -- registered only when defined( 'WP_CLI' ) && WP_CLI.
+ * Never copied to core – registered only when defined( 'WP_CLI' ) && WP_CLI.
  *
  * @package SecretsAPI
  */
@@ -28,7 +28,7 @@ class WP_CLI_Secret_Command {
 	 * Refuses network-scope commands outright on a single-site install.
 	 *
 	 * WP-CLI instantiates a command class lazily, at the point its subcommand is
-	 * actually invoked (when registered by class name, as this plugin does) --
+	 * actually invoked (when registered by class name, as this plugin does) –
 	 * so this runs once per invocation, not once at registration, and never fires
 	 * for `wp secret` at all since only the network subclass sets $network true.
 	 */
@@ -48,7 +48,7 @@ class WP_CLI_Secret_Command {
 	 *
 	 * [<value>]
 	 * : The plaintext value. Passing this as an argument leaks it into shell
-	 * history and process listings on shared hosts -- use --stdin instead.
+	 * history and process listings on shared hosts – use --stdin instead.
 	 *
 	 * [--stdin]
 	 * : Read the value from STDIN. The documented way to pass a value.
@@ -65,7 +65,7 @@ class WP_CLI_Secret_Command {
 	 * @param string[]                   $args       Positional arguments.
 	 * @param array<string, string|bool> $assoc_args Associative arguments.
 	 */
-	public function set( $args, $assoc_args ): void {
+	public function set( array $args, array $assoc_args ): void {
 		$name = $args[0];
 
 		if ( isset( $assoc_args['stdin'] ) ) {
@@ -153,7 +153,7 @@ class WP_CLI_Secret_Command {
 	 * @param string[]                   $args       Positional arguments.
 	 * @param array<string, string|bool> $assoc_args Associative arguments.
 	 */
-	public function get( $args, $assoc_args ): void {
+	public function get( array $args, array $assoc_args ): void {
 		$name    = $args[0];
 		$version = ( isset( $assoc_args['slot'] ) && WP_Secret_Version::PREVIOUS === $assoc_args['slot'] )
 			? WP_Secret_Version::PREVIOUS
@@ -172,7 +172,7 @@ class WP_CLI_Secret_Command {
 
 		$plaintext = $secret->reveal();
 
-		// A provider that holds the credential but will not release it to PHP --
+		// A provider that holds the credential but will not release it to PHP –
 		// an HSM signing key, a brokered credential. The secret is real and its
 		// name and fingerprint below are still meaningful, so this reports the
 		// value as unavailable rather than halting: `wp secret get` is also how
@@ -217,7 +217,7 @@ class WP_CLI_Secret_Command {
 	 * @param string                     $fallback   Returned when the argument is absent.
 	 * @return string
 	 */
-	protected function string_arg( $assoc_args, $key, $fallback = '' ) {
+	protected function string_arg( array $assoc_args, string $key, string $fallback = '' ): string {
 		return isset( $assoc_args[ $key ] ) && is_string( $assoc_args[ $key ] ) ? $assoc_args[ $key ] : $fallback;
 	}
 
@@ -231,7 +231,7 @@ class WP_CLI_Secret_Command {
 	 *
 	 * @return string
 	 */
-	protected function mask( $value ) {
+	protected function mask( string $value ): string {
 		if ( strlen( $value ) < 12 ) {
 			return str_repeat( '*', 8 );
 		}
@@ -255,7 +255,7 @@ class WP_CLI_Secret_Command {
 	 * @param string[]                   $args       Positional arguments.
 	 * @param array<string, string|bool> $assoc_args Associative arguments.
 	 */
-	public function delete( $args, $assoc_args ): void {
+	public function delete( array $args, array $assoc_args ): void {
 		$name = $args[0];
 
 		WP_CLI::confirm( sprintf( 'Delete secret "%s"? This cannot be undone.', $name ), $assoc_args );
@@ -301,7 +301,7 @@ class WP_CLI_Secret_Command {
 	 * @param string[]                   $args       Positional arguments.
 	 * @param array<string, string|bool> $assoc_args Associative arguments.
 	 */
-	public function list( $args, $assoc_args ): void {
+	public function list( array $args, array $assoc_args ): void {
 		$namespace = $this->string_arg( $assoc_args, 'namespace' );
 
 		$entries = $this->network ? wp_list_network_secrets( $namespace ) : wp_list_secrets( $namespace );
@@ -357,7 +357,7 @@ class WP_CLI_Secret_Command {
 	 * @param string[]                   $args       Positional arguments.
 	 * @param array<string, string|bool> $assoc_args Associative arguments.
 	 */
-	public function retire( $args, $assoc_args ): void {
+	public function retire( array $args, array $assoc_args ): void {
 		$name = $args[0];
 
 		WP_CLI::confirm( sprintf( 'Retire the previous version of "%s"? This clears it permanently.', $name ), $assoc_args );
@@ -391,7 +391,7 @@ class WP_CLI_Secret_Command {
 	 *
 	 * @param string[] $args Positional arguments.
 	 */
-	public function import_option( $args ): void {
+	public function import_option( array $args ): void {
 		if ( $this->network ) {
 			WP_CLI::error( 'Importing an option as a network-scope secret is not supported.' );
 
@@ -456,7 +456,7 @@ class WP_CLI_Secret_Command {
 	 * @param string[]                   $args       Positional arguments.
 	 * @param array<string, string|bool> $assoc_args Associative arguments.
 	 */
-	public function migrate_legacy( $args, $assoc_args ): void {
+	public function migrate_legacy( array $args, array $assoc_args ): void {
 		if ( $this->network ) {
 			WP_CLI::error( 'The legacy format has no network-scope equivalent.' );
 
@@ -544,7 +544,7 @@ class WP_CLI_Secret_Command {
 	 * @param string[]                   $args       Positional arguments.
 	 * @param array<string, string|bool> $assoc_args Associative arguments.
 	 */
-	public function rotate( $args, $assoc_args ): void {
+	public function rotate( array $args, array $assoc_args ): void {
 		$from = $this->string_arg( $assoc_args, 'from', 'config-previous' );
 
 		if ( ! in_array( $from, array( 'config-previous', 'config' ), true ) ) {
@@ -608,7 +608,7 @@ class WP_CLI_Secret_Command {
 	/**
 	 * Emits a base64-encoded 32-byte key, suitable for WP_SECRETS_KEY.
 	 *
-	 * Writes to STDOUT only. Never touches wp-config.php -- adding the constant is
+	 * Writes to STDOUT only. Never touches wp-config.php – adding the constant is
 	 * the operator's own step.
 	 *
 	 * @subcommand generate-key
@@ -639,7 +639,7 @@ class WP_CLI_Secret_Command {
 	 * @param string[]                   $args       Positional arguments.
 	 * @param array<string, string|bool> $assoc_args Associative arguments.
 	 */
-	public function health( $args, $assoc_args ): void {
+	public function health( array $args, array $assoc_args ): void {
 		$results = array(
 			wp_secrets_site_health_test_key_source(),
 			wp_secrets_site_health_test_undecryptable(),
@@ -679,7 +679,7 @@ class WP_CLI_Secret_Command {
 	 * @param string[]                   $args       Positional arguments.
 	 * @param array<string, string|bool> $assoc_args Associative arguments.
 	 */
-	public function dropin( $args = array(), $assoc_args = array() ): void {
+	public function dropin( array $args = array(), array $assoc_args = array() ): void {
 		$key_manager = _wp_secrets_get_key_manager();
 
 		WP_CLI::log( sprintf( 'Drop-in active: %s', wp_using_secrets_dropin() ? 'yes' : 'no' ) );

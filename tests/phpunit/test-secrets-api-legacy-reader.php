@@ -32,7 +32,7 @@ class Tests_Secrets_ApiLegacyReader extends WP_UnitTestCase {
 	/**
 	 * The central compatibility fact: the prototype always hashes
 	 * WP_SECRETS_KEY's literal string, even when that string happens to also be
-	 * valid base64-32 -- unlike the new format, which would use it raw. Proven
+	 * valid base64-32 – unlike the new format, which would use it raw. Proven
 	 * directly here: the reader succeeds using the hashed interpretation, and
 	 * fails using the new format's raw-bytes interpretation of the identical
 	 * constant, against the identical fixture.
@@ -122,7 +122,7 @@ class Tests_Secrets_ApiLegacyReader extends WP_UnitTestCase {
 		$this->assertSame( 'value-two', $reader->get( 'other_key' ) );
 	}
 
-	// -- site key candidates ------------------------------------------------
+	// – site key candidates ------------------------------------------------
 
 	/**
 	 * The operator sequence that would otherwise strand a site: legacy records
@@ -195,7 +195,7 @@ class Tests_Secrets_ApiLegacyReader extends WP_UnitTestCase {
 		$this->assertSame( 'legacy_master_key_unwrap_failed', $result->get_error_code() );
 	}
 
-	// -- list_keys ----------------------------------------------------------
+	// – list_keys ----------------------------------------------------------
 
 	public function test_list_keys_returns_bare_key_names() {
 		$writer     = new Legacy_Fixture_Writer();

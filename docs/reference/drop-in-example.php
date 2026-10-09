@@ -16,7 +16,7 @@
  * - $GLOBALS['wp_secrets_store']    -- your backend holds the ciphertext records
  *                                      WordPress produces. Encryption stays
  *                                      WordPress's.
- * - $GLOBALS['wp_secrets_provider'] -- your platform is responsible for the
+ * - $GLOBALS['wp_secrets_provider'] – your platform is responsible for the
  *                                      credential itself: it holds it, protects it,
  *                                      and hands it back. This replaces the store
  *                                      and keyring entirely.
@@ -88,7 +88,7 @@ final class Example_Platform_Provider implements WP_Secrets_Provider {
 	 *
 	 * @return WP_Secret|null|WP_Error
 	 */
-	public function get( $name, $version, $network = false ) {
+	public function get( string $name, string $version, bool $network = false ) {
 		return null; // Replace with a call to your platform's credential API.
 	}
 
@@ -110,7 +110,7 @@ final class Example_Platform_Provider implements WP_Secrets_Provider {
 	 *
 	 * @return true|WP_Error
 	 */
-	public function set( $name, $value, $network = false, $needs_rotation = false, $action = null ) {
+	public function set( string $name, $value, bool $network = false, bool $needs_rotation = false, ?string $action = null ) {
 		return new WP_Error( WP_SECRETS_ERROR_PROVIDER_READ_ONLY, 'This platform manages credentials outside of WordPress.' );
 	}
 
@@ -122,7 +122,7 @@ final class Example_Platform_Provider implements WP_Secrets_Provider {
 	 *
 	 * @return true|WP_Error
 	 */
-	public function delete( $name, $network = false ) {
+	public function delete( string $name, bool $network = false ) {
 		return new WP_Error( WP_SECRETS_ERROR_PROVIDER_READ_ONLY, 'This platform manages credentials outside of WordPress.' );
 	}
 
@@ -134,7 +134,7 @@ final class Example_Platform_Provider implements WP_Secrets_Provider {
 	 *
 	 * @return true|WP_Error
 	 */
-	public function retire_previous( $name, $network = false ) {
+	public function retire_previous( string $name, bool $network = false ) {
 		return true; // A provider with version history removes the previous value here.
 	}
 
@@ -149,7 +149,7 @@ final class Example_Platform_Provider implements WP_Secrets_Provider {
 	 *
 	 * @return array|WP_Error
 	 */
-	public function list_secrets( $name_prefix = '', $network = false ) {
+	public function list_secrets( string $name_prefix = '', bool $network = false ) {
 		return array(); // Replace with a listing call; return WP_Error if the platform cannot answer.
 	}
 
@@ -158,7 +158,7 @@ final class Example_Platform_Provider implements WP_Secrets_Provider {
 	 *
 	 * @return string
 	 */
-	public function get_label() {
+	public function get_label(): string {
 		return 'Example platform (replace before use)';
 	}
 
@@ -167,7 +167,7 @@ final class Example_Platform_Provider implements WP_Secrets_Provider {
 	 *
 	 * @return string
 	 */
-	public function get_protection_boundary() {
+	public function get_protection_boundary(): string {
 		return self::BOUNDARY_PROVIDER;
 	}
 
@@ -177,7 +177,7 @@ final class Example_Platform_Provider implements WP_Secrets_Provider {
 	 *
 	 * @return bool
 	 */
-	public function is_writable() {
+	public function is_writable(): bool {
 		return false;
 	}
 }
@@ -205,7 +205,7 @@ final class Example_Platform_Store implements WP_Secrets_Store {
 	 *
 	 * @return array|null|WP_Error
 	 */
-	public function get( $name, $network = false ) {
+	public function get( string $name, bool $network = false ) {
 		/*
 		 * Replace with a real call to your platform's storage API. Whatever it
 		 * returns must be the record array WordPress wrote through set(); this
@@ -236,7 +236,7 @@ final class Example_Platform_Store implements WP_Secrets_Store {
 	 *
 	 * @return true|WP_Error
 	 */
-	public function set( $name, $record, $network = false ) {
+	public function set( string $name, array $record, bool $network = false ) {
 		return new WP_Error(
 			WP_SECRETS_ERROR_PROVIDER_READ_ONLY,
 			'This platform manages credentials outside of WordPress.'
@@ -251,7 +251,7 @@ final class Example_Platform_Store implements WP_Secrets_Store {
 	 *
 	 * @return true|WP_Error
 	 */
-	public function delete( $name, $network = false ) {
+	public function delete( string $name, bool $network = false ) {
 		return new WP_Error(
 			WP_SECRETS_ERROR_PROVIDER_READ_ONLY,
 			'This platform manages credentials outside of WordPress.'
@@ -265,7 +265,7 @@ final class Example_Platform_Store implements WP_Secrets_Store {
 	 *
 	 * @return array|WP_Error
 	 */
-	public function list_names( $network = false ) {
+	public function list_names( bool $network = false ) {
 		// Replace with a real listing call. Returning an empty array is also
 		// valid if your platform has no way to enumerate names cheaply;
 		// wp_list_secrets() will simply show nothing rather than erroring.
@@ -290,7 +290,7 @@ final class Example_KMS_Keyring implements WP_Secrets_Keyring {
 	 *
 	 * @return string|WP_Error Opaque wrapped value on success.
 	 */
-	public function wrap( $key_material ) {
+	public function wrap( string $key_material ) {
 		/*
 		 * Replace with a real KMS encrypt call, e.g.:
 		 *
@@ -313,7 +313,7 @@ final class Example_KMS_Keyring implements WP_Secrets_Keyring {
 	 *
 	 * @return string|WP_Error Raw key material on success.
 	 */
-	public function unwrap( $wrapped ) {
+	public function unwrap( string $wrapped ) {
 		// Replace with a real KMS decrypt call, mirroring wrap() above.
 
 		return new WP_Error( WP_SECRETS_ERROR_KEY_UNAVAILABLE, 'Not implemented; example only.' );
@@ -324,7 +324,7 @@ final class Example_KMS_Keyring implements WP_Secrets_Keyring {
 	 *
 	 * @return string
 	 */
-	public function get_key_source() {
+	public function get_key_source(): string {
 		return 'Example KMS (replace before use)';
 	}
 }

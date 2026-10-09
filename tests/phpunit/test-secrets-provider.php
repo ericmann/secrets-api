@@ -8,7 +8,7 @@
 class Tests_Secrets_Provider extends WP_UnitTestCase {
 
 	/**
-	 * A provider whose credentials are managed elsewhere -- a control panel, host
+	 * A provider whose credentials are managed elsewhere – a control panel, host
 	 * tooling, a KMS with its own access policy. Reads work, writes are refused.
 	 *
 	 * @return WP_Secrets_Provider
@@ -21,7 +21,7 @@ class Tests_Secrets_Provider extends WP_UnitTestCase {
 			 * @param bool   $network Whether this is a network-scope secret.
 			 * @return WP_Secret|null|WP_Error
 			 */
-			public function get( $name, $version, $network = false ) {
+			public function get( string $name, string $version, bool $network = false ) {
 				return null;
 			}
 
@@ -33,7 +33,7 @@ class Tests_Secrets_Provider extends WP_UnitTestCase {
 			 * @param string|null $action         Overrides the action reported to `wp_secret_changed`.
 			 * @return WP_Error Always: this provider is read-only.
 			 */
-			public function set( $name, $value, $network = false, $needs_rotation = false, $action = null ) {
+			public function set( string $name, $value, bool $network = false, bool $needs_rotation = false, ?string $action = null ) {
 				return new WP_Error(
 					WP_SECRETS_ERROR_PROVIDER_READ_ONLY,
 					'Credentials are managed in the control panel.'
@@ -45,7 +45,7 @@ class Tests_Secrets_Provider extends WP_UnitTestCase {
 			 * @param bool   $network Whether this is a network-scope secret.
 			 * @return WP_Error Always: this provider is read-only.
 			 */
-			public function delete( $name, $network = false ) {
+			public function delete( string $name, bool $network = false ) {
 				return new WP_Error( WP_SECRETS_ERROR_PROVIDER_READ_ONLY, 'Read-only.' );
 			}
 
@@ -54,7 +54,7 @@ class Tests_Secrets_Provider extends WP_UnitTestCase {
 			 * @param bool   $network Whether this is a network-scope secret.
 			 * @return true Always: this provider keeps no version history.
 			 */
-			public function retire_previous( $name, $network = false ) {
+			public function retire_previous( string $name, bool $network = false ) {
 				return true;
 			}
 
@@ -65,34 +65,34 @@ class Tests_Secrets_Provider extends WP_UnitTestCase {
 			 *
 			 * @phpstan-return list<array{name: string, fingerprint: string, created: int, has_previous: bool, needs_rotation: bool}>
 			 */
-			public function list_secrets( $name_prefix = '', $network = false ) {
+			public function list_secrets( string $name_prefix = '', bool $network = false ) {
 				return array();
 			}
 
 			/**
 			 * @return string
 			 */
-			public function get_label() {
+			public function get_label(): string {
 				return 'Example Platform (KMS)';
 			}
 
 			/**
 			 * @return string
 			 */
-			public function get_protection_boundary() {
+			public function get_protection_boundary(): string {
 				return self::BOUNDARY_PROVIDER;
 			}
 
 			/**
 			 * @return bool
 			 */
-			public function is_writable() {
+			public function is_writable(): bool {
 				return false;
 			}
 		};
 	}
 
-	// -- the shipped provider -------------------------------------------------
+	// – the shipped provider -------------------------------------------------
 
 	public function test_the_default_provider_is_the_libsodium_one(): void {
 		$this->assertInstanceOf( 'WP_Secrets_Libsodium_Provider', _wp_secrets_get_provider() );
@@ -124,7 +124,7 @@ class Tests_Secrets_Provider extends WP_UnitTestCase {
 		);
 	}
 
-	// -- a platform provider, which is what the seam exists for ----------------
+	// – a platform provider, which is what the seam exists for ----------------
 
 	/**
 	 * @runInSeparateProcess
@@ -160,7 +160,7 @@ class Tests_Secrets_Provider extends WP_UnitTestCase {
 	}
 
 	/**
-	 * Reads still work on a read-only provider -- "read-only" is about writes, not
+	 * Reads still work on a read-only provider – "read-only" is about writes, not
 	 * about being broken. Absence is still absence.
 	 *
 	 * @runInSeparateProcess
@@ -172,7 +172,7 @@ class Tests_Secrets_Provider extends WP_UnitTestCase {
 		$this->assertNull( wp_get_secret( 'myplugin/api-key' ) );
 	}
 
-	// -- fail closed -----------------------------------------------------------
+	// – fail closed -----------------------------------------------------------
 
 	/**
 	 * A broken drop-in must not quietly revert to the default provider: that would
@@ -220,7 +220,7 @@ class Tests_Secrets_Provider extends WP_UnitTestCase {
 
 	/**
 	 * A provider global set to something that is not a provider fails closed, the
-	 * same posture the store and keyring globals take -- for those two,
+	 * same posture the store and keyring globals take – for those two,
 	 * wp_secrets_api_load_dropin() marks the drop-in broken on a type mismatch and
 	 * both getters return their Broken_* sentinel.
 	 *

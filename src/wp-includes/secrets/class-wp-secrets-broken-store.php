@@ -14,7 +14,7 @@
  * not hold a WP_Secrets_Store.
  *
  * The drop-in's presence signals the operator wants storage other than the
- * default -- falling back to WP_Secrets_Option_Store here would silently write
+ * default – falling back to WP_Secrets_Option_Store here would silently write
  * secrets to local options against that intent, which is exactly the silent
  * downgrade to local storage this API refuses to make. Every operation fails
  * closed instead.
@@ -32,7 +32,7 @@ final class WP_Secrets_Broken_Store implements WP_Secrets_Store {
 	 * @param bool   $network Ignored.
 	 * @return WP_Error
 	 */
-	public function get( $name, $network = false ) {
+	public function get( string $name, bool $network = false ): WP_Error {
 		return $this->error();
 	}
 
@@ -46,7 +46,7 @@ final class WP_Secrets_Broken_Store implements WP_Secrets_Store {
 	 * @param bool         $network Ignored.
 	 * @return WP_Error
 	 */
-	public function set( $name, $record, $network = false ) {
+	public function set( string $name, array $record, bool $network = false ): WP_Error {
 		return $this->error();
 	}
 
@@ -59,7 +59,7 @@ final class WP_Secrets_Broken_Store implements WP_Secrets_Store {
 	 * @param bool   $network Ignored.
 	 * @return WP_Error
 	 */
-	public function delete( $name, $network = false ) {
+	public function delete( string $name, bool $network = false ): WP_Error {
 		return $this->error();
 	}
 
@@ -71,7 +71,7 @@ final class WP_Secrets_Broken_Store implements WP_Secrets_Store {
 	 * @param bool $network Ignored.
 	 * @return WP_Error
 	 */
-	public function list_names( $network = false ) {
+	public function list_names( bool $network = false ): WP_Error {
 		return $this->error();
 	}
 
@@ -83,7 +83,7 @@ final class WP_Secrets_Broken_Store implements WP_Secrets_Store {
 	 *
 	 * @return WP_Error
 	 */
-	private function error() {
+	private function error(): WP_Error {
 		return new WP_Error(
 			WP_SECRETS_ERROR_STORE_UNAVAILABLE,
 			__( 'The secrets.php drop-in did not provide a usable store.' )

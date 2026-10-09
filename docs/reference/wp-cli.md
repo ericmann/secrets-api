@@ -59,7 +59,7 @@ wp network-secret dropin [--verbose]
 
 Emits a base64-encoded 32-byte key, suitable for WP_SECRETS_KEY.
 
-Writes to STDOUT only. Never touches wp-config.php -- adding the constant is
+Writes to STDOUT only. Never touches wp-config.php – adding the constant is
 the operator's own step.
 
 ```
@@ -234,7 +234,7 @@ wp network-secret set <name> [<value>] [--stdin] [--porcelain]
 | Option | Description |
 |---|---|
 | `<name>` | The secret's namespaced name ('plugin-slug/secret-name'). |
-| `[<value>]` | The plaintext value. Passing this as an argument leaks it into shell history and process listings on shared hosts -- use --stdin instead. |
+| `[<value>]` | The plaintext value. Passing this as an argument leaks it into shell history and process listings on shared hosts – use --stdin instead. |
 | `[--stdin]` | Read the value from STDIN. The documented way to pass a value. |
 | `[--porcelain]` | Output only the new fingerprint, for scripting. |
 
@@ -298,7 +298,7 @@ wp secret dropin [--verbose]
 
 Emits a base64-encoded 32-byte key, suitable for WP_SECRETS_KEY.
 
-Writes to STDOUT only. Never touches wp-config.php -- adding the constant is
+Writes to STDOUT only. Never touches wp-config.php – adding the constant is
 the operator's own step.
 
 ```
@@ -473,7 +473,7 @@ wp secret set <name> [<value>] [--stdin] [--porcelain]
 | Option | Description |
 |---|---|
 | `<name>` | The secret's namespaced name ('plugin-slug/secret-name'). |
-| `[<value>]` | The plaintext value. Passing this as an argument leaks it into shell history and process listings on shared hosts -- use --stdin instead. |
+| `[<value>]` | The plaintext value. Passing this as an argument leaks it into shell history and process listings on shared hosts – use --stdin instead. |
 | `[--stdin]` | Read the value from STDIN. The documented way to pass a value. |
 | `[--porcelain]` | Output only the new fingerprint, for scripting. |
 

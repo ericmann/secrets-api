@@ -4,7 +4,7 @@
  *
  * Copy this file to wp-content/secrets.php and define four constants in
  * wp-config.php (see the README next to this file). No Composer, no AWS SDK: the
- * whole thing is one SigV4 signature and wp_remote_post(), which is deliberate --
+ * whole thing is one SigV4 signature and wp_remote_post(), which is deliberate –
  * a drop-in that drags in a 100MB SDK is a drop-in nobody audits.
  *
  * ## Why a provider and not a store or keyring
@@ -12,7 +12,7 @@
  * Secrets Manager holds the *secret*, so WordPress is a consumer rather than a
  * custodian: WP_Secrets_Provider, and get_protection_boundary() reports
  * BOUNDARY_PROVIDER. (If you want AWS KMS instead, that holds *keys*, and the
- * right seam is WP_Secrets_Keyring -- three methods, and WordPress keeps its own
+ * right seam is WP_Secrets_Keyring – three methods, and WordPress keeps its own
  * envelope. See ../README.md.)
  *
  * ## The part that is a happy accident
@@ -82,7 +82,7 @@ final class AWS_Secrets_Manager_Provider implements WP_Secrets_Provider {
 		$this->endpoint   = $endpoint;
 	}
 
-	// -- the provider contract -------------------------------------------------
+	// – the provider contract -------------------------------------------------
 
 	/**
 	 * @param string $name    Secret name.
@@ -91,7 +91,7 @@ final class AWS_Secrets_Manager_Provider implements WP_Secrets_Provider {
 	 *
 	 * @return WP_Secret|null|WP_Error
 	 */
-	public function get( $name, $version, $network = false ) {
+	public function get( string $name, string $version, bool $network = false ) {
 		$stage = isset( self::STAGES[ $version ] ) ? self::STAGES[ $version ] : 'AWSCURRENT';
 		$key   = $this->aws_name( $name, $network ) . '@' . $stage;
 
@@ -135,7 +135,7 @@ final class AWS_Secrets_Manager_Provider implements WP_Secrets_Provider {
 	 *
 	 * @return true|WP_Error
 	 */
-	public function set( $name, $value, $network = false, $needs_rotation = false, $action = null ) {
+	public function set( string $name, $value, bool $network = false, bool $needs_rotation = false, ?string $action = null ) {
 		$aws_name = $this->aws_name( $name, $network );
 
 		// PutSecretValue rotates AWSCURRENT -> AWSPREVIOUS for us, which is the
@@ -172,7 +172,7 @@ final class AWS_Secrets_Manager_Provider implements WP_Secrets_Provider {
 		/**
 		 * Fires whenever a secret is created, updated, deleted, or imported.
 		 *
-		 * Providers own firing this -- see WP_Secrets_Provider::set().
+		 * Providers own firing this – see WP_Secrets_Provider::set().
 		 */
 		do_action(
 			'wp_secret_changed',
@@ -182,7 +182,7 @@ final class AWS_Secrets_Manager_Provider implements WP_Secrets_Provider {
 			time(),
 			'',
 			'',
-			(bool) $network
+			$network
 		);
 
 		return true;
@@ -194,7 +194,7 @@ final class AWS_Secrets_Manager_Provider implements WP_Secrets_Provider {
 	 *
 	 * @return true|WP_Error
 	 */
-	public function delete( $name, $network = false ) {
+	public function delete( string $name, bool $network = false ) {
 		$result = $this->call(
 			'DeleteSecret',
 			array(
@@ -215,7 +215,7 @@ final class AWS_Secrets_Manager_Provider implements WP_Secrets_Provider {
 		$this->memo = array();
 
 		/** This action is documented in WP_Secrets_Libsodium_Provider::set(). */
-		do_action( 'wp_secret_changed', $name, 'deleted', get_current_user_id(), time(), '', '', (bool) $network );
+		do_action( 'wp_secret_changed', $name, 'deleted', get_current_user_id(), time(), '', '', $network );
 
 		return true;
 	}
@@ -223,7 +223,7 @@ final class AWS_Secrets_Manager_Provider implements WP_Secrets_Provider {
 	/**
 	 * A successful no-op: Secrets Manager manages staging labels itself, so there
 	 * is no separate "previous slot" for WordPress to clear. Reporting success is
-	 * honest -- the caller wanted no previous version exposed, and there is none
+	 * honest – the caller wanted no previous version exposed, and there is none
 	 * this provider controls.
 	 *
 	 * @param string $name    Secret name.
@@ -231,7 +231,7 @@ final class AWS_Secrets_Manager_Provider implements WP_Secrets_Provider {
 	 *
 	 * @return true
 	 */
-	public function retire_previous( $name, $network = false ) {
+	public function retire_previous( string $name, bool $network = false ) {
 		return true;
 	}
 
@@ -241,7 +241,7 @@ final class AWS_Secrets_Manager_Provider implements WP_Secrets_Provider {
 	 *
 	 * @return array|WP_Error
 	 */
-	public function list_secrets( $name_prefix = '', $network = false ) {
+	public function list_secrets( string $name_prefix = '', bool $network = false ) {
 		$response = $this->call( 'ListSecrets', array( 'MaxResults' => 100 ) );
 
 		if ( is_wp_error( $response ) ) {
@@ -305,25 +305,25 @@ final class AWS_Secrets_Manager_Provider implements WP_Secrets_Provider {
 	/**
 	 * @return string
 	 */
-	public function get_label() {
+	public function get_label(): string {
 		return sprintf( 'AWS Secrets Manager (%s)', $this->region );
 	}
 
 	/**
 	 * @return string
 	 */
-	public function get_protection_boundary() {
+	public function get_protection_boundary(): string {
 		return self::BOUNDARY_PROVIDER;
 	}
 
 	/**
 	 * @return bool
 	 */
-	public function is_writable() {
+	public function is_writable(): bool {
 		return true;
 	}
 
-	// -- internals -------------------------------------------------------------
+	// – internals -------------------------------------------------------------
 
 	/**
 	 * Wraps a plaintext into a WP_Secret, fingerprinted with this site's own
@@ -410,7 +410,7 @@ final class AWS_Secrets_Manager_Provider implements WP_Secrets_Provider {
 	 * the result in an Authorization header.
 	 *
 	 * Note that write actions need a ClientRequestToken. AWS documents it as
-	 * optional, which is true only because every SDK generates one for you --
+	 * optional, which is true only because every SDK generates one for you –
 	 * calling the API directly, its absence is a flat InvalidRequestException. It
 	 * is an idempotency token, so each call gets a fresh UUID.
 	 *
@@ -433,8 +433,8 @@ final class AWS_Secrets_Manager_Provider implements WP_Secrets_Provider {
 		/*
 		 * An emulator (Moto) is reached at its own host and port instead of the
 		 * real regional endpoint. The signed "host" header has to match exactly
-		 * what wp_remote_post() actually sends -- derived from the URL, the same
-		 * way WP_Http itself would -- or the emulator's own signature check fails.
+		 * what wp_remote_post() actually sends – derived from the URL, the same
+		 * way WP_Http itself would – or the emulator's own signature check fails.
 		 */
 		if ( '' !== $this->endpoint ) {
 			$url         = rtrim( $this->endpoint, '/' ) . '/';
@@ -515,7 +515,7 @@ final class AWS_Secrets_Manager_Provider implements WP_Secrets_Provider {
 		/*
 		 * AWS's JSON protocol is inconsistent about the case of this key, and
 		 * reading only one spelling turns a precise error into a bare exception
-		 * name -- which is exactly how much use "InvalidRequestException" on its
+		 * name – which is exactly how much use "InvalidRequestException" on its
 		 * own is when you are trying to find out what was invalid.
 		 */
 		$detail = '';
@@ -533,7 +533,7 @@ final class AWS_Secrets_Manager_Provider implements WP_Secrets_Provider {
 
 		return new WP_Error(
 			WP_SECRETS_ERROR_STORE_UNAVAILABLE,
-			sprintf( 'Secrets Manager error (HTTP %d): %s -- %s', $code, $aws_error, $detail )
+			sprintf( 'Secrets Manager error (HTTP %d): %s: %s', $code, $aws_error, $detail )
 		);
 	}
 }
@@ -542,7 +542,7 @@ final class AWS_Secrets_Manager_Provider implements WP_Secrets_Provider {
  * Install it, but only with all three credentials actually filled in.
  *
  * Checked for emptiness rather than just defined(): a config file with the keys
- * present but blank -- the state a freshly-copied override file is in -- would
+ * present but blank – the state a freshly-copied override file is in – would
  * otherwise install a provider that fails every single call. Falling back to
  * WordPress's own provider means an unpopulated config is just a normal site.
  */

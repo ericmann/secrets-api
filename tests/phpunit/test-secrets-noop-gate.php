@@ -1,13 +1,13 @@
 <?php
 /**
- * Tests for the bootstrap's no-op decision -- what happens when something else
+ * Tests for the bootstrap's no-op decision – what happens when something else
  * has already declared wp_get_secret().
  *
  * This is the mechanism that keeps the feature plugin from fighting core once the
  * API ships in 7.2, and it is the one part of the bootstrap that IS reachable from
  * a test, unlike drop-in file loading (see docs/journal/test-coverage-gaps.md, "Drop-in file
  * loading"). By the time any test body runs, the plugin has bootstrapped and
- * wp_get_secret() exists --
+ * wp_get_secret() exists –
  * which is precisely the condition the gate is looking for, so calling
  * wp_secrets_api_bootstrap() again exercises the real branches with no simulation.
  *
@@ -46,7 +46,7 @@ class Tests_Secrets_NoopGate extends WP_UnitTestCase {
 		$this->assertTrue( function_exists( 'wp_get_secret' ) );
 	}
 
-	// -- core ships the API ---------------------------------------------------
+	// – core ships the API ---------------------------------------------------
 
 	public function test_core_providing_the_api_is_a_silent_no_op_with_an_info_notice() {
 		$GLOBALS['wp_version'] = WP_SECRETS_API_CORE_VERSION;
@@ -65,7 +65,7 @@ class Tests_Secrets_NoopGate extends WP_UnitTestCase {
 		$this->assertSame( 10, has_action( 'admin_notices', 'wp_secrets_api_notice_superseded' ) );
 	}
 
-	// -- something else claimed the symbol -------------------------------------
+	// – something else claimed the symbol -------------------------------------
 
 	/**
 	 * The version gate is ANDed with a positive probe rather than used alone,
@@ -102,7 +102,7 @@ class Tests_Secrets_NoopGate extends WP_UnitTestCase {
 		$this->assertFalse( has_filter( 'user_has_cap', 'wp_secrets_api_grant_network_cap_to_super_admins' ) );
 	}
 
-	// -- the notices themselves ------------------------------------------------
+	// – the notices themselves ------------------------------------------------
 
 	public function test_notices_say_nothing_to_a_user_who_cannot_activate_plugins() {
 		wp_set_current_user( self::factory()->user->create( array( 'role' => 'subscriber' ) ) );

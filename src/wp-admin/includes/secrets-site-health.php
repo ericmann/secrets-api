@@ -10,7 +10,7 @@
 /**
  * Registers the Secrets API's Site Health tests.
  *
- * No settings screen -- the proposal defers that to 7.3 -- but the health signal an
+ * No settings screen – the proposal defers that to 7.3 – but the health signal an
  * operator needs to notice a broken key, a weak key source, or a pending rotation is
  * in scope now.
  *
@@ -45,15 +45,16 @@ add_filter( 'site_status_tests', 'wp_secrets_site_health_tests' );
  * @since 7.2.0
  *
  * @param string $test        The test's own identifier, matching the key registered
- *                             in wp_secrets_site_health_tests().
+ *                            in wp_secrets_site_health_tests().
  * @param string $label       Short label for the test result.
  * @param string $status      One of 'good', 'recommended', 'critical'.
  * @param string $description HTML description, normally one or more <p> elements.
  * @return array
  *
- * @phpstan-return array{test: string, label: string, status: string, badge: array{label: string, color: string}, description: string}
+ * @phpstan-return array{test: string, label: string, status: 'good'|'recommended'|'critical', badge: array{label: string, color: string}, description: string}
+ * @phpstan-param 'good'|'recommended'|'critical' $status
  */
-function wp_secrets_site_health_result( $test, $label, $status, $description ) {
+function wp_secrets_site_health_result( string $test, string $label, string $status, string $description ): array {
 	$colors = array(
 		'good'        => 'green',
 		'recommended' => 'orange',
@@ -79,9 +80,9 @@ function wp_secrets_site_health_result( $test, $label, $status, $description ) {
  *
  * @return array
  *
- * @phpstan-return array{test: string, label: string, status: string, badge: array{label: string, color: string}, description: string}
+ * @phpstan-return array{test: string, label: string, status: 'good'|'recommended'|'critical', badge: array{label: string, color: string}, description: string}
  */
-function wp_secrets_site_health_test_key_source() {
+function wp_secrets_site_health_test_key_source(): array {
 	$key_source = _wp_secrets_get_key_manager()->get_keyring()->get_key_source();
 
 	if ( false !== strpos( $key_source, 'broken' ) ) {
@@ -131,16 +132,16 @@ function wp_secrets_site_health_test_key_source() {
 /**
  * Site Health test: does every stored secret still decrypt?
  *
- * Network secrets are included only for a super admin on a multisite install --
+ * Network secrets are included only for a super admin on a multisite install –
  * never shown to a site administrator who is not one.
  *
  * @since 7.2.0
  *
  * @return array
  *
- * @phpstan-return array{test: string, label: string, status: string, badge: array{label: string, color: string}, description: string}
+ * @phpstan-return array{test: string, label: string, status: 'good'|'recommended'|'critical', badge: array{label: string, color: string}, description: string}
  */
-function wp_secrets_site_health_test_undecryptable() {
+function wp_secrets_site_health_test_undecryptable(): array {
 	$broken = wp_secrets_site_health_find_undecryptable( false );
 
 	if ( is_multisite() && is_super_admin() ) {
@@ -176,7 +177,7 @@ function wp_secrets_site_health_test_undecryptable() {
 		'critical',
 		sprintf(
 			'<p>%s</p><ul>%s</ul><p>%s</p>',
-			esc_html__( 'The following secrets exist but could not be decrypted with the current key. There is no way to recover the original value -- the credential must be re-entered.' ),
+			esc_html__( 'The following secrets exist but could not be decrypted with the current key. There is no way to recover the original value. The credential must be re-entered.' ),
 			$items,
 			esc_html__( 'This can happen after losing WP_SECRETS_KEY, restoring a database backup without its matching key, or a failed key rotation.' )
 		)
@@ -193,7 +194,7 @@ function wp_secrets_site_health_test_undecryptable() {
  *
  * @phpstan-return list<array{name: string, fingerprint: string}>
  */
-function wp_secrets_site_health_find_undecryptable( $network ) {
+function wp_secrets_site_health_find_undecryptable( bool $network ): array {
 	$entries = $network ? wp_list_network_secrets() : wp_list_secrets();
 
 	if ( is_wp_error( $entries ) ) {
@@ -223,9 +224,9 @@ function wp_secrets_site_health_find_undecryptable( $network ) {
  *
  * @return array
  *
- * @phpstan-return array{test: string, label: string, status: string, badge: array{label: string, color: string}, description: string}
+ * @phpstan-return array{test: string, label: string, status: 'good'|'recommended'|'critical', badge: array{label: string, color: string}, description: string}
  */
-function wp_secrets_site_health_test_needs_rotation() {
+function wp_secrets_site_health_test_needs_rotation(): array {
 	$count = wp_secrets_site_health_count_needing_rotation( false );
 
 	if ( is_multisite() && is_super_admin() ) {
@@ -269,8 +270,10 @@ function wp_secrets_site_health_test_needs_rotation() {
  *
  * @param bool $network Whether to check network-scope secrets.
  * @return int
+ *
+ * @phpstan-return int<0, max>
  */
-function wp_secrets_site_health_count_needing_rotation( $network ) {
+function wp_secrets_site_health_count_needing_rotation( bool $network ): int {
 	$entries = $network ? wp_list_network_secrets() : wp_list_secrets();
 
 	if ( is_wp_error( $entries ) ) {
@@ -291,7 +294,7 @@ function wp_secrets_site_health_count_needing_rotation( $network ) {
 /**
  * Adds a Secrets API section to Site Health's debug information.
  *
- * Counts and class names only -- no secret values, and no fingerprints. Network
+ * Counts and class names only – no secret values, and no fingerprints. Network
  * scope figures are included only for a super admin on a multisite install.
  *
  * @since 7.2.0

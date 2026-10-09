@@ -5,7 +5,7 @@
  * The real \WP_CLI and \WP_CLI\Utils classes only exist when running under actual
  * WP-CLI, which this test harness does not. Command classes in cli/ are only ever
  * loaded when `defined( 'WP_CLI' ) && WP_CLI`, so testing them at all requires a
- * stand-in WP_CLI to load against -- this is deliberately not a faithful
+ * stand-in WP_CLI to load against – this is deliberately not a faithful
  * reimplementation of WP-CLI's runtime, only enough of its surface to drive the
  * command classes' own logic and capture what they did.
  *

@@ -5,7 +5,7 @@
  * Copy this file to wp-content/secrets.php and define four constants in
  * wp-config.php (see the README next to this file). No Composer, no AWS SDK: the
  * whole thing is one SigV4 signature and wp_remote_post(), for the same reason as
- * the AWS Secrets Manager example -- a drop-in that drags in a 100MB SDK is a
+ * the AWS Secrets Manager example – a drop-in that drags in a 100MB SDK is a
  * drop-in nobody audits.
  *
  * ## Why a keyring and not a provider
@@ -22,7 +22,7 @@
  *    request (see docs/decisions/0009-root-key-cached-for-the-request.md).
  * 2. How does an existing site move onto a new keyring? `wp secret rotate
  *    --from=config`, which unwraps with the site's current config key and
- *    re-wraps with whatever keyring is now active -- this one, once installed.
+ *    re-wraps with whatever keyring is now active – this one, once installed.
  * 3. What must a keyring guarantee that the interface does not say? That
  *    wrap() is non-deterministic (two calls on the same bytes must not return
  *    the same wrapped value) and that unwrap() fails closed on anything it did
@@ -56,7 +56,7 @@ final class AWS_KMS_Keyring implements WP_Secrets_Keyring {
 	/**
 	 * Seconds. Every secret operation waits on this call, so a KMS outage
 	 * that does not answer within it turns every read into a WP_Error rather
-	 * than hanging the request -- fail closed, on purpose. The README repeats
+	 * than hanging the request – fail closed, on purpose. The README repeats
 	 * this.
 	 */
 	const TIMEOUT = 3;
@@ -100,14 +100,14 @@ final class AWS_KMS_Keyring implements WP_Secrets_Keyring {
 		$this->endpoint   = $endpoint;
 	}
 
-	// -- the keyring contract ----------------------------------------------
+	// – the keyring contract ----------------------------------------------
 
 	/**
 	 * @param string $key_material Raw key material to protect.
 	 *
 	 * @return string|WP_Error
 	 */
-	public function wrap( $key_material ) {
+	public function wrap( string $key_material ) {
 		if ( ! is_string( $key_material ) || '' === $key_material ) {
 			return new WP_Error( WP_SECRETS_ERROR_INVALID_VALUE, 'AWS_KMS_Keyring: key material must be a non-empty string.' );
 		}
@@ -139,10 +139,10 @@ final class AWS_KMS_Keyring implements WP_Secrets_Keyring {
 	 *
 	 * @return string|WP_Error
 	 */
-	public function unwrap( $wrapped ) {
+	public function unwrap( string $wrapped ) {
 		if ( ! is_string( $wrapped ) || '' === $wrapped || 0 !== strpos( $wrapped, self::PREFIX ) ) {
-			// The most likely adoption failure -- a root key wrapped by the
-			// config keyring -- turned into a specific, actionable error
+			// The most likely adoption failure – a root key wrapped by the
+			// config keyring – turned into a specific, actionable error
 			// instead of an opaque InvalidCiphertextException from KMS.
 			return new WP_Error(
 				WP_SECRETS_ERROR_KEY_UNAVAILABLE,
@@ -180,11 +180,11 @@ final class AWS_KMS_Keyring implements WP_Secrets_Keyring {
 	/**
 	 * @return string
 	 */
-	public function get_key_source() {
+	public function get_key_source(): string {
 		return sprintf( 'AWS KMS key %s in %s', $this->key_id, $this->region );
 	}
 
-	// -- internals -----------------------------------------------------------
+	// – internals -----------------------------------------------------------
 
 	/**
 	 * Signs and sends one KMS API call.
@@ -210,8 +210,8 @@ final class AWS_KMS_Keyring implements WP_Secrets_Keyring {
 		/*
 		 * An emulator (Moto) is reached at its own host and port instead of the
 		 * real regional endpoint. The signed "host" header has to match exactly
-		 * what wp_remote_post() actually sends -- derived from the URL, the same
-		 * way WP_Http itself would -- or the emulator's own signature check fails.
+		 * what wp_remote_post() actually sends – derived from the URL, the same
+		 * way WP_Http itself would – or the emulator's own signature check fails.
 		 */
 		if ( '' !== $this->endpoint ) {
 			$url         = rtrim( $this->endpoint, '/' ) . '/';
@@ -278,7 +278,7 @@ final class AWS_KMS_Keyring implements WP_Secrets_Keyring {
 		/*
 		 * AWS's JSON protocol is inconsistent about the case of this key, and
 		 * reading only one spelling turns a precise error into a bare
-		 * exception name. The request/response body is never echoed here --
+		 * exception name. The request/response body is never echoed here –
 		 * only the __type and message fields, never the raw body, which could
 		 * echo a plaintext on a malformed-request response.
 		 */
@@ -293,7 +293,7 @@ final class AWS_KMS_Keyring implements WP_Secrets_Keyring {
 
 		return new WP_Error(
 			WP_SECRETS_ERROR_KEY_UNAVAILABLE,
-			sprintf( 'AWS KMS error (HTTP %d): %s -- %s', $code, $aws_error, $detail )
+			sprintf( 'AWS KMS error (HTTP %d): %s: %s', $code, $aws_error, $detail )
 		);
 	}
 }
@@ -302,7 +302,7 @@ final class AWS_KMS_Keyring implements WP_Secrets_Keyring {
  * Install it, but only with all four settings actually filled in.
  *
  * Checked for emptiness rather than just defined(): a config file with the
- * keys present but blank -- the state a freshly-copied override file is in --
+ * keys present but blank – the state a freshly-copied override file is in –
  * would otherwise install a keyring that fails every single call. Falling
  * back to WordPress's own keyring means an unpopulated config is just a
  * normal site.

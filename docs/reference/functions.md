@@ -19,7 +19,7 @@ Functions declared under `src/` are core-bound. Functions declared in `secrets-a
 Deletes a network-scope secret.
 
 ```php
-function wp_delete_network_secret( $name )
+function wp_delete_network_secret( string $name )
 ```
 
 | Parameter | Type | Description |
@@ -37,7 +37,7 @@ function wp_delete_network_secret( $name )
 Deletes a secret.
 
 ```php
-function wp_delete_secret( $name )
+function wp_delete_secret( string $name )
 ```
 
 | Parameter | Type | Description |
@@ -55,7 +55,7 @@ function wp_delete_secret( $name )
 Retrieves a network-scope secret.
 
 ```php
-function wp_get_network_secret( $name, $version = WP_Secret_Version::CURRENT )
+function wp_get_network_secret( string $name, string $version = WP_Secret_Version::CURRENT )
 ```
 
 | Parameter | Type | Description |
@@ -78,7 +78,7 @@ does not exist, WP_Error if it exists but could not be retrieved. No capability
 check is applied here. See wp_set_secret().
 
 ```php
-function wp_get_secret( $name, $version = WP_Secret_Version::CURRENT )
+function wp_get_secret( string $name, string $version = WP_Secret_Version::CURRENT )
 ```
 
 | Parameter | Type | Description |
@@ -108,7 +108,7 @@ that, and the flag exists so an operator (or a future admin screen) knows to
 actually rotate the value rather than considering the migration finished.
 
 ```php
-function wp_import_option_as_secret( $option, $name )
+function wp_import_option_as_secret( string $option, string $name )
 ```
 
 | Parameter | Type | Description |
@@ -127,7 +127,7 @@ function wp_import_option_as_secret( $option, $name )
 Lists network-scope secrets by name and metadata. Never a value.
 
 ```php
-function wp_list_network_secrets( $namespace = '' )
+function wp_list_network_secrets( string $namespace = '' )
 ```
 
 | Parameter | Type | Description |
@@ -149,7 +149,7 @@ the hooks and accessors a future admin screen needs are in scope now, even thoug
 the screen itself is not.
 
 ```php
-function wp_list_secrets( $namespace = '' )
+function wp_list_secrets( string $namespace = '' )
 ```
 
 | Parameter | Type | Description |
@@ -167,7 +167,7 @@ function wp_list_secrets( $namespace = '' )
 Clears a network-scope secret's previous version.
 
 ```php
-function wp_retire_network_secret_version( $name )
+function wp_retire_network_secret_version( string $name )
 ```
 
 | Parameter | Type | Description |
@@ -191,7 +191,7 @@ the previous slot is already absent either way.
 Beyond the API surface the proposal names.
 
 ```php
-function wp_retire_secret_version( $name )
+function wp_retire_secret_version( string $name )
 ```
 
 | Parameter | Type | Description |
@@ -209,7 +209,7 @@ function wp_retire_secret_version( $name )
 Grants the site-scope management capability to administrators.
 
 ```php
-function wp_secrets_api_activate()
+function wp_secrets_api_activate(): void
 ```
 
 **Returns:** `void`
@@ -231,7 +231,7 @@ class_exists() guards at all, for two reasons:
    granularity here.
 
 ```php
-function wp_secrets_api_bootstrap()
+function wp_secrets_api_bootstrap(): void
 ```
 
 **Returns:** `void`
@@ -282,15 +282,15 @@ request, so every operation returns WP_Error rather than falling back to the
 default. A malformed drop-in must not turn into a white screen for the rest of
 the site, and must not look like a working site with no secrets in it yet.
 
-This is not airtight: PHP treats some class declaration errors -- notably a class
-that `implements` an interface but omits a required method -- as an uncatchable
+This is not airtight: PHP treats some class declaration errors – notably a class
+that `implements` an interface but omits a required method – as an uncatchable
 fatal even inside a try/catch around the require, confirmed empirically on both
 PHP 7.4 and 8.5 before writing this comment. That gap is unavoidable from
 userland and is recorded in docs/journal/test-coverage-gaps.md rather than
 silently assumed away.
 
 ```php
-function wp_secrets_api_load_dropin()
+function wp_secrets_api_load_dropin(): void
 ```
 
 **Returns:** `void`
@@ -302,7 +302,7 @@ function wp_secrets_api_load_dropin()
 Admin notice shown when another plugin has already declared the Secrets API.
 
 ```php
-function wp_secrets_api_notice_conflict()
+function wp_secrets_api_notice_conflict(): void
 ```
 
 **Returns:** `void`
@@ -314,7 +314,7 @@ function wp_secrets_api_notice_conflict()
 Admin notice shown when core supersedes this plugin.
 
 ```php
-function wp_secrets_api_notice_superseded()
+function wp_secrets_api_notice_superseded(): void
 ```
 
 **Returns:** `void`
@@ -323,10 +323,10 @@ function wp_secrets_api_notice_superseded()
 
 ## `wp_secrets_api_uninstall()`
 
-Removes the capability this plugin granted, on uninstall -- not on deactivation. Deactivating and reactivating the plugin must not silently strip a capability an administrator may have started relying on for something else in the meantime.
+Removes the capability this plugin granted, on uninstall – not on deactivation. Deactivating and reactivating the plugin must not silently strip a capability an administrator may have started relying on for something else in the meantime.
 
 ```php
-function wp_secrets_api_uninstall()
+function wp_secrets_api_uninstall(): void
 ```
 
 **Returns:** `void`
@@ -371,7 +371,7 @@ types a credential into a field that will only reject it. A provider whose
 credentials are managed by host tooling or a control panel reports false.
 
 ```php
-function wp_secrets_provider_is_writable()
+function wp_secrets_provider_is_writable(): bool
 ```
 
 **Returns:** `bool`
@@ -387,7 +387,7 @@ A human-readable description of what is protecting this site's secrets.
 For Site Health and a future admin screen. Never key material, never a value.
 
 ```php
-function wp_secrets_provider_label()
+function wp_secrets_provider_label(): string
 ```
 
 **Returns:** `string`
@@ -401,7 +401,7 @@ function wp_secrets_provider_label()
 Counts secrets flagged needs_rotation, for one scope.
 
 ```php
-function wp_secrets_site_health_count_needing_rotation( $network )
+function wp_secrets_site_health_count_needing_rotation( bool $network ): int
 ```
 
 | Parameter | Type | Description |
@@ -418,7 +418,7 @@ function wp_secrets_site_health_count_needing_rotation( $network )
 
 Adds a Secrets API section to Site Health's debug information.
 
-Counts and class names only -- no secret values, and no fingerprints. Network
+Counts and class names only – no secret values, and no fingerprints. Network
 scope figures are included only for a super admin on a multisite install.
 
 ```php
@@ -440,7 +440,7 @@ function wp_secrets_site_health_debug_info( $info )
 Finds secrets that fail to decrypt, for one scope.
 
 ```php
-function wp_secrets_site_health_find_undecryptable( $network )
+function wp_secrets_site_health_find_undecryptable( bool $network ): array
 ```
 
 | Parameter | Type | Description |
@@ -458,7 +458,7 @@ function wp_secrets_site_health_find_undecryptable( $network )
 Builds the standard shape a Site Health test callback returns.
 
 ```php
-function wp_secrets_site_health_result( $test, $label, $status, $description )
+function wp_secrets_site_health_result( string $test, string $label, string $status, string $description ): array
 ```
 
 | Parameter | Type | Description |
@@ -479,7 +479,7 @@ function wp_secrets_site_health_result( $test, $label, $status, $description )
 Site Health test: is the site key a dedicated constant, or a weaker fallback?
 
 ```php
-function wp_secrets_site_health_test_key_source()
+function wp_secrets_site_health_test_key_source(): array
 ```
 
 **Returns:** `array`
@@ -493,7 +493,7 @@ function wp_secrets_site_health_test_key_source()
 Site Health test: are any secrets flagged as needing rotation?
 
 ```php
-function wp_secrets_site_health_test_needs_rotation()
+function wp_secrets_site_health_test_needs_rotation(): array
 ```
 
 **Returns:** `array`
@@ -506,11 +506,11 @@ function wp_secrets_site_health_test_needs_rotation()
 
 Site Health test: does every stored secret still decrypt?
 
-Network secrets are included only for a super admin on a multisite install --
+Network secrets are included only for a super admin on a multisite install –
 never shown to a site administrator who is not one.
 
 ```php
-function wp_secrets_site_health_test_undecryptable()
+function wp_secrets_site_health_test_undecryptable(): array
 ```
 
 **Returns:** `array`
@@ -523,7 +523,7 @@ function wp_secrets_site_health_test_undecryptable()
 
 Registers the Secrets API's Site Health tests.
 
-No settings screen -- the proposal defers that to 7.3 -- but the health signal an
+No settings screen – the proposal defers that to 7.3 – but the health signal an
 operator needs to notice a broken key, a weak key source, or a pending rotation is
 in scope now.
 
@@ -562,7 +562,7 @@ Two plugins that both choose 'api-key' collide silently, which is a real problem
 even though it is not a security one.
 
 ```php
-function wp_secrets_validate_name( $name )
+function wp_secrets_validate_name( string $name )
 ```
 
 | Parameter | Type | Description |
@@ -585,7 +585,7 @@ scope to the other. The proposal describes network scope but does not name these
 functions; these are this implementation's names for them.
 
 ```php
-function wp_set_network_secret( $name, $value )
+function wp_set_network_secret( string $name, $value )
 ```
 
 | Parameter | Type | Description |
@@ -609,7 +609,7 @@ cron, REST, and front-end requests where no user is logged in. Enforce
 capabilities at the operator boundary (CLI, an admin screen) instead.
 
 ```php
-function wp_set_secret( $name, $value )
+function wp_set_secret( string $name, $value )
 ```
 
 | Parameter | Type | Description |
@@ -632,7 +632,7 @@ override. It reports presence rather than health; Site Health reports separately
 on whether a loaded drop-in is actually working.
 
 ```php
-function wp_using_secrets_dropin()
+function wp_using_secrets_dropin(): bool
 ```
 
 **Returns:** `bool`
@@ -650,7 +650,7 @@ Prefixed with an underscore by WordPress convention: private to the API, not par
 Shared implementation behind wp_delete_secret() and wp_delete_network_secret().
 
 ```php
-function _wp_secrets_delete( $name, $network )
+function _wp_secrets_delete( string $name, bool $network )
 ```
 
 | Parameter | Type | Description |
@@ -669,7 +669,7 @@ function _wp_secrets_delete( $name, $network )
 Shared implementation behind wp_get_secret() and wp_get_network_secret().
 
 ```php
-function _wp_secrets_get( $name, $version, $network )
+function _wp_secrets_get( string $name, string $version, bool $network )
 ```
 
 | Parameter | Type | Description |
@@ -694,7 +694,7 @@ _wp_secrets_get_store() for why an invalid override or a failed drop-in load
 fails closed (WP_Secrets_Broken_Keyring) rather than falling back to the default.
 
 ```php
-function _wp_secrets_get_key_manager()
+function _wp_secrets_get_key_manager(): WP_Secrets_Key_Manager
 ```
 
 **Returns:** `WP_Secrets_Key_Manager`
@@ -726,7 +726,7 @@ misconfigured credential backend must never look like a working one that happens
 to be empty.
 
 ```php
-function _wp_secrets_get_provider()
+function _wp_secrets_get_provider(): WP_Secrets_Provider
 ```
 
 **Returns:** `WP_Secrets_Provider`
@@ -751,7 +751,7 @@ storage other than local options, and falling back to local options anyway would
 be the exact silent downgrade this API refuses to make.
 
 ```php
-function _wp_secrets_get_store()
+function _wp_secrets_get_store(): WP_Secrets_Store
 ```
 
 **Returns:** `WP_Secrets_Store`
@@ -765,7 +765,7 @@ function _wp_secrets_get_store()
 Shared implementation behind wp_list_secrets() and wp_list_network_secrets().
 
 ```php
-function _wp_secrets_list( $name_prefix, $network )
+function _wp_secrets_list( string $name_prefix, bool $network )
 ```
 
 | Parameter | Type | Description |
@@ -784,7 +784,7 @@ function _wp_secrets_list( $name_prefix, $network )
 Shared implementation behind wp_retire_secret_version() and its network twin.
 
 ```php
-function _wp_secrets_retire( $name, $network )
+function _wp_secrets_retire( string $name, bool $network )
 ```
 
 | Parameter | Type | Description |
@@ -803,7 +803,7 @@ function _wp_secrets_retire( $name, $network )
 Shared implementation behind wp_set_secret() and wp_set_network_secret().
 
 ```php
-function _wp_secrets_set( $name, $value, $network, $needs_rotation = false, $action_override = null )
+function _wp_secrets_set( string $name, $value, bool $network, bool $needs_rotation = false, ?string $action_override = null )
 ```
 
 | Parameter | Type | Description |

@@ -28,7 +28,7 @@ trait WP_Secrets_Assertions {
 		$context = '' !== $message ? $message . ' ' : '';
 
 		if ( is_wp_error( $maybe_secret ) ) {
-			$this->fail( $context . 'Expected a WP_Secret, got WP_Error: ' . $maybe_secret->get_error_code() . ' -- ' . $maybe_secret->get_error_message() );
+			$this->fail( $context . 'Expected a WP_Secret, got WP_Error: ' . $maybe_secret->get_error_code() . ': ' . $maybe_secret->get_error_message() );
 		}
 
 		$this->assertInstanceOf(
@@ -50,6 +50,8 @@ trait WP_Secrets_Assertions {
 	 * @param string $slot     A WP_Secret_Version constant.
 	 * @param string $expected Expected plaintext.
 	 * @param bool   $network  Whether this is a network-scope secret.
+	 *
+	 * @phpstan-param WP_Secret_Version::CURRENT|WP_Secret_Version::PREVIOUS $slot
 	 */
 	public function assertRecordSlotDecryptsTo( $name, $slot, $expected, $network = false ): void { // phpcs:ignore WordPress.NamingConventions.ValidFunctionName.MethodNameInvalid -- PHPUnit assertion naming, like assertWPError().
 		$secret = $network ? wp_get_network_secret( $name, $slot ) : wp_get_secret( $name, $slot );

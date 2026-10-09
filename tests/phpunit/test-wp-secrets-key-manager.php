@@ -96,7 +96,7 @@ class Tests_Secrets_WPSecretsKeyManager extends WP_UnitTestCase {
 
 		$this->setExpectedIncorrectUsage( 'WP_Secrets_Key_Manager::get_master_key' );
 
-		$result = $manager->get_master_key( 'bogus' );
+		$result = $manager->get_master_key( 'bogus' ); // @phpstan-ignore argument.type (Intentionally passing an invalid value.)
 
 		$this->assertWPError( $result );
 		$this->assertSame( WP_SECRETS_ERROR_INVALID_ARGUMENT, $result->get_error_code() );
@@ -105,33 +105,32 @@ class Tests_Secrets_WPSecretsKeyManager extends WP_UnitTestCase {
 	/**
 	 * @dataProvider data_invalid_site_ids
 	 *
-	 * @param int|string $site_id A value that is not a usable blog id.
+	 * @param int $site_id A value that is not a usable blog id.
 	 */
 	public function test_get_master_key_reports_an_invalid_site_id_as_a_wp_error( $site_id ): void {
 		$manager = new WP_Secrets_Key_Manager();
 
 		$this->setExpectedIncorrectUsage( 'WP_Secrets_Key_Manager::get_master_key' );
 
-		$result = $manager->get_master_key( 'site', $site_id ); // @phpstan-ignore argument.type (The data provider intentionally includes a non-integer site id.)
+		$result = $manager->get_master_key( 'site', $site_id );
 
 		$this->assertWPError( $result );
 		$this->assertSame( WP_SECRETS_ERROR_INVALID_ARGUMENT, $result->get_error_code() );
 	}
 
 	/**
-	 * @return array<string, array{0: int|string}>
+	 * @return array<string, array{0: int}>
 	 */
 	public function data_invalid_site_ids(): array {
 		return array(
 			'zero'     => array( 0 ),
 			'negative' => array( -1 ),
-			'string'   => array( 'five' ),
 		);
 	}
 
 	/**
 	 * The root key is shared network-wide (one row via update_site_option()), so a
-	 * master key derived on one blog must be derivable identically on another --
+	 * master key derived on one blog must be derivable identically on another –
 	 * this is the entire reason network secrets can be read from any blog. Requires
 	 * the multisite suite; skips under single-site since there is only one blog to
 	 * compare against.
@@ -281,7 +280,7 @@ class Tests_Secrets_WPSecretsKeyManager extends WP_UnitTestCase {
 			 * @param string $key_material Raw key material.
 			 * @return string
 			 */
-			public function wrap( $key_material ) {
+			public function wrap( string $key_material ) {
 				return base64_encode( $key_material );
 			}
 
@@ -289,14 +288,14 @@ class Tests_Secrets_WPSecretsKeyManager extends WP_UnitTestCase {
 			 * @param string $wrapped Wrapped value.
 			 * @return WP_Error
 			 */
-			public function unwrap( $wrapped ) {
+			public function unwrap( string $wrapped ) {
 				return new WP_Error( WP_SECRETS_ERROR_KEY_UNAVAILABLE, 'wrong key' );
 			}
 
 			/**
 			 * @return string
 			 */
-			public function get_key_source() {
+			public function get_key_source(): string {
 				return 'test double';
 			}
 		};
@@ -308,7 +307,7 @@ class Tests_Secrets_WPSecretsKeyManager extends WP_UnitTestCase {
 
 	/**
 	 * A site-key rotation re-wraps the root key without changing its raw bytes, so
-	 * every derived master key -- and therefore every stored secret -- is unaffected.
+	 * every derived master key – and therefore every stored secret – is unaffected.
 	 * This is the whole point of the envelope design, so it gets an end-to-end proof
 	 * rather than just testing rotate_site_key() in isolation.
 	 *

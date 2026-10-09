@@ -1,6 +1,6 @@
 <?php
 /**
- * Tests for Secrets_API_Migrator. This is the highest-scrutiny file in the build --
+ * Tests for Secrets_API_Migrator. This is the highest-scrutiny file in the build –
  * this is where silent data loss would live.
  *
  * @group secrets
@@ -21,7 +21,7 @@ class Tests_Secrets_ApiMigrator extends WP_UnitTestCase {
 		return null;
 	}
 
-	// -- basic migration, both key-derivation paths --------------------------
+	// – basic migration, both key-derivation paths --------------------------
 
 	public function test_migrates_a_salt_fallback_secret_with_no_re_entry() {
 		$this->setExpectedIncorrectUsage( 'wp_secrets_validate_name' );
@@ -125,7 +125,7 @@ class Tests_Secrets_ApiMigrator extends WP_UnitTestCase {
 		$this->assertFalse( get_option( '_wp_secret_other_key' ) );
 	}
 
-	// -- fingerprint round-trip, both key-derivation paths --------------------
+	// – fingerprint round-trip, both key-derivation paths --------------------
 
 	/**
 	 * Computes what the fingerprint of a plaintext must be under this site's
@@ -146,7 +146,7 @@ class Tests_Secrets_ApiMigrator extends WP_UnitTestCase {
 	 * The property this has to guarantee: a record
 	 * written by the fixture writer under each key-derivation path migrates and
 	 * reads back with matching fingerprints. Asserting the revealed value alone
-	 * would not cover it -- the fingerprint is what the migrator's own
+	 * would not cover it – the fingerprint is what the migrator's own
 	 * verification, wp_list_secrets(), and the CLI's porcelain output all key on,
 	 * so a value that round-tripped while its fingerprint did not would be a
 	 * silent inconsistency across three surfaces.
@@ -166,7 +166,7 @@ class Tests_Secrets_ApiMigrator extends WP_UnitTestCase {
 	}
 
 	/**
-	 * The other derivation path -- legacy hashes WP_SECRETS_KEY's literal string.
+	 * The other derivation path – legacy hashes WP_SECRETS_KEY's literal string.
 	 *
 	 * @runInSeparateProcess
 	 * @preserveGlobalState disabled
@@ -187,7 +187,7 @@ class Tests_Secrets_ApiMigrator extends WP_UnitTestCase {
 		$this->assertSame( $expected, wp_get_secret( 'api_key' )->fingerprint() );
 	}
 
-	// -- the prototype's own rows are never touched ---------------------------
+	// – the prototype's own rows are never touched ---------------------------
 
 	public function test_migrating_never_modifies_or_removes_the_prototype_rows() {
 		$this->setExpectedIncorrectUsage( 'wp_secrets_validate_name' );
@@ -203,7 +203,7 @@ class Tests_Secrets_ApiMigrator extends WP_UnitTestCase {
 		$this->assertSame( $master_before, get_option( '_secrets_master_key' ) );
 	}
 
-	// -- dry run -------------------------------------------------------------
+	// – dry run -------------------------------------------------------------
 
 	public function test_dry_run_writes_nothing_at_all() {
 		$this->setExpectedIncorrectUsage( 'wp_secrets_validate_name' );
@@ -223,7 +223,7 @@ class Tests_Secrets_ApiMigrator extends WP_UnitTestCase {
 		$this->assertFalse( get_option( '_wp_secret_api_key' ) );
 	}
 
-	// -- idempotency -----------------------------------------------------
+	// – idempotency -----------------------------------------------------
 
 	public function test_rerunning_is_safe_and_reports_skipped() {
 		$this->setExpectedIncorrectUsage( 'wp_secrets_validate_name' );
@@ -239,7 +239,7 @@ class Tests_Secrets_ApiMigrator extends WP_UnitTestCase {
 	}
 
 
-	// -- unnamespaced / invalid names ----------------------------------------
+	// – unnamespaced / invalid names ----------------------------------------
 
 	public function test_a_key_that_cannot_be_namespaced_is_reported_not_guessed() {
 		// Uppercase is invalid in the new naming scheme, so 'legacy/API-Key' will
@@ -265,14 +265,14 @@ class Tests_Secrets_ApiMigrator extends WP_UnitTestCase {
 		$this->assertSame( 'value', wp_get_secret( 'myplugin/api-key' )->reveal() );
 	}
 
-	// -- one bad key does not block the others -------------------------------
+	// – one bad key does not block the others -------------------------------
 
 	public function test_one_undecryptable_key_does_not_block_migrating_the_others() {
 		$this->setExpectedIncorrectUsage( 'wp_secrets_validate_name' );
 
 		$writer     = new Legacy_Fixture_Writer();
 		$master_key = $writer->write_secret( 'good_key', 'value' );
-		// Shares good_key's master key, the way a real legacy site would -- calling
+		// Shares good_key's master key, the way a real legacy site would – calling
 		// write_secret() a second time would regenerate and overwrite
 		// _secrets_master_key, orphaning good_key's own ciphertext.
 		$writer->write_secret_under_master_key( 'bad_key', 'value', $master_key );
@@ -285,7 +285,7 @@ class Tests_Secrets_ApiMigrator extends WP_UnitTestCase {
 		$this->assertSame( 'value', wp_get_secret( 'good_key' )->reveal() );
 	}
 
-	// -- vendored-copy detection ----------------------------------------------
+	// – vendored-copy detection ----------------------------------------------
 
 	/**
 	 * @runInSeparateProcess
@@ -303,7 +303,7 @@ class Tests_Secrets_ApiMigrator extends WP_UnitTestCase {
 		$this->assertTrue( $report['vendor_detected'] );
 	}
 
-	// -- never leaks a plaintext ----------------------------------------------
+	// – never leaks a plaintext ----------------------------------------------
 
 	public function test_the_report_never_contains_a_plaintext() {
 		$this->setExpectedIncorrectUsage( 'wp_secrets_validate_name' );

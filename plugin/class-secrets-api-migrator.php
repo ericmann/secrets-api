@@ -11,8 +11,8 @@
  * Strictly additive, by construction rather than by flag: this reads the
  * prototype's option rows and writes new-format ones, and there is no code path
  * here that writes to, deletes, or otherwise disturbs anything the prototype
- * owns. A site that runs this ends up with both copies, and the prototype --
- * along with anything vendoring it -- keeps working exactly as before.
+ * owns. A site that runs this ends up with both copies, and the prototype –
+ * along with anything vendoring it – keeps working exactly as before.
  *
  * That is a deliberate narrowing of the original plan, which had a
  * --delete-source flag to remove each legacy option once its migrated value
@@ -26,13 +26,13 @@
  *
  * Re-running is safe: already-migrated keys are reported as skipped rather than
  * rewritten. Read failures (a record that will not decrypt) are reported per key
- * and never abort the run -- one bad key must not block migrating the rest.
+ * and never abort the run – one bad key must not block migrating the rest.
  */
 final class Secrets_API_Migrator {
 
 	/**
 	 * The AI plugin's vendored copy of the prototype's code. Its presence means the
-	 * prototype's option rows are live, not historical -- worth telling the
+	 * prototype's option rows are live, not historical – worth telling the
 	 * operator, since after migrating, the same credential exists in two places
 	 * and the AI plugin will keep reading its own copy.
 	 *
@@ -68,7 +68,7 @@ final class Secrets_API_Migrator {
 	 *                                  value.
 	 * }
 	 */
-	public function migrate( $args = array() ) {
+	public function migrate( array $args = array() ): array {
 		// What wp_parse_args() does for an array, spelled out so the defaults keep their types.
 		$args = array_merge(
 			array(
@@ -128,7 +128,7 @@ final class Secrets_API_Migrator {
 	 *
 	 * @return array One report entry.
 	 */
-	private function migrate_one( $reader, $key, array $args ) {
+	private function migrate_one( Secrets_API_Legacy_Reader $reader, string $key, array $args ): array {
 		$new_name = $this->new_name_for( $key, $args );
 
 		$entry = array(
@@ -211,7 +211,7 @@ final class Secrets_API_Migrator {
 	 *
 	 * @return string
 	 */
-	private function new_name_for( $key, array $args ) {
+	private function new_name_for( string $key, array $args ): string {
 		if ( isset( $args['map'][ $key ] ) ) {
 			return $args['map'][ $key ];
 		}
@@ -228,7 +228,7 @@ final class Secrets_API_Migrator {
 	 *
 	 * Deliberately not wp_get_secret(): with the read-time fallback store active,
 	 * that call is itself an upgrade trigger, so using it here would report every
-	 * prototype secret as already migrated and -- worse -- would make --dry-run
+	 * prototype secret as already migrated and – worse – would make --dry-run
 	 * write. Where that store is active, ask it to bypass its own fallback; any
 	 * other store has no fallback to bypass and can be asked directly.
 	 *
@@ -236,7 +236,7 @@ final class Secrets_API_Migrator {
 	 *
 	 * @return bool|WP_Error
 	 */
-	private function has_current_record( $name ) {
+	private function has_current_record( string $name ) {
 		$store = _wp_secrets_get_store();
 
 		if ( $store instanceof Secrets_API_Prototype_Fallback_Store ) {
@@ -261,11 +261,11 @@ final class Secrets_API_Migrator {
 	 * @param string                    $new_name Validated new-format name.
 	 *
 	 * @return string|WP_Error The new secret's fingerprint on success. WP_Error on
-	 *                         failure -- including if verification fails, in which
+	 *                         failure – including if verification fails, in which
 	 *                         case the new-format write may still have happened,
 	 *                         but is reported as an error rather than a success.
 	 */
-	private function write_new_secret( $reader, $key, $new_name ) {
+	private function write_new_secret( Secrets_API_Legacy_Reader $reader, string $key, string $new_name ) {
 		$plaintext = $reader->get( $key );
 
 		if ( is_wp_error( $plaintext ) ) {

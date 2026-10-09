@@ -124,7 +124,7 @@ class Tests_AWS_KMS_Keyring extends WP_UnitTestCase {
 		);
 	}
 
-	// -- install guard, wrap/unwrap contract, failure modes ------------------
+	// – install guard, wrap/unwrap contract, failure modes ------------------
 
 	public function test_loading_the_example_does_not_install_a_keyring_without_the_constants() {
 		$this->assertArrayNotHasKey( 'wp_secrets_keyring', $GLOBALS );
@@ -170,7 +170,7 @@ class Tests_AWS_KMS_Keyring extends WP_UnitTestCase {
 		$this->assertStringNotContainsString( 'testing', $source );
 	}
 
-	// -- end-to-end, isolated-process tests -----------------------------------
+	// – end-to-end, isolated-process tests -----------------------------------
 
 	/**
 	 * @runInSeparateProcess

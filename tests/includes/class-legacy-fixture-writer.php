@@ -36,7 +36,7 @@ class Legacy_Fixture_Writer {
 	}
 
 	/**
-	 * Writes a legacy-format secret using a specific, already-wrapped master key --
+	 * Writes a legacy-format secret using a specific, already-wrapped master key –
 	 * for building fixtures that share one master key across multiple secrets, the
 	 * way a real legacy site would.
 	 *

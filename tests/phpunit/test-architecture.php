@@ -5,7 +5,7 @@
  * These encode promises that are easy to break by accident over a long build and are
  * deliberately placed here, immediately after the first end-to-end commit, so drift
  * fails loudly from the next commit onward instead of being discovered at the end.
- * Never weaken one of these to make a build green -- if one fails, the code is wrong,
+ * Never weaken one of these to make a build green – if one fails, the code is wrong,
  * or the design needs a decision. See docs/journal/open-questions.md.
  *
  * @group secrets
@@ -30,7 +30,7 @@ class Tests_Secrets_Architecture extends WP_UnitTestCase {
 			}
 		}
 
-		$this->assertNotEmpty( $files, 'PROBE: src_files() found nothing -- the plugin directory constant or src/ layout has changed.' );
+		$this->assertNotEmpty( $files, 'PROBE: src_files() found nothing: the plugin directory constant or src/ layout has changed.' );
 
 		return $files;
 	}
@@ -38,7 +38,7 @@ class Tests_Secrets_Architecture extends WP_UnitTestCase {
 	/**
 	 * No apply_filters() anywhere in src/. Not just the retrieval path: nothing
 	 * core-bound filters a secret, its name, or which store/keyring serves it.
-	 * Allowlist nothing -- a single exception here is a hook that can intercept a
+	 * Allowlist nothing – a single exception here is a hook that can intercept a
 	 * credential, and a filter that can intercept a credential is a filter that can
 	 * steal one.
 	 */
@@ -54,7 +54,7 @@ class Tests_Secrets_Architecture extends WP_UnitTestCase {
 
 	/**
 	 * PHPCompatibilityWP is wired into the ruleset at the 7.4 floor. This does not
-	 * re-scan src/ for PHP 8 syntax itself -- that is make compat's job, and
+	 * re-scan src/ for PHP 8 syntax itself – that is make compat's job, and
 	 * duplicating it here would just be a slower, worse copy of the same check. This
 	 * exists so the configuration that makes that check happen cannot be silently
 	 * removed or loosened without a test noticing.
@@ -88,7 +88,7 @@ class Tests_Secrets_Architecture extends WP_UnitTestCase {
 	/**
 	 * The src/ directory declares no function_exists()/class_exists() guard on one
 	 * of this API's own symbols (wp_* or WP_*). The entire no-op decision lives in
-	 * one place -- secrets-api.php -- specifically because a guard here would double as an
+	 * one place – secrets-api.php – specifically because a guard here would double as an
 	 * overloading surface: an mu-plugin declaring wp_get_secret() first would
 	 * silently win, and every secret read on the site would flow through it. This
 	 * does not forbid function_exists()/class_exists() outright: probing for a
@@ -178,7 +178,7 @@ class Tests_Secrets_Architecture extends WP_UnitTestCase {
 		}
 	}
 
-	// -- prototype-compatibility containment --------------------------------
+	// – prototype-compatibility containment --------------------------------
 
 	/**
 	 * No core-bound file references any prototype-compatibility symbol by name.
@@ -212,7 +212,7 @@ class Tests_Secrets_Architecture extends WP_UnitTestCase {
 	 * The bulk migrator loads only under WP-CLI.
 	 *
 	 * The read-time fallback store and the reader it depends on legitimately load
-	 * on every request -- that is the whole point of them. The migrator does not:
+	 * on every request – that is the whole point of them. The migrator does not:
 	 * it is a one-shot operator tool, and hoisting it out of the WP-CLI guard
 	 * would pass every other test in the suite while quietly loading a class no
 	 * web request can reach.
@@ -238,7 +238,7 @@ class Tests_Secrets_Architecture extends WP_UnitTestCase {
 			$this->assertGreaterThan(
 				$cli_guard,
 				$match[1],
-				'The migrator is required outside the WP-CLI guard -- it would load on every request.'
+				'The migrator is required outside the WP-CLI guard: it would load on every request.'
 			);
 		}
 	}
@@ -249,7 +249,7 @@ class Tests_Secrets_Architecture extends WP_UnitTestCase {
 	 * This is the load-bearing promise to the team still running that code: both
 	 * systems share a site, and ours is strictly a reader of theirs. It is checked
 	 * statically rather than only behaviourally because the dangerous version of
-	 * this mistake is a code path nobody thought to write a test for -- a cleanup
+	 * this mistake is a code path nobody thought to write a test for – a cleanup
 	 * step, a "tidy up after migrating" convenience, an uninstall routine.
 	 *
 	 * The reader is exempt for get_option() specifically: reading is its job.

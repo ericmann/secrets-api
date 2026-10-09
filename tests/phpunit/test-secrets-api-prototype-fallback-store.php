@@ -1,6 +1,6 @@
 <?php
 /**
- * Tests for Secrets_API_Prototype_Fallback_Store -- the read-time upgrade path
+ * Tests for Secrets_API_Prototype_Fallback_Store – the read-time upgrade path
  * that keeps prototype-era sites working when the plugins reading them adopt the
  * Secrets API.
  *
@@ -26,7 +26,7 @@ class Tests_Secrets_ApiPrototypeFallbackStore extends WP_UnitTestCase {
 		$this->setExpectedIncorrectUsage( 'wp_secrets_validate_name' );
 	}
 
-	// -- the point of the whole class ---------------------------------------
+	// – the point of the whole class ---------------------------------------
 
 	public function test_a_prototype_secret_is_readable_through_the_new_api_with_no_migration() {
 		$this->expect_unnamespaced_notice();
@@ -92,7 +92,7 @@ class Tests_Secrets_ApiPrototypeFallbackStore extends WP_UnitTestCase {
 		$this->assertSame( 'authoritative-value', wp_get_secret( 'api_key' )->reveal() );
 	}
 
-	// -- only the unnamespaced form maps, and it maps exactly -----------------
+	// – only the unnamespaced form maps, and it maps exactly -----------------
 
 	/**
 	 * The central rule after the mapping was tightened: a namespaced name
@@ -120,7 +120,7 @@ class Tests_Secrets_ApiPrototypeFallbackStore extends WP_UnitTestCase {
 		$this->assertNull( $this->store()->get( 'other_key' ) );
 	}
 
-	// -- fingerprint round-trip, both key-derivation paths --------------------
+	// – fingerprint round-trip, both key-derivation paths --------------------
 
 	/**
 	 * Computes what the fingerprint of a plaintext must be under this site's
@@ -173,7 +173,7 @@ class Tests_Secrets_ApiPrototypeFallbackStore extends WP_UnitTestCase {
 		$this->assertSame( $this->expected_fingerprint( 'sk_prototype_value' ), $secret->fingerprint() );
 	}
 
-	// -- non-interference: the prototype's own data is never touched -----------
+	// – non-interference: the prototype's own data is never touched -----------
 
 	public function test_reading_never_modifies_or_removes_the_prototype_row() {
 		$this->expect_unnamespaced_notice();
@@ -202,7 +202,7 @@ class Tests_Secrets_ApiPrototypeFallbackStore extends WP_UnitTestCase {
 		$this->assertSame( $secret_before, get_option( '_secret_api_key' ) );
 	}
 
-	// -- absence and failure still behave -------------------------------------
+	// – absence and failure still behave -------------------------------------
 
 	public function test_absent_everywhere_is_still_null() {
 		$this->expect_unnamespaced_notice();
@@ -223,7 +223,7 @@ class Tests_Secrets_ApiPrototypeFallbackStore extends WP_UnitTestCase {
 
 	/**
 	 * A store reporting a genuine error must not have that error quietly replaced
-	 * by a prototype value -- that would turn a fail-closed read into a fail-open
+	 * by a prototype value – that would turn a fail-closed read into a fail-open
 	 * one, which is the opposite of this API's whole posture.
 	 */
 	public function test_a_store_error_is_never_answered_from_the_prototype() {
@@ -237,7 +237,7 @@ class Tests_Secrets_ApiPrototypeFallbackStore extends WP_UnitTestCase {
 		$this->assertWPError( $result );
 	}
 
-	// -- delegation ------------------------------------------------------------
+	// – delegation ------------------------------------------------------------
 
 	public function test_network_reads_are_never_served_from_the_prototype() {
 		( new Legacy_Fixture_Writer() )->write_secret( 'api_key', 'value' );

@@ -3,7 +3,7 @@
  * Plugin Name:       Secrets API
  * Plugin URI:        https://github.com/ericmann/secrets-api
  * Description:       Feature plugin for the WordPress Secrets API proposed for 7.2. Encrypted, versioned credential storage with pluggable storage and keyring back ends.
- * Version:           0.2.3
+ * Version:           0.3.0
  * Requires at least: 6.6
  * Requires PHP:      7.4
  * License:           GPL-2.0-or-later
@@ -25,14 +25,14 @@ defined( 'ABSPATH' ) || exit;
 /**
  * Plugin version.
  */
-define( 'WP_SECRETS_API_PLUGIN_VERSION', '0.2.3' );
+define( 'WP_SECRETS_API_PLUGIN_VERSION', '0.3.0' );
 
 /**
  * The WordPress version expected to ship the Secrets API in core.
  *
  * Overridable from wp-config.php for the case where the API lands in a different
  * release than currently planned. The proposal's own timeline allows for the API to
- * be deferred to 7.3, which is why this gate is never used on its own -- see below.
+ * be deferred to 7.3, which is why this gate is never used on its own – see below.
  */
 defined( 'WP_SECRETS_API_CORE_VERSION' ) || define( 'WP_SECRETS_API_CORE_VERSION', '7.2' );
 
@@ -58,7 +58,7 @@ define( 'WP_SECRETS_API_PLUGIN_DIR', plugin_dir_path( __FILE__ ) );
  *
  * @return void
  */
-function wp_secrets_api_bootstrap() {
+function wp_secrets_api_bootstrap(): void {
 	global $wp_version;
 
 	$symbol_taken = function_exists( 'wp_get_secret' );
@@ -122,7 +122,7 @@ function wp_secrets_api_bootstrap() {
 	 * Installed as the default store so that a site carrying prototype-format
 	 * rows keeps answering wp_get_secret() once the plugins reading those rows
 	 * move to this API, without anyone having to run a migration first. See the
-	 * class docblock -- this is an adoption path, not a compatibility layer.
+	 * class docblock – this is an adoption path, not a compatibility layer.
 	 *
 	 * Set before the drop-in loads, deliberately: a drop-in that installs a host
 	 * store overwrites this global and the fallback disappears with it, which is
@@ -156,7 +156,7 @@ function wp_secrets_api_bootstrap() {
 	 */
 	add_filter( 'user_has_cap', 'wp_secrets_api_grant_network_cap_to_super_admins', 10, 4 );
 
-	// cli/ is never copied to core and is registered only under real WP-CLI --
+	// cli/ is never copied to core and is registered only under real WP-CLI –
 	// or, in this plugin's own test suite, the mock WP_CLI test double that
 	// tests/bootstrap.php defines before the plugin ever loads.
 	if ( defined( 'WP_CLI' ) && WP_CLI ) {
@@ -166,7 +166,7 @@ function wp_secrets_api_bootstrap() {
 		 * here, because `wp secret migrate-legacy` is their sole caller.
 		 *
 		 * This plugin deliberately provides no compatibility layer over the
-		 * prototype -- no get_secret()/set_secret() shims, no reimplemented
+		 * prototype – no get_secret()/set_secret() shims, no reimplemented
 		 * filters, nothing that lets prototype-era code keep running against the
 		 * new API. What it guarantees instead is non-interference: the two option
 		 * namespaces do not overlap ('_secret_' vs '_wp_secret_',
@@ -174,7 +174,7 @@ function wp_secrets_api_bootstrap() {
 		 * on one site without corrupting each other, and nothing here ever writes
 		 * to or deletes a prototype-owned row. That property is enforced by
 		 * test_never_writes_to_a_prototype_owned_option() rather than left to
-		 * good intentions -- the AI plugin's vendored copy is actively reading
+		 * good intentions – the AI plugin's vendored copy is actively reading
 		 * those rows.
 		 *
 		 * The reader itself is loaded unconditionally above, since the read-time
@@ -214,7 +214,7 @@ function wp_secrets_api_bootstrap() {
  *
  * @return void
  */
-function wp_secrets_api_notice_superseded() {
+function wp_secrets_api_notice_superseded(): void {
 	if ( ! current_user_can( 'activate_plugins' ) ) {
 		return;
 	}
@@ -230,7 +230,7 @@ function wp_secrets_api_notice_superseded() {
  *
  * @return void
  */
-function wp_secrets_api_notice_conflict() {
+function wp_secrets_api_notice_conflict(): void {
 	if ( ! current_user_can( 'activate_plugins' ) ) {
 		return;
 	}
@@ -266,8 +266,8 @@ function wp_secrets_api_notice_conflict() {
  * default. A malformed drop-in must not turn into a white screen for the rest of
  * the site, and must not look like a working site with no secrets in it yet.
  *
- * This is not airtight: PHP treats some class declaration errors -- notably a class
- * that `implements` an interface but omits a required method -- as an uncatchable
+ * This is not airtight: PHP treats some class declaration errors – notably a class
+ * that `implements` an interface but omits a required method – as an uncatchable
  * fatal even inside a try/catch around the require, confirmed empirically on both
  * PHP 7.4 and 8.5 before writing this comment. That gap is unavoidable from
  * userland and is recorded in docs/journal/test-coverage-gaps.md rather than
@@ -275,7 +275,7 @@ function wp_secrets_api_notice_conflict() {
  *
  * @return void
  */
-function wp_secrets_api_load_dropin() {
+function wp_secrets_api_load_dropin(): void {
 	static $loaded = false;
 
 	if ( $loaded ) {
@@ -301,7 +301,7 @@ function wp_secrets_api_load_dropin() {
 	}
 
 	/*
-	 * Not set at all is fine -- a drop-in overriding only the keyring, say,
+	 * Not set at all is fine – a drop-in overriding only the keyring, say,
 	 * legitimately leaves the store and provider globals untouched. Set to the wrong
 	 * thing is not: that is exactly the case the getters fail closed for.
 	 */
@@ -323,7 +323,7 @@ function wp_secrets_api_load_dropin() {
  *
  * @return void
  */
-function wp_secrets_api_activate() {
+function wp_secrets_api_activate(): void {
 	$administrator = get_role( 'administrator' );
 
 	if ( $administrator ) {
@@ -332,13 +332,13 @@ function wp_secrets_api_activate() {
 }
 
 /**
- * Removes the capability this plugin granted, on uninstall -- not on deactivation.
+ * Removes the capability this plugin granted, on uninstall – not on deactivation.
  * Deactivating and reactivating the plugin must not silently strip a capability an
  * administrator may have started relying on for something else in the meantime.
  *
  * @return void
  */
-function wp_secrets_api_uninstall() {
+function wp_secrets_api_uninstall(): void {
 	$administrator = get_role( 'administrator' );
 
 	if ( $administrator ) {
