@@ -3,7 +3,7 @@
  * Creates a KMS key on Moto for the AWS KMS keyring conformance suite.
  *
  * The SigV4 signing block is copied from AWS_KMS_Keyring::call() rather than
- * calling into the example's private method -- the detailed spec accepts
+ * calling into the example's private method – the detailed spec accepts
  * copying the signer for readability, and a test fixture reaching into a
  * class's private internals would be worse than a second small copy of it.
  *

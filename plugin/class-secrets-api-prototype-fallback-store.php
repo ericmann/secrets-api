@@ -13,7 +13,7 @@
  * on the prototype, so its sites have credentials sitting in prototype-format
  * rows. When that plugin moves to the Secrets API, every one of those sites would
  * otherwise see wp_get_secret() return null for a credential it demonstrably has,
- * and would need an explicit migration run -- per site -- before working again.
+ * and would need an explicit migration run – per site – before working again.
  * Sites that nobody remembers to migrate would simply break, and a credential that
  * cannot be re-entered from memory means a rebuild.
  *
@@ -25,10 +25,10 @@
  * Only the unnamespaced form participates. wp_get_secret( 'api_key' ) consults the
  * prototype's 'api_key'; wp_get_secret( 'myplugin/api_key' ) consults nothing,
  * because the prototype had no namespaces and so cannot have owned that name.
- * Nothing is rewritten or inferred -- see prototype_key_for().
+ * Nothing is rewritten or inferred – see prototype_key_for().
  *
  * A note on what this is NOT. It does not implement the prototype's API, reinstate
- * its function names, or let prototype-era code keep running -- that would be a
+ * its function names, or let prototype-era code keep running – that would be a
  * compatibility layer, and there is deliberately none. It reads one option row,
  * once, and never writes to or deletes anything the prototype owns. Both systems
  * keep working on the same site throughout, because the two option namespaces do
@@ -41,7 +41,7 @@
  * business knowing this format ever existed, and src/ stays a clean file-copy
  * candidate. And it composes: this wraps the default option store, and a
  * secrets.php drop-in that installs a host store replaces it entirely, which is
- * the right outcome -- a host serving secrets from its own platform has no
+ * the right outcome – a host serving secrets from its own platform has no
  * prototype rows to inherit.
  */
 final class Secrets_API_Prototype_Fallback_Store implements WP_Secrets_Store {
@@ -57,7 +57,7 @@ final class Secrets_API_Prototype_Fallback_Store implements WP_Secrets_Store {
 	 * Names currently mid-upgrade, guarding against re-entry.
 	 *
 	 * The upgrade writes through _wp_secrets_set(), which reads the prior record
-	 * first -- landing back in this class's own get() for the same name. Without
+	 * first – landing back in this class's own get() for the same name. Without
 	 * this, that second miss would start another upgrade, and so on.
 	 *
 	 * @var array<string, bool>
@@ -107,7 +107,7 @@ final class Secrets_API_Prototype_Fallback_Store implements WP_Secrets_Store {
 	 * Reads the prototype row behind a name, writes it into the current format,
 	 * and returns the resulting record.
 	 *
-	 * Failure at any step returns null -- the same answer as the miss that got us
+	 * Failure at any step returns null – the same answer as the miss that got us
 	 * here. A site with no prototype rows, an unreadable prototype row, or a
 	 * read-only store all end up reporting the secret as absent, which is what it
 	 * is as far as the current format is concerned.
@@ -140,7 +140,7 @@ final class Secrets_API_Prototype_Fallback_Store implements WP_Secrets_Store {
 		 * derives the master key, binds the AAD, and fires wp_secret_changed with
 		 * the 'imported' action, so an upgrade that happens silently at read time
 		 * is still visible to anything auditing secret changes. Flagged
-		 * needs_rotation for the same reason wp_import_option_as_secret() does --
+		 * needs_rotation for the same reason wp_import_option_as_secret() does –
 		 * this credential has been sitting in the prototype's format, and
 		 * re-encrypting it now does not undo wherever it has already been.
 		 */
@@ -160,7 +160,7 @@ final class Secrets_API_Prototype_Fallback_Store implements WP_Secrets_Store {
 	/**
 	 * Whether a current-format record already exists, without the fallback.
 	 *
-	 * Ordinary callers want the fallback -- that is the entire point. The migrator
+	 * Ordinary callers want the fallback – that is the entire point. The migrator
 	 * does not: it needs to report whether a secret was already in the current
 	 * format, and asking through get() would upgrade the very thing it is trying
 	 * to describe. That is not just a cosmetic reporting problem; it would make
@@ -234,7 +234,7 @@ final class Secrets_API_Prototype_Fallback_Store implements WP_Secrets_Store {
 	/**
 	 * Deletes a current-format record. The prototype's row is left alone, so a
 	 * delete followed by a read will inherit the prototype value again rather than
-	 * reporting absence -- the same answer the site would have given before the
+	 * reporting absence – the same answer the site would have given before the
 	 * Secrets API was installed at all.
 	 *
 	 * @param string $name    The secret's namespaced name.

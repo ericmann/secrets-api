@@ -17,7 +17,7 @@ class Tests_Secrets_WPCLISecretCommand extends WP_UnitTestCase {
 		return new WP_CLI_Secret_Command();
 	}
 
-	// -- set --------------------------------------------------------------
+	// – set --------------------------------------------------------------
 
 	/**
 	 * The --stdin code path itself (file_get_contents('php://stdin')) is not
@@ -76,7 +76,7 @@ class Tests_Secrets_WPCLISecretCommand extends WP_UnitTestCase {
 		$this->assertNotEmpty( WP_CLI::$errors );
 	}
 
-	// -- get --------------------------------------------------------------
+	// – get --------------------------------------------------------------
 
 	public function test_get_absent_secret_halts_with_exit_code_1() {
 		try {
@@ -165,7 +165,7 @@ class Tests_Secrets_WPCLISecretCommand extends WP_UnitTestCase {
 
 	/**
 	 * NOTE: this calls the command method directly, which is why it cannot catch a
-	 * flag-name collision or a malformed synopsis -- both of those live in WP-CLI's
+	 * flag-name collision or a malformed synopsis – both of those live in WP-CLI's
 	 * dispatch layer, above where this test starts. `--slot` is named that way
 	 * because `--version` was silently swallowed by WP-CLI and this test passed
 	 * throughout. See docs/journal/test-coverage-gaps.md, "CLI dispatch is not covered".
@@ -186,7 +186,7 @@ class Tests_Secrets_WPCLISecretCommand extends WP_UnitTestCase {
 		$this->assertContains( 'first-value', WP_CLI::$log );
 	}
 
-	// -- delete -------------------------------------------------------------
+	// – delete -------------------------------------------------------------
 
 	public function test_delete_with_yes_skips_confirmation_and_deletes() {
 		wp_set_secret( 'myplugin/api-key', 'value' );
@@ -210,7 +210,7 @@ class Tests_Secrets_WPCLISecretCommand extends WP_UnitTestCase {
 		$this->assertInstanceOf( WP_Secret::class, wp_get_secret( 'myplugin/api-key' ) );
 	}
 
-	// -- list -----------------------------------------------------------
+	// – list -----------------------------------------------------------
 
 	public function test_list_never_logs_a_value() {
 		wp_set_secret( 'myplugin/api-key', 'UNIQUE-PLAINTEXT-CANARY-9f3a' );
@@ -240,7 +240,7 @@ class Tests_Secrets_WPCLISecretCommand extends WP_UnitTestCase {
 		$this->assertSame( array( 'name' ), WP_CLI::$formatted_items[0]['fields'] );
 	}
 
-	// -- retire ---------------------------------------------------------
+	// – retire ---------------------------------------------------------
 
 	public function test_retire_with_yes_clears_previous() {
 		wp_set_secret( 'myplugin/api-key', 'first' );
@@ -251,7 +251,7 @@ class Tests_Secrets_WPCLISecretCommand extends WP_UnitTestCase {
 		$this->assertNull( wp_get_secret( 'myplugin/api-key', WP_Secret_Version::PREVIOUS ) );
 	}
 
-	// -- import-option ----------------------------------------------------
+	// – import-option ----------------------------------------------------
 
 	public function test_import_option_imports_and_flags_rotation() {
 		update_option( 'my_option', 'value' );
@@ -262,7 +262,7 @@ class Tests_Secrets_WPCLISecretCommand extends WP_UnitTestCase {
 		$this->assertNotEmpty( WP_CLI::$success );
 	}
 
-	// -- generate-key -----------------------------------------------------
+	// – generate-key -----------------------------------------------------
 
 	public function test_generate_key_outputs_a_base64_32_byte_key() {
 		$this->command()->generate_key();
@@ -274,7 +274,7 @@ class Tests_Secrets_WPCLISecretCommand extends WP_UnitTestCase {
 	}
 
 	public function test_generate_key_never_writes_to_wp_config() {
-		// There is no wp-config.php write path in this command at all --
+		// There is no wp-config.php write path in this command at all –
 		// asserted by confirming the only interaction is a single log line.
 		$this->command()->generate_key();
 
@@ -282,7 +282,7 @@ class Tests_Secrets_WPCLISecretCommand extends WP_UnitTestCase {
 		$this->assertEmpty( WP_CLI::$warning );
 	}
 
-	// -- health / dropin ----------------------------------------------------
+	// – health / dropin ----------------------------------------------------
 
 	public function test_health_reports_three_checks() {
 		$this->command()->health( array(), array() );
@@ -328,7 +328,7 @@ class Tests_Secrets_WPCLISecretCommand extends WP_UnitTestCase {
 		$this->assertStringContainsString( 'WP_Secrets_Config_Key_Provider', $log );
 	}
 
-	// -- rotate -----------------------------------------------------------
+	// – rotate -----------------------------------------------------------
 
 	public function test_rotate_without_previous_key_constant_errors() {
 		$this->expectException( Mock_WP_CLI_Exit_Exception::class );
@@ -485,7 +485,7 @@ class Tests_Secrets_WPCLISecretCommand extends WP_UnitTestCase {
 		$this->assertStringNotContainsString( base64_encode( $root ), $everything );
 	}
 
-	// -- migrate-legacy -----------------------------------------------------
+	// – migrate-legacy -----------------------------------------------------
 
 	public function test_migrate_legacy_is_refused_for_network_scope() {
 		$this->expectException( Mock_WP_CLI_Exit_Exception::class );

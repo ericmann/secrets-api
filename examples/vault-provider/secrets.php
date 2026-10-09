@@ -4,17 +4,17 @@
  *
  * Copy this file to wp-content/secrets.php and define four constants in
  * wp-config.php (see the README next to this file). No Composer, no Vault SDK:
- * the whole thing is wp_remote_request() against Vault's KV v2 HTTP API --
+ * the whole thing is wp_remote_request() against Vault's KV v2 HTTP API –
  * a drop-in that drags in a dependency tree is a drop-in nobody audits.
  *
  * Why a provider, not a store or keyring: Vault holds the *secret*, so
- * WordPress is a consumer rather than a custodian -- WP_Secrets_Provider, and
+ * WordPress is a consumer rather than a custodian – WP_Secrets_Provider, and
  * get_protection_boundary() reports BOUNDARY_PROVIDER.
  *
  * The part that is a translation: KV v2 keeps an integer version history
  * (1, 2, 3, ...), not the two named slots this API exposes. This provider
  * makes Vault a two-slot store by setting `max_versions: 2` when it creates a
- * secret and by defining "previous" as strictly version N-1 -- never an older
+ * secret and by defining "previous" as strictly version N-1 – never an older
  * survivor. See README.md for the four questions this translation answers.
  *
  * A secret's data and its metadata (max_versions, custom_metadata) are two
@@ -43,7 +43,7 @@ final class Vault_KV2_Provider implements WP_Secrets_Provider {
 	const MAX_VERSIONS = 2;
 
 	/**
-	 * ⚠️ ASSUMPTION: seconds to wait for a Vault response -- long enough for a
+	 * ⚠️ ASSUMPTION: seconds to wait for a Vault response – long enough for a
 	 * cold TLS handshake to a remote Vault, short enough that an outage fails a
 	 * page in seconds rather than tying up PHP workers. Measured against a
 	 * refused connection (about 0.005 s) and a non-routable address (about 4 s).
@@ -89,7 +89,7 @@ final class Vault_KV2_Provider implements WP_Secrets_Provider {
 		$this->namespace = $namespace;
 	}
 
-	// -- the provider contract -------------------------------------------------
+	// – the provider contract -------------------------------------------------
 
 	/**
 	 * @param string $name    Secret name.
@@ -148,7 +148,7 @@ final class Vault_KV2_Provider implements WP_Secrets_Provider {
 	 * Creates or updates a secret. On first write, max_versions is set to
 	 * self::MAX_VERSIONS before the value is written, so Vault is a two-slot
 	 * store from its very first version. A secret created outside this
-	 * provider keeps whatever max_versions it already has -- see ADR 0010.
+	 * provider keeps whatever max_versions it already has – see ADR 0010.
 	 * The rotation flag is written in a separate metadata request.
 	 *
 	 * @param string      $name           Secret name.
@@ -192,7 +192,7 @@ final class Vault_KV2_Provider implements WP_Secrets_Provider {
 		/**
 		 * Fires whenever a secret is created, updated, deleted, or imported.
 		 *
-		 * Providers own firing this -- see WP_Secrets_Provider::set().
+		 * Providers own firing this – see WP_Secrets_Provider::set().
 		 */
 		do_action(
 			'wp_secret_changed',
@@ -259,7 +259,7 @@ final class Vault_KV2_Provider implements WP_Secrets_Provider {
 		/**
 		 * Fires whenever a secret is created, updated, deleted, or imported.
 		 *
-		 * Providers own firing this -- see WP_Secrets_Provider::set().
+		 * Providers own firing this – see WP_Secrets_Provider::set().
 		 */
 		do_action( 'wp_secret_changed', $name, 'deleted', get_current_user_id(), time(), '', '', $network );
 
@@ -414,7 +414,7 @@ final class Vault_KV2_Provider implements WP_Secrets_Provider {
 		return true;
 	}
 
-	// -- internals -------------------------------------------------------------
+	// – internals -------------------------------------------------------------
 
 	/**
 	 * @param bool $network Whether this is a network-scope secret.
@@ -457,7 +457,7 @@ final class Vault_KV2_Provider implements WP_Secrets_Provider {
 	 *
 	 * Absence (404) is null. A transport failure or any non-2xx response,
 	 * including 403 (permission denied) and 503 (sealed), is WP_Error with code
-	 * WP_SECRETS_ERROR_STORE_UNAVAILABLE -- both read as "the store cannot
+	 * WP_SECRETS_ERROR_STORE_UNAVAILABLE – both read as "the store cannot
 	 * answer right now," which is the correct state for a caller that must
 	 * never confuse "sealed" with "the secret was deleted."
 	 *
@@ -551,7 +551,7 @@ final class Vault_KV2_Provider implements WP_Secrets_Provider {
 
 	/**
 	 * The version this provider calls "previous": strictly N-1, and only when
-	 * N-1 is itself readable. Never the newest surviving version below N --
+	 * N-1 is itself readable. Never the newest surviving version below N –
 	 * retiring must never resurrect an older version by promoting it into the
 	 * previous slot.
 	 *
@@ -586,7 +586,7 @@ final class Vault_KV2_Provider implements WP_Secrets_Provider {
 	/**
 	 * Whether the rotation flag is set. Requires Vault 1.9+, which is when
 	 * custom_metadata shipped. Reads as set only when the value is exactly
-	 * "1" -- see write_flag() for why a clear writes "0" rather than removing
+	 * "1" – see write_flag() for why a clear writes "0" rather than removing
 	 * the key.
 	 *
 	 * @param array|null $meta Decoded metadata, or null.
@@ -602,7 +602,7 @@ final class Vault_KV2_Provider implements WP_Secrets_Provider {
 	/**
 	 * Writes the rotation flag. Vault replaces custom_metadata wholesale on
 	 * every POST, so this merges the flag into the custom_metadata already
-	 * read by the caller and posts the merged map -- preserving any other
+	 * read by the caller and posts the merged map – preserving any other
 	 * custom_metadata keys a different tool may have set. Clearing the flag
 	 * writes "0" rather than omitting the key, since dropping it would also
 	 * mean re-deriving the rest of the map correctly on every write. This
@@ -666,8 +666,8 @@ final class Vault_KV2_Provider implements WP_Secrets_Provider {
  * Install it, but only with the address and token actually filled in.
  *
  * Checked for emptiness rather than just defined(): a config file with the
- * constants present but blank -- the state a freshly-copied override file is
- * in -- would otherwise install a provider that fails every single call.
+ * constants present but blank – the state a freshly-copied override file is
+ * in – would otherwise install a provider that fails every single call.
  * Falling back to WordPress's own provider means an unpopulated config is
  * just a normal site.
  */

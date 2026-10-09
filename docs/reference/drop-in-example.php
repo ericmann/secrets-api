@@ -16,7 +16,7 @@
  * - $GLOBALS['wp_secrets_store']    -- your backend holds the ciphertext records
  *                                      WordPress produces. Encryption stays
  *                                      WordPress's.
- * - $GLOBALS['wp_secrets_provider'] -- your platform is responsible for the
+ * - $GLOBALS['wp_secrets_provider'] – your platform is responsible for the
  *                                      credential itself: it holds it, protects it,
  *                                      and hands it back. This replaces the store
  *                                      and keyring entirely.

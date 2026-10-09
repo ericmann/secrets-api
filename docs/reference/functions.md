@@ -282,8 +282,8 @@ request, so every operation returns WP_Error rather than falling back to the
 default. A malformed drop-in must not turn into a white screen for the rest of
 the site, and must not look like a working site with no secrets in it yet.
 
-This is not airtight: PHP treats some class declaration errors -- notably a class
-that `implements` an interface but omits a required method -- as an uncatchable
+This is not airtight: PHP treats some class declaration errors – notably a class
+that `implements` an interface but omits a required method – as an uncatchable
 fatal even inside a try/catch around the require, confirmed empirically on both
 PHP 7.4 and 8.5 before writing this comment. That gap is unavoidable from
 userland and is recorded in docs/journal/test-coverage-gaps.md rather than
@@ -323,7 +323,7 @@ function wp_secrets_api_notice_superseded(): void
 
 ## `wp_secrets_api_uninstall()`
 
-Removes the capability this plugin granted, on uninstall -- not on deactivation. Deactivating and reactivating the plugin must not silently strip a capability an administrator may have started relying on for something else in the meantime.
+Removes the capability this plugin granted, on uninstall – not on deactivation. Deactivating and reactivating the plugin must not silently strip a capability an administrator may have started relying on for something else in the meantime.
 
 ```php
 function wp_secrets_api_uninstall(): void
@@ -418,7 +418,7 @@ function wp_secrets_site_health_count_needing_rotation( bool $network ): int
 
 Adds a Secrets API section to Site Health's debug information.
 
-Counts and class names only -- no secret values, and no fingerprints. Network
+Counts and class names only – no secret values, and no fingerprints. Network
 scope figures are included only for a super admin on a multisite install.
 
 ```php
@@ -506,7 +506,7 @@ function wp_secrets_site_health_test_needs_rotation(): array
 
 Site Health test: does every stored secret still decrypt?
 
-Network secrets are included only for a super admin on a multisite install --
+Network secrets are included only for a super admin on a multisite install –
 never shown to a site administrator who is not one.
 
 ```php
@@ -523,7 +523,7 @@ function wp_secrets_site_health_test_undecryptable(): array
 
 Registers the Secrets API's Site Health tests.
 
-No settings screen -- the proposal defers that to 7.3 -- but the health signal an
+No settings screen – the proposal defers that to 7.3 – but the health signal an
 operator needs to notice a broken key, a weak key source, or a pending rotation is
 in scope now.
 

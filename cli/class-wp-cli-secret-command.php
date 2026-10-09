@@ -2,7 +2,7 @@
 /**
  * WP-CLI: wp secret
  *
- * Never copied to core -- registered only when defined( 'WP_CLI' ) && WP_CLI.
+ * Never copied to core – registered only when defined( 'WP_CLI' ) && WP_CLI.
  *
  * @package SecretsAPI
  */
@@ -28,7 +28,7 @@ class WP_CLI_Secret_Command {
 	 * Refuses network-scope commands outright on a single-site install.
 	 *
 	 * WP-CLI instantiates a command class lazily, at the point its subcommand is
-	 * actually invoked (when registered by class name, as this plugin does) --
+	 * actually invoked (when registered by class name, as this plugin does) –
 	 * so this runs once per invocation, not once at registration, and never fires
 	 * for `wp secret` at all since only the network subclass sets $network true.
 	 */
@@ -48,7 +48,7 @@ class WP_CLI_Secret_Command {
 	 *
 	 * [<value>]
 	 * : The plaintext value. Passing this as an argument leaks it into shell
-	 * history and process listings on shared hosts -- use --stdin instead.
+	 * history and process listings on shared hosts – use --stdin instead.
 	 *
 	 * [--stdin]
 	 * : Read the value from STDIN. The documented way to pass a value.
@@ -172,7 +172,7 @@ class WP_CLI_Secret_Command {
 
 		$plaintext = $secret->reveal();
 
-		// A provider that holds the credential but will not release it to PHP --
+		// A provider that holds the credential but will not release it to PHP –
 		// an HSM signing key, a brokered credential. The secret is real and its
 		// name and fingerprint below are still meaningful, so this reports the
 		// value as unavailable rather than halting: `wp secret get` is also how
@@ -608,7 +608,7 @@ class WP_CLI_Secret_Command {
 	/**
 	 * Emits a base64-encoded 32-byte key, suitable for WP_SECRETS_KEY.
 	 *
-	 * Writes to STDOUT only. Never touches wp-config.php -- adding the constant is
+	 * Writes to STDOUT only. Never touches wp-config.php – adding the constant is
 	 * the operator's own step.
 	 *
 	 * @subcommand generate-key

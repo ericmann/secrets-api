@@ -12,7 +12,7 @@ require_once __DIR__ . '/class-moto-kms-fixture.php';
 class Tests_AWS_KMS_Keyring_Conformance extends WP_Secrets_Keyring_Conformance {
 
 	/**
-	 * One key, created once for the whole run rather than per test -- KMS
+	 * One key, created once for the whole run rather than per test – KMS
 	 * (and Moto) key creation is comparatively expensive, and nothing in the
 	 * conformance suite depends on a fresh key per test.
 	 *
