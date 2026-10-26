@@ -169,6 +169,42 @@ final class Vault_KV2_Provider implements WP_Secrets_Provider {
 
 		$created = ( null === $meta );
 
+		// Writing the value Vault already holds as current would add version
+		// N+1 and push the real previous value out, so it is skipped – see
+		// WP_Secrets_Provider::set(). Raising the rotation flag on that value
+		// is still recorded, as a metadata write with no new version.
+		if ( ! $created && $this->holds_current_value( $vault_path, $value ) ) {
+			if ( ! $needs_rotation || $this->flag_is_set( $meta ) ) {
+				return true;
+			}
+
+			$flag = $this->write_flag( $vault_path, true, $meta );
+
+			if ( is_wp_error( $flag ) ) {
+				return new WP_Error(
+					WP_SECRETS_ERROR_STORE_UNAVAILABLE,
+					sprintf(
+						'Vault refused to record the rotation flag: %s',
+						$flag->get_error_message()
+					)
+				);
+			}
+
+			/** This action is documented in WP_Secrets_Libsodium_Provider::set(). */
+			do_action(
+				'wp_secret_changed',
+				$name,
+				null !== $action ? $action : 'updated',
+				get_current_user_id(),
+				time(),
+				'',
+				'',
+				$network
+			);
+
+			return true;
+		}
+
 		if ( $created ) {
 			$result = $this->request(
 				'POST',
@@ -597,6 +633,26 @@ final class Vault_KV2_Provider implements WP_Secrets_Provider {
 		return null !== $meta
 			&& isset( $meta['custom_metadata'][ self::ROTATION_FLAG ] )
 			&& '1' === $meta['custom_metadata'][ self::ROTATION_FLAG ];
+	}
+
+	/**
+	 * Whether the current version already holds this value. A failed read is
+	 * not an answer, so it reports false and leaves the write to proceed and
+	 * report its own error.
+	 *
+	 * @param string $vault_path Path under the mount.
+	 * @param mixed  $value      Plaintext about to be written.
+	 *
+	 * @return bool
+	 */
+	private function holds_current_value( $vault_path, $value ) {
+		$data = $this->request( 'GET', $this->url( 'data', $vault_path ) );
+
+		return is_array( $data )
+			&& isset( $data['data']['value'] )
+			&& is_string( $data['data']['value'] )
+			&& is_string( $value )
+			&& hash_equals( $data['data']['value'], $value );
 	}
 
 	/**

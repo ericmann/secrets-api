@@ -138,6 +138,14 @@ final class AWS_Secrets_Manager_Provider implements WP_Secrets_Provider {
 	public function set( string $name, $value, bool $network = false, bool $needs_rotation = false, ?string $action = null ) {
 		$aws_name = $this->aws_name( $name, $network );
 
+		// PutSecretValue makes a new version even for the value AWSCURRENT
+		// already holds, which would move AWSPREVIOUS onto that same value and
+		// lose the real previous one. An unchanged write is skipped instead –
+		// see WP_Secrets_Provider::set().
+		if ( $this->holds_current_value( $aws_name, $value ) ) {
+			return true;
+		}
+
 		// PutSecretValue rotates AWSCURRENT -> AWSPREVIOUS for us, which is the
 		// whole two-slot model handled server-side.
 		$result = $this->call(
@@ -276,6 +284,32 @@ final class AWS_Secrets_Manager_Provider implements WP_Secrets_Provider {
 		}
 
 		return $entries;
+	}
+
+	/**
+	 * Whether AWSCURRENT already holds this value. A failed read is not an
+	 * answer, so it reports false and leaves the write to proceed and report
+	 * its own error.
+	 *
+	 * @param string $aws_name Name in Secrets Manager.
+	 * @param mixed  $value    Plaintext about to be written.
+	 *
+	 * @return bool
+	 */
+	private function holds_current_value( $aws_name, $value ) {
+		$response = $this->call(
+			'GetSecretValue',
+			array(
+				'SecretId'     => $aws_name,
+				'VersionStage' => 'AWSCURRENT',
+			)
+		);
+
+		return ! is_wp_error( $response )
+			&& isset( $response['SecretString'] )
+			&& is_string( $response['SecretString'] )
+			&& is_string( $value )
+			&& hash_equals( $response['SecretString'], $value );
 	}
 
 	/**

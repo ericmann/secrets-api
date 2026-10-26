@@ -185,6 +185,64 @@ class Tests_Vault_Provider extends WP_UnitTestCase {
 		$this->assertSame( 200, $this->server->read_version( $path, 3 ) );
 	}
 
+	public function test_an_unchanged_write_adds_no_version_and_fires_nothing() {
+		$path = 'wp/site/1/acme/key';
+
+		$this->provider->set( 'acme/key', 'v1' );
+		$this->provider->set( 'acme/key', 'v2' );
+
+		$fired = array();
+		add_action(
+			'wp_secret_changed',
+			static function ( $name, $action ) use ( &$fired ) {
+				$fired[] = $action;
+			},
+			10,
+			2
+		);
+
+		$this->assertTrue( $this->provider->set( 'acme/key', 'v2' ) );
+
+		$this->assertSame( 2, $this->server->metadata( $path )['current_version'] );
+		$this->assertSame( 'v1', $this->provider->get( 'acme/key', WP_Secret_Version::PREVIOUS )->reveal() );
+		$this->assertSame( array(), $fired );
+	}
+
+	public function test_flagging_an_unchanged_value_writes_the_flag_without_a_new_version() {
+		$path = 'wp/site/1/acme/key';
+
+		$this->provider->set( 'acme/key', 'v1' );
+		$this->provider->set( 'acme/key', 'v2' );
+
+		$fired = array();
+		add_action(
+			'wp_secret_changed',
+			static function ( $name, $action ) use ( &$fired ) {
+				$fired[] = $action;
+			},
+			10,
+			2
+		);
+
+		$this->assertTrue( $this->provider->set( 'acme/key', 'v2', false, true, 'imported' ) );
+
+		$meta = $this->server->metadata( $path );
+
+		$this->assertSame( 2, $meta['current_version'] );
+		$this->assertSame( '1', $meta['custom_metadata']['needs_rotation'] );
+		$this->assertSame( 'v1', $this->provider->get( 'acme/key', WP_Secret_Version::PREVIOUS )->reveal() );
+		$this->assertSame( array( 'imported' ), $fired );
+	}
+
+	public function test_an_unchanged_write_keeps_the_rotation_flag() {
+		$path = 'wp/site/1/acme/key';
+
+		$this->provider->set( 'acme/key', 'v1', false, true );
+		$this->provider->set( 'acme/key', 'v1' );
+
+		$this->assertSame( '1', $this->server->metadata( $path )['custom_metadata']['needs_rotation'] );
+	}
+
 	public function test_previous_is_strictly_n_minus_1_even_when_older_versions_survive() {
 		$path = 'wp/site/1/acme/key';
 
