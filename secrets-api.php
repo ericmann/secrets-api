@@ -63,8 +63,12 @@ function wp_secrets_api_bootstrap(): void {
 
 	$symbol_taken = function_exists( 'wp_get_secret' );
 
+	// A beta, RC, or trunk build such as '7.2-beta1-64606-src' counts as its release:
+	// version_compare() alone ranks every pre-release below '7.2'.
+	$release = explode( '-', $wp_version )[0];
+
 	// Core ships the API. Load nothing; the plugin is redundant.
-	if ( version_compare( $wp_version, WP_SECRETS_API_CORE_VERSION, '>=' ) && $symbol_taken ) {
+	if ( version_compare( $release, WP_SECRETS_API_CORE_VERSION, '>=' ) && $symbol_taken ) {
 		add_action( 'admin_notices', 'wp_secrets_api_notice_superseded' );
 
 		return;

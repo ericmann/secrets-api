@@ -38,7 +38,8 @@ It also brings the tests for everything in `src/`.
 
 **Standing down.** `wp_secrets_api_bootstrap()` in `secrets-api.php` loads nothing and shows an
 admin notice when `$wp_version` is at least `WP_SECRETS_API_CORE_VERSION` (`7.2`, overridable)
-**and** `wp_get_secret()` already exists. If the symbol exists but the version test fails, the
+**and** `wp_get_secret()` already exists. A beta, RC, or trunk build counts as its release, so
+`7.2-beta1-64606-src` passes the version test. If the symbol exists but the version test fails, the
 plugin refuses to load and shows a conflict notice instead of deferring to an unknown
 implementation. `tests/phpunit/test-secrets-noop-gate.php` covers the gate.
 
