@@ -28,6 +28,13 @@ checks the same set before any cryptographic operation.
 and demotes the outgoing `current` to `previous`. Whatever was already in `previous` is not carried
 forward, so a third write discards the oldest value.
 
+**An unchanged write is not a rotation.** Writing the value `current` already holds, as a settings
+form does on every save, leaves the record untouched and does not fire `wp_secret_changed`, so
+`previous` survives. The one exception is a write that raises `needs_rotation` on a value not yet
+flagged, such as `wp_import_option_as_secret()` on an option holding the current value. It
+records the flag and carries `previous` over as stored. The `WP_Secrets_Provider::set()` contract
+requires any provider that keeps a previous version to keep it through an unchanged write.
+
 **Slot is part of the ciphertext binding.** The slot name is one of the fields in the AAD
 `WP_Secrets_Cipher::build_aad()` computes, so a slot's ciphertext is bound to its position.
 Demotion is therefore a decrypt-and-re-encrypt in

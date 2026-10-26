@@ -56,7 +56,7 @@ class Tests_My_Platform_Provider extends WP_Secrets_Provider_Conformance {
 It checks that a name never set reads as `null`; that `PREVIOUS` with no previous value is an
 absence rather than an error; that deleting or retiring something absent succeeds; that a stored
 value round-trips and a deleted one reads as absent; that fingerprints stay stable for the same
-value; that listings never contain a plaintext and respect a name prefix; that the label,
+value; that writing an unchanged value keeps the previous version; that listings never contain a plaintext and respect a name prefix; that the label,
 boundary, and writability declarations are well-formed; and that a provider declaring itself
 read-only really does refuse writes with `secret_provider_read_only`. Where the contract allows
 variation it adapts: a read-only provider is never asked to round-trip a value, and the skipped

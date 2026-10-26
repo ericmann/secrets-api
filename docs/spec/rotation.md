@@ -24,7 +24,9 @@ the new value into `current`, and moves the old `current` to `previous` through 
 which decrypts under the `current` binding and re-encrypts under `previous`. If the outgoing slot
 cannot be decrypted, it is dropped and the write proceeds, so a corrupted record never blocks its
 own repair. The `wp_secret_changed` action fires with `updated`. During the drain, `wp_get_secret(
-$name, WP_Secret_Version::PREVIOUS )` returns the old value.
+$name, WP_Secret_Version::PREVIOUS )` returns the old value. Saving the value `current` already
+holds is not a rotation: nothing is written and nothing fires, so a settings form that re-saves an
+unchanged key does not end the drain early. See [versioning.md](versioning.md).
 
 **Retiring the previous value.** `wp_retire_secret_version()` and
 `wp_retire_network_secret_version()` in `src/wp-includes/secrets.php` call the provider's
