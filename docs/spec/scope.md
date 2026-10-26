@@ -36,8 +36,8 @@ It copies `src/` unchanged, then adds the loading the plugin's bootstrap does no
 
 It also brings the tests for everything in `src/`.
 
-**Standing down.** `wp_secrets_api_bootstrap()` in `secrets-api.php` loads nothing and shows an
-admin notice when `$wp_version` is at least `WP_SECRETS_API_CORE_VERSION` (`7.2`, overridable)
+**Standing down.** `wp_secrets_api_bootstrap()` in `secrets-api.php` loads none of `src/` or
+`plugin/`, registers only the WP-CLI commands, and shows an admin notice when `$wp_version` is at least `WP_SECRETS_API_CORE_VERSION` (`7.2`, overridable)
 **and** `wp_get_secret()` already exists. A beta, RC, or trunk build counts as its release, so
 `7.2-beta1-64606-src` passes the version test. If the symbol exists but the version test fails, the
 plugin refuses to load and shows a conflict notice instead of deferring to an unknown
@@ -63,8 +63,9 @@ the named surface, all in `src/wp-includes/secrets.php` unless noted:
 `wp secret` with `set`, `get`, `delete`, `list`, `retire`, `import-option`, `migrate-legacy`,
 `rotate`, `generate-key`, `health`, and `dropin`. `WP_CLI_Secret_Network_Command` registers
 `wp network-secret` with the same subcommands for network scope. Both load only when `WP_CLI` is
-defined and true. Both are exercised end to end against a real `wp` binary by
-`tests/smoke/smoke.sh`, on single site and multisite.
+defined and true. On a WordPress that ships the API they run on core's implementation, and
+`migrate-legacy` refuses, since its migrator loads only with the plugin's copy. Both are exercised
+end to end against a real `wp` binary by `tests/smoke/smoke.sh`, on single site and multisite.
 
 **Site Health.** Three tests (`secrets_api_key_source`, undecryptable secrets,
 `secrets_api_needs_rotation`) and a debug-information section, in
@@ -90,6 +91,11 @@ copy-ready is what makes the plugin and the eventual Trac patch the same code ra
 without the API, stranding every site relying on it. The proposal's own timeline allows for
 deferral to 7.3. `docs/decisions/` does not record this separately; the reasoning lives in the
 bootstrap's comments.
+
+**Why WP-CLI stays in the plugin.** The proposal puts WP-CLI support in 7.2. Core took the API
+and left the commands out, since WP-CLI commands ship as WP-CLI packages, so the plugin keeps
+providing them on 7.2. See
+[ADR 0014](../decisions/0014-the-plugin-keeps-wp-cli-on-a-core-that-ships-the-api.md).
 
 **`migrate-legacy` is outside the proposal.** It, and the read-time upgrade behind it, exist for
 sites that adopted an earlier prototype. Neither is core-bound. See [import.md](import.md).

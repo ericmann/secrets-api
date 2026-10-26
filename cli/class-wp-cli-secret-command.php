@@ -422,6 +422,9 @@ class WP_CLI_Secret_Command {
 	 * There is no delete step. Removing a legacy option once the migration is
 	 * verified is left to the operator, using wp option delete.
 	 *
+	 * Not available on a WordPress that ships the Secrets API: the migrator loads
+	 * only with this plugin's own copy of the API. Migrate before upgrading.
+	 *
 	 * ## OPTIONS
 	 *
 	 * [--dry-run]
@@ -459,6 +462,12 @@ class WP_CLI_Secret_Command {
 	public function migrate_legacy( array $args, array $assoc_args ): void {
 		if ( $this->network ) {
 			WP_CLI::error( 'The legacy format has no network-scope equivalent.' );
+
+			return;
+		}
+
+		if ( ! class_exists( 'Secrets_API_Migrator', false ) ) {
+			WP_CLI::error( 'migrate-legacy is not available on a WordPress that ships the Secrets API. Migrate legacy secrets before upgrading.' );
 
 			return;
 		}
@@ -640,6 +649,12 @@ class WP_CLI_Secret_Command {
 	 * @param array<string, string|bool> $assoc_args Associative arguments.
 	 */
 	public function health( array $args, array $assoc_args ): void {
+		// Core loads its Site Health tests only for the Site Health screen, so on a
+		// WordPress that ships the API they are not loaded under WP-CLI.
+		if ( ! function_exists( 'wp_secrets_site_health_test_key_source' ) ) {
+			require_once ABSPATH . 'wp-admin/includes/secrets-site-health.php';
+		}
+
 		$results = array(
 			wp_secrets_site_health_test_key_source(),
 			wp_secrets_site_health_test_undecryptable(),

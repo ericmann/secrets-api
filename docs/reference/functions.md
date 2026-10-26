@@ -321,6 +321,24 @@ function wp_secrets_api_notice_superseded(): void
 
 **Source:** [`secrets-api.php`](../../secrets-api.php)
 
+## `wp_secrets_api_register_cli()`
+
+Registers `wp secret` and `wp network-secret`.
+
+Called under WP-CLI from both the branch that loads the plugin's own copy of
+the API and the branch where core ships it. cli/ is never copied to core, and
+every call it makes is to the public API or to internals core has too, so the
+same commands run on either implementation. The one exception is
+`migrate-legacy`, whose migrator loads only with the plugin's copy.
+
+```php
+function wp_secrets_api_register_cli(): void
+```
+
+**Returns:** `void`
+
+**Source:** [`secrets-api.php`](../../secrets-api.php)
+
 ## `wp_secrets_api_uninstall()`
 
 Removes the capability this plugin granted, on uninstall – not on deactivation. Deactivating and reactivating the plugin must not silently strip a capability an administrator may have started relying on for something else in the meantime.
