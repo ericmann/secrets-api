@@ -80,7 +80,9 @@ Every case below checks the exit code as well as the output.
 - `generate-key` prints 44 characters that decode to exactly 32 bytes.
 - `health --format=json` parses as JSON. `dropin` reports no drop-in.
 - `import-option` moves a seeded option into a secret, and `get --reveal` matches it.
-- `migrate-legacy --dry-run` exits 0 on an install with no prototype rows.
+- `migrate-legacy --dry-run` exits 0 on an install with no prototype rows. On a WordPress that ships
+  the API it exits 1 and says why, since its migrator loads only with the plugin's copy
+  ([ADR 0014](../../docs/decisions/0014-the-plugin-keeps-wp-cli-on-a-core-that-ships-the-api.md)).
 
 ### C. Rotation, end to end
 

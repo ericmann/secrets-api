@@ -479,9 +479,15 @@ case_b_behaviour() {
 	run "${WP[@]}" option delete "$opt_name"
 	assert_status 0 "option delete $opt_name exits 0"
 
-	# 8. migrate-legacy.
+	# 8. migrate-legacy. On a WordPress that ships the API its migrator is not
+	# loaded, and it refuses rather than fataling.
 	run "${WP[@]}" secret migrate-legacy --dry-run
-	assert_status 0 "migrate-legacy --dry-run exits 0 with no prototype rows"
+	if [ "$CORE_SHIPS_API" = 1 ]; then
+		assert_status 1 "migrate-legacy refuses on a WordPress that ships the API"
+		assert_err_contains "ships the Secrets API" "migrate-legacy's refusal explains why"
+	else
+		assert_status 0 "migrate-legacy --dry-run exits 0 with no prototype rows"
+	fi
 
 	# 9. single-site refusal (case E's last bullet, checked here).
 	run "${WP[@]}" network-secret get "${NS}/anything"
@@ -716,7 +722,21 @@ case_e_multisite() {
 
 # --- main ---
 
+# Whether this WordPress ships the Secrets API (trunk since r64337). The plugin
+# then loads none of its own copy, and the commands run on core's
+# implementation: same assertions, except migrate-legacy.
+detect_core_api() {
+	CORE_SHIPS_API=$("${WP[@]}" eval 'echo realpath( ( new ReflectionFunction( "wp_get_secret" ) )->getFileName() ) === realpath( ABSPATH . WPINC . "/secrets.php" ) ? 1 : 0;' 2>/dev/null)
+	if [ "$CORE_SHIPS_API" = 1 ]; then
+		diag "WordPress ships the Secrets API: the commands run on core's implementation"
+	else
+		CORE_SHIPS_API=0
+		diag "WordPress does not ship the Secrets API: the commands run on the plugin's copy"
+	fi
+}
+
 main() {
+	detect_core_api
 	case_a_registration
 	case_b_behaviour
 	case_c_rotation

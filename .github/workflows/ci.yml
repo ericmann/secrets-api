@@ -281,13 +281,19 @@ jobs:
   # and WordPress checkout and needs neither `vendor/` nor the WordPress
   # test suite.
   smoke:
-    name: "Smoke / PHP ${{ matrix.php }}"
+    name: "Smoke / PHP ${{ matrix.php }}${{ matrix.wp == 'nightly' && ' / WP nightly' || '' }}"
     needs: static
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
       matrix:
         php: ['7.4', '8.3', '8.5']
+        wp: ['latest']
+        # A WordPress that ships the Secrets API: the plugin loads none of its own
+        # copy and the commands run on core's implementation (ADR 0014).
+        include:
+          - php: '8.3'
+            wp: 'nightly'
     services:
       mysql:
         image: mysql:8.0
@@ -312,4 +318,4 @@ jobs:
           extensions: sodium, mysqli
           coverage: none
 
-      - run: make smoke DB_HOST=127.0.0.1
+      - run: make smoke DB_HOST=127.0.0.1 WP_VERSION=${{ matrix.wp }}
