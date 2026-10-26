@@ -15,6 +15,8 @@
  */
 class Tests_Secrets_ApiPrototypeFallbackStore extends WP_UnitTestCase {
 
+	use Secrets_API_Plugin_Layer_Tests;
+
 	private function store() {
 		return new Secrets_API_Prototype_Fallback_Store( new WP_Secrets_Option_Store() );
 	}

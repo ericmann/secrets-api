@@ -7,6 +7,8 @@
  */
 class Tests_Secrets_ApiLegacyReader extends WP_UnitTestCase {
 
+	use Secrets_API_Plugin_Layer_Tests;
+
 	public function test_reads_a_salt_fallback_fixture() {
 		( new Legacy_Fixture_Writer() )->write_secret( 'api_key', 'sk_legacy_value' );
 

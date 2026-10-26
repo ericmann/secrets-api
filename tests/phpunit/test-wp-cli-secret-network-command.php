@@ -6,6 +6,8 @@
  */
 class Tests_Secrets_WPCLISecretNetworkCommand extends WP_UnitTestCase {
 
+	use Secrets_API_Plugin_Layer_Tests;
+
 	public function set_up() {
 		parent::set_up();
 
