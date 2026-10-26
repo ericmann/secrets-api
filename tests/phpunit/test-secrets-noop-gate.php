@@ -48,13 +48,33 @@ class Tests_Secrets_NoopGate extends WP_UnitTestCase {
 
 	// – core ships the API ---------------------------------------------------
 
-	public function test_core_providing_the_api_is_a_silent_no_op_with_an_info_notice() {
+	public function test_core_providing_the_api_loads_nothing_and_shows_an_info_notice() {
 		$GLOBALS['wp_version'] = WP_SECRETS_API_CORE_VERSION;
 
 		wp_secrets_api_bootstrap();
 
 		$this->assertSame( 10, has_action( 'admin_notices', 'wp_secrets_api_notice_superseded' ) );
 		$this->assertFalse( has_action( 'admin_notices', 'wp_secrets_api_notice_conflict' ) );
+	}
+
+	/**
+	 * Core leaves WP-CLI commands to WP-CLI packages, so the plugin keeps
+	 * providing `wp secret` and `wp network-secret`, running on core's
+	 * implementation.
+	 */
+	public function test_core_providing_the_api_still_registers_the_wp_cli_commands() {
+		$GLOBALS['wp_version'] = WP_SECRETS_API_CORE_VERSION;
+		WP_CLI::reset();
+
+		wp_secrets_api_bootstrap();
+
+		$this->assertSame(
+			array(
+				'secret'         => 'WP_CLI_Secret_Command',
+				'network-secret' => 'WP_CLI_Secret_Network_Command',
+			),
+			WP_CLI::$commands
+		);
 	}
 
 	public function test_a_wordpress_newer_than_the_core_version_also_no_ops() {
@@ -102,6 +122,19 @@ class Tests_Secrets_NoopGate extends WP_UnitTestCase {
 
 		$this->assertSame( 10, has_action( 'admin_notices', 'wp_secrets_api_notice_conflict' ) );
 		$this->assertFalse( has_action( 'admin_notices', 'wp_secrets_api_notice_superseded' ) );
+	}
+
+	/**
+	 * A conflict defers to nothing, the WP-CLI commands included: they would run
+	 * on an unknown implementation of a credential store.
+	 */
+	public function test_a_conflict_registers_no_wp_cli_commands() {
+		$GLOBALS['wp_version'] = '6.8';
+		WP_CLI::reset();
+
+		wp_secrets_api_bootstrap();
+
+		$this->assertSame( array(), WP_CLI::$commands );
 	}
 
 	/**

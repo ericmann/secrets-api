@@ -9,7 +9,8 @@ be copied verbatim into `wordpress-develop` — same paths, same coding style, s
 domain.
 
 Once core ships the API, the plugin stands down on its own and says so in an admin notice rather
-than shadowing core's implementation.
+than shadowing core's implementation. It keeps providing `wp secret` and `wp network-secret`, which
+core leaves out, running on core's implementation.
 
 > **Status: feature plugin, pre-core-merge.** The public API surface is settled — it is the one
 > described in the proposal. See [`docs/journal/open-questions.md`](docs/journal/open-questions.md) for what is

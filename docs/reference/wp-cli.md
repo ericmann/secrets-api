@@ -157,6 +157,9 @@ key is reported as skipped.
 There is no delete step. Removing a legacy option once the migration is
 verified is left to the operator, using wp option delete.
 
+Not available on a WordPress that ships the Secrets API: the migrator loads
+only with this plugin's own copy of the API. Migrate before upgrading.
+
 ```
 wp network-secret migrate-legacy [--dry-run] [--name=<key>] [--map=<mapping>] [--namespace=<namespace>] [--format=<format>]
 ```
@@ -395,6 +398,9 @@ key is reported as skipped.
 
 There is no delete step. Removing a legacy option once the migration is
 verified is left to the operator, using wp option delete.
+
+Not available on a WordPress that ships the Secrets API: the migrator loads
+only with this plugin's own copy of the API. Migrate before upgrading.
 
 ```
 wp secret migrate-legacy [--dry-run] [--name=<key>] [--map=<mapping>] [--namespace=<namespace>] [--format=<format>]

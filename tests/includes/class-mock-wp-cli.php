@@ -49,6 +49,7 @@ namespace {
 			public static $errors           = array();
 			public static $confirm_response = true;
 			public static $formatted_items  = array();
+			public static $commands         = array();
 
 			public static function reset() {
 				self::$log              = array();
@@ -57,6 +58,7 @@ namespace {
 				self::$errors           = array();
 				self::$confirm_response = true;
 				self::$formatted_items  = array();
+				self::$commands         = array();
 			}
 
 			public static function log( $message ) {
@@ -118,11 +120,14 @@ namespace {
 			}
 
 			/**
-			 * @param string $name          Command name. Ignored by this test double.
-			 * @param string $command_class Command class name. Ignored by this test double.
+			 * Records the registration. This test double never dispatches real
+			 * subcommands; tests call the command class's methods directly.
+			 *
+			 * @param string $name          Command name.
+			 * @param string $command_class Command class name.
 			 */
 			public static function add_command( $name, $command_class ) {
-				// No-op: this test double never dispatches real subcommands.
+				self::$commands[ $name ] = $command_class;
 			}
 		}
 	}

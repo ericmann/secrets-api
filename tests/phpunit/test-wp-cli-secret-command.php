@@ -7,8 +7,6 @@
  */
 class Tests_Secrets_WPCLISecretCommand extends WP_UnitTestCase {
 
-	use Secrets_API_Plugin_Layer_Tests;
-
 	public function set_up() {
 		parent::set_up();
 
@@ -17,6 +15,15 @@ class Tests_Secrets_WPCLISecretCommand extends WP_UnitTestCase {
 
 	private function command() {
 		return new WP_CLI_Secret_Command();
+	}
+
+	/**
+	 * The migrator loads only with the plugin's own copy of the API.
+	 */
+	private function require_the_migrator(): void {
+		if ( secrets_api_tests_core_ships_the_api() ) {
+			$this->markTestSkipped( 'This WordPress ships the Secrets API, so migrate-legacy is not available.' );
+		}
 	}
 
 	// – set --------------------------------------------------------------
@@ -495,7 +502,24 @@ class Tests_Secrets_WPCLISecretCommand extends WP_UnitTestCase {
 		( new WP_CLI_Secret_Network_Command() )->migrate_legacy( array(), array() );
 	}
 
+	public function test_migrate_legacy_is_refused_on_a_wordpress_that_ships_the_api() {
+		if ( ! secrets_api_tests_core_ships_the_api() ) {
+			$this->markTestSkipped( 'Needs a WordPress that ships the Secrets API.' );
+		}
+
+		try {
+			$this->command()->migrate_legacy( array(), array() );
+			$this->fail( 'Expected migrate-legacy to refuse.' );
+		} catch ( Mock_WP_CLI_Exit_Exception $e ) {
+			$this->assertSame( 1, $e->get_exit_code() );
+		}
+
+		$this->assertStringContainsString( 'ships the Secrets API', WP_CLI::$errors[0] );
+	}
+
 	public function test_migrate_legacy_reports_migrated_status() {
+		$this->require_the_migrator();
+
 		$this->setExpectedIncorrectUsage( 'wp_secrets_validate_name' );
 
 		( new Legacy_Fixture_Writer() )->write_secret( 'api_key', 'value' );
@@ -508,6 +532,8 @@ class Tests_Secrets_WPCLISecretCommand extends WP_UnitTestCase {
 	}
 
 	public function test_migrate_legacy_map_overrides_the_derived_name() {
+		$this->require_the_migrator();
+
 		( new Legacy_Fixture_Writer() )->write_secret( 'API_Key', 'value' );
 
 		$this->command()->migrate_legacy( array(), array( 'map' => 'API_Key:myplugin/api-key' ) );
@@ -518,6 +544,8 @@ class Tests_Secrets_WPCLISecretCommand extends WP_UnitTestCase {
 	}
 
 	public function test_migrate_legacy_warns_when_vendor_class_detected() {
+		$this->require_the_migrator();
+
 		$this->setExpectedIncorrectUsage( 'wp_secrets_validate_name' );
 
 		( new Legacy_Fixture_Writer() )->write_secret( 'api_key', 'value' );
@@ -533,6 +561,8 @@ class Tests_Secrets_WPCLISecretCommand extends WP_UnitTestCase {
 	 * @preserveGlobalState disabled
 	 */
 	public function test_migrate_legacy_warns_and_still_migrates_when_vendor_class_is_present() {
+		$this->require_the_migrator();
+
 		$this->setExpectedIncorrectUsage( 'wp_secrets_validate_name' );
 
 		eval( 'namespace WordPress\AI\Vendor\Secrets; class Secrets_Manager {}' ); // phpcs:ignore Squiz.PHP.Eval.Discouraged -- only way to define a class under a namespace conditionally, for this one test.
@@ -550,6 +580,8 @@ class Tests_Secrets_WPCLISecretCommand extends WP_UnitTestCase {
 
 
 	public function test_migrate_legacy_halts_with_exit_code_1_on_any_error_entry() {
+		$this->require_the_migrator();
+
 		$this->setExpectedIncorrectUsage( 'wp_secrets_validate_name' );
 
 		$writer = new Legacy_Fixture_Writer();
@@ -565,6 +597,8 @@ class Tests_Secrets_WPCLISecretCommand extends WP_UnitTestCase {
 	}
 
 	public function test_migrate_legacy_never_logs_a_plaintext() {
+		$this->require_the_migrator();
+
 		$this->setExpectedIncorrectUsage( 'wp_secrets_validate_name' );
 
 		( new Legacy_Fixture_Writer() )->write_secret( 'api_key', 'UNIQUE-CLI-PLAINTEXT-CANARY-7c2e' );

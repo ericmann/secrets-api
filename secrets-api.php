@@ -67,9 +67,18 @@ function wp_secrets_api_bootstrap(): void {
 	// version_compare() alone ranks every pre-release below '7.2'.
 	$release = explode( '-', $wp_version )[0];
 
-	// Core ships the API. Load nothing; the plugin is redundant.
+	/*
+	 * Core ships the API. Load nothing of src/ or plugin/: core's implementation
+	 * serves every call. The WP-CLI commands are the exception, because core leaves
+	 * WP-CLI commands to WP-CLI packages, so this plugin still provides them, running
+	 * on core's functions and classes.
+	 */
 	if ( version_compare( $release, WP_SECRETS_API_CORE_VERSION, '>=' ) && $symbol_taken ) {
 		add_action( 'admin_notices', 'wp_secrets_api_notice_superseded' );
+
+		if ( defined( 'WP_CLI' ) && WP_CLI ) {
+			wp_secrets_api_register_cli();
+		}
 
 		return;
 	}
@@ -205,12 +214,27 @@ function wp_secrets_api_bootstrap(): void {
 		 */
 		require_once WP_SECRETS_API_PLUGIN_DIR . 'plugin/class-secrets-api-migrator.php';
 
-		require_once WP_SECRETS_API_PLUGIN_DIR . 'cli/class-wp-cli-secret-command.php';
-		require_once WP_SECRETS_API_PLUGIN_DIR . 'cli/class-wp-cli-secret-network-command.php';
-
-		WP_CLI::add_command( 'secret', 'WP_CLI_Secret_Command' );
-		WP_CLI::add_command( 'network-secret', 'WP_CLI_Secret_Network_Command' );
+		wp_secrets_api_register_cli();
 	}
+}
+
+/**
+ * Registers `wp secret` and `wp network-secret`.
+ *
+ * Called under WP-CLI from both the branch that loads the plugin's own copy of
+ * the API and the branch where core ships it. cli/ is never copied to core, and
+ * every call it makes is to the public API or to internals core has too, so the
+ * same commands run on either implementation. The one exception is
+ * `migrate-legacy`, whose migrator loads only with the plugin's copy.
+ *
+ * @return void
+ */
+function wp_secrets_api_register_cli(): void {
+	require_once WP_SECRETS_API_PLUGIN_DIR . 'cli/class-wp-cli-secret-command.php';
+	require_once WP_SECRETS_API_PLUGIN_DIR . 'cli/class-wp-cli-secret-network-command.php';
+
+	WP_CLI::add_command( 'secret', 'WP_CLI_Secret_Command' );
+	WP_CLI::add_command( 'network-secret', 'WP_CLI_Secret_Network_Command' );
 }
 
 /**
@@ -224,7 +248,7 @@ function wp_secrets_api_notice_superseded(): void {
 	}
 
 	wp_admin_notice(
-		esc_html__( 'This version of WordPress provides the Secrets API natively. The Secrets API feature plugin is no longer doing anything and can be deactivated.', 'secrets-api' ),
+		esc_html__( 'This version of WordPress provides the Secrets API natively. The Secrets API feature plugin now provides only its WP-CLI commands, wp secret and wp network-secret, and can be deactivated if you do not use them.', 'secrets-api' ),
 		array( 'type' => 'info' )
 	);
 }
