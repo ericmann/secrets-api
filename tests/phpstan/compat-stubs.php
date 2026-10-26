@@ -32,3 +32,14 @@ function str_contains( $haystack, $needle ) {}
  * @return bool True if `$haystack` starts with `$needle`, otherwise false.
  */
 function str_starts_with( $haystack, $needle ) {}
+
+/**
+ * Polyfill for `array_all()` function added in PHP 8.4.
+ *
+ * @since 6.8.0
+ *
+ * @param array    $array    The array to check.
+ * @param callable $callback The callback to run for each element.
+ * @return bool True if all elements in the array pass the `$callback`, otherwise false.
+ */
+function array_all( array $array, callable $callback ): bool {} // phpcs:ignore Universal.NamingConventions.NoReservedKeywordParameterNames.arrayFound

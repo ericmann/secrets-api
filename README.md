@@ -3,7 +3,7 @@
 Feature plugin for the [Secrets API proposed for WordPress 7.2][proposal]. Encrypted, versioned
 credential storage with pluggable storage and keyring back ends.
 
-This exists so contributors can *run* the API instead of reading about it, and so sites on 6.6
+This exists so contributors can *run* the API instead of reading about it, and so sites on 6.8
 and later get something usable before the core patch lands. Everything under `src/` is written to
 be copied verbatim into `wordpress-develop` — same paths, same coding style, same `default` text
 domain.
@@ -105,7 +105,7 @@ future screen needs are in scope; the screen is not.
 ## Requirements
 
 - PHP 7.4+ (core's floor — `src/` contains no PHP 8 syntax)
-- WordPress 6.6+
+- WordPress 6.8+ (core polyfills `array_all()` from 6.8, and `src/` uses it)
 - libsodium, via the extension or core's bundled `sodium_compat`
 
 ## Coexisting with the Displace prototype

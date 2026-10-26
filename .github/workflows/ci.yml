@@ -100,6 +100,12 @@ jobs:
       matrix:
         php: ['7.4', '8.0', '8.3', '8.5']
         wp: ['latest', 'trunk']
+        # The declared floor, `Requires at least` in secrets-api.php. src/ relies on
+        # core's polyfills (array_all() arrived in 6.8), so the floor gets a leg of
+        # its own rather than being assumed from latest.
+        include:
+          - php: '7.4'
+            wp: '6.8'
     services:
       mysql:
         image: mysql:8.0

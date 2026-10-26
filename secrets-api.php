@@ -4,7 +4,7 @@
  * Plugin URI:        https://github.com/ericmann/secrets-api
  * Description:       Feature plugin for the WordPress Secrets API proposed for 7.2. Encrypted, versioned credential storage with pluggable storage and keyring back ends.
  * Version:           0.3.0
- * Requires at least: 6.6
+ * Requires at least: 6.8
  * Requires PHP:      7.4
  * License:           GPL-2.0-or-later
  * License URI:       https://www.gnu.org/licenses/gpl-2.0.html
