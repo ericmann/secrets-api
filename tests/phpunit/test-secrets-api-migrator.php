@@ -7,6 +7,8 @@
  */
 class Tests_Secrets_ApiMigrator extends WP_UnitTestCase {
 
+	use Secrets_API_Plugin_Layer_Tests;
+
 	private function migrator() {
 		return new Secrets_API_Migrator();
 	}

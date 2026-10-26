@@ -65,6 +65,28 @@ class Tests_Secrets_NoopGate extends WP_UnitTestCase {
 		$this->assertSame( 10, has_action( 'admin_notices', 'wp_secrets_api_notice_superseded' ) );
 	}
 
+	/**
+	 * Betas, RCs, and trunk report a pre-release version, which version_compare()
+	 * ranks below the release itself. A 7.2 beta that ships the API is core, not a
+	 * conflict.
+	 */
+	public function test_a_prerelease_of_the_core_version_also_no_ops() {
+		$GLOBALS['wp_version'] = WP_SECRETS_API_CORE_VERSION . '-beta1-64606-src';
+
+		wp_secrets_api_bootstrap();
+
+		$this->assertSame( 10, has_action( 'admin_notices', 'wp_secrets_api_notice_superseded' ) );
+		$this->assertFalse( has_action( 'admin_notices', 'wp_secrets_api_notice_conflict' ) );
+	}
+
+	public function test_a_prerelease_of_an_earlier_version_is_still_a_conflict() {
+		$GLOBALS['wp_version'] = '7.1-RC1';
+
+		wp_secrets_api_bootstrap();
+
+		$this->assertSame( 10, has_action( 'admin_notices', 'wp_secrets_api_notice_conflict' ) );
+	}
+
 	// – something else claimed the symbol -------------------------------------
 
 	/**

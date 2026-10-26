@@ -4,7 +4,7 @@
  * Plugin URI:        https://github.com/ericmann/secrets-api
  * Description:       Feature plugin for the WordPress Secrets API proposed for 7.2. Encrypted, versioned credential storage with pluggable storage and keyring back ends.
  * Version:           0.3.0
- * Requires at least: 6.6
+ * Requires at least: 6.8
  * Requires PHP:      7.4
  * License:           GPL-2.0-or-later
  * License URI:       https://www.gnu.org/licenses/gpl-2.0.html
@@ -63,8 +63,12 @@ function wp_secrets_api_bootstrap(): void {
 
 	$symbol_taken = function_exists( 'wp_get_secret' );
 
+	// A beta, RC, or trunk build such as '7.2-beta1-64606-src' counts as its release:
+	// version_compare() alone ranks every pre-release below '7.2'.
+	$release = explode( '-', $wp_version )[0];
+
 	// Core ships the API. Load nothing; the plugin is redundant.
-	if ( version_compare( $wp_version, WP_SECRETS_API_CORE_VERSION, '>=' ) && $symbol_taken ) {
+	if ( version_compare( $release, WP_SECRETS_API_CORE_VERSION, '>=' ) && $symbol_taken ) {
 		add_action( 'admin_notices', 'wp_secrets_api_notice_superseded' );
 
 		return;

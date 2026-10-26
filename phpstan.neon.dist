@@ -24,6 +24,7 @@ parameters:
 	scanFiles:
 		- vendor/php-stubs/wp-cli-stubs/wp-cli-stubs.php
 		- vendor/php-stubs/wp-cli-stubs/wp-cli-commands-stubs.php
+		- tests/phpstan/compat-stubs.php
 	bootstrapFiles:
 		- tests/phpstan-bootstrap.php
 	treatPhpDocTypesAsCertain: false
@@ -37,3 +38,12 @@ parameters:
 			paths:
 				- src/wp-includes/secrets/class-wp-secrets-option-store.php
 				- plugin/class-secrets-api-legacy-reader.php
+		# r64674's no-op check reads $existing['current'] behind $is_unchanged, which is
+		# only true when $has_current is. PHPStan narrows $existing through $has_current
+		# but not through $is_unchanged. src/ stays as core committed it, so the one
+		# line is ignored here rather than rewritten.
+		-
+			message: '#^Cannot access offset ''needs_rotation'' on mixed\.$#'
+			identifier: offsetAccess.nonOffsetAccessible
+			path: src/wp-includes/secrets/class-wp-secrets-libsodium-provider.php
+			count: 1

@@ -15,7 +15,7 @@ scope", and "Timeline" in the [proposal][proposal].
 
 ## As built
 
-**The plugin.** `secrets-api.php` declares version `0.3.0`, `Requires at least: 6.6`, and
+**The plugin.** `secrets-api.php` declares version `0.3.0`, `Requires at least: 6.8`, and
 `Requires PHP: 7.4`.
 
 **Core-bound versus plugin-only.** Everything under `src/` is written to be copied into
@@ -38,7 +38,8 @@ It also brings the tests for everything in `src/`.
 
 **Standing down.** `wp_secrets_api_bootstrap()` in `secrets-api.php` loads nothing and shows an
 admin notice when `$wp_version` is at least `WP_SECRETS_API_CORE_VERSION` (`7.2`, overridable)
-**and** `wp_get_secret()` already exists. If the symbol exists but the version test fails, the
+**and** `wp_get_secret()` already exists. A beta, RC, or trunk build counts as its release, so
+`7.2-beta1-64606-src` passes the version test. If the symbol exists but the version test fails, the
 plugin refuses to load and shows a conflict notice instead of deferring to an unknown
 implementation. `tests/phpunit/test-secrets-noop-gate.php` covers the gate.
 

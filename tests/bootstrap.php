@@ -45,12 +45,21 @@ tests_add_filter( 'muplugins_loaded', '_secrets_api_manually_load_plugin' );
 
 require $_tests_dir . '/includes/bootstrap.php';
 
-require_once __DIR__ . '/includes/trait-wp-secrets-assertions.php';
-require_once __DIR__ . '/includes/class-mock-store.php';
-require_once __DIR__ . '/includes/class-mock-keyring.php';
+/*
+ * A test library from a WordPress that ships the Secrets API (trunk since r64337)
+ * already loaded core's copies of these from its own bootstrap. Loading the
+ * plugin's as well would redeclare them.
+ */
+if ( ! file_exists( $_tests_dir . '/includes/secrets/trait-wp-secrets-assertions.php' ) ) {
+	require_once __DIR__ . '/includes/trait-wp-secrets-assertions.php';
+	require_once __DIR__ . '/includes/class-mock-store.php';
+	require_once __DIR__ . '/includes/class-mock-keyring.php';
+	require_once __DIR__ . '/includes/class-wp-secrets-provider-conformance.php';
+	require_once __DIR__ . '/includes/class-wp-secrets-keyring-conformance.php';
+}
+
 require_once __DIR__ . '/includes/class-legacy-fixture-writer.php';
-require_once __DIR__ . '/includes/class-wp-secrets-provider-conformance.php';
-require_once __DIR__ . '/includes/class-wp-secrets-keyring-conformance.php';
+require_once __DIR__ . '/includes/trait-secrets-api-plugin-layer-tests.php';
 
 /*
  * The migrator loads under WP-CLI only, which the mock above satisfies. The
