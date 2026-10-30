@@ -9,7 +9,7 @@ description: "Rotating the salts locks every secret on a site that derives its k
 |---|---|
 | **Number** | 0015 |
 | **Date** | 2026-10-28 |
-| **Status** | Accepted |
+| **Status** | Superseded by [ADR 0016](0016-require-wp-secrets-key.md) |
 
 ## Context
 
