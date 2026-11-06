@@ -314,7 +314,7 @@ it there at all.
 Refuses cloning outright.
 
 A clone would be a second, unaudited reference to the same plaintext with an
-independent lifetime – and, since the vault is keyed by object id rather than
+independent lifetime – and, since the vault is keyed by object ID rather than
 copied, a bare `clone` would otherwise leave the clone's reveal() silently
 reading nothing.
 
@@ -358,13 +358,12 @@ public function __construct( string $name, $value, string $fingerprint )
 
 #### `WP_Secret::__debugInfo()`
 
-Masks the instance for var_dump().
+Masks the instance for var_dump() and print_r().
 
-Note that print_r() and var_export() have no equivalent hook. They are safe
-regardless, because the plaintext is never a declared property for them to
-enumerate; they will surface the (non-sensitive) name and fingerprint rather
-than this placeholder. See docs/journal/open-questions.md for the documented
-var_export() limitation.
+Note that var_export() does not use this hook. It does not expose plaintext
+from the vault, but it enumerates all instance properties, including the
+unmasked WP_Error reason on a withheld secret. Use a masked output path
+instead when the reason must remain private.
 
 ```php
 public function __debugInfo(): array
@@ -1081,7 +1080,7 @@ Master keys are derived from the root key on demand and never stored:
 - Site scope, blog N: sodium_crypto_kdf_derive_from_key( 32, N, 'wpsecsit', $root ).
   Distinct per blog, which shared network-wide salts otherwise cannot provide.
 - Network scope: sodium_crypto_kdf_derive_from_key( 32, 0, 'wpsecnet', $root ).
-  Subkey id 0 is reserved for this (blog ids start at 1) and the context string
+  Subkey ID 0 is reserved for this (blog IDs start at 1) and the context string
   differs from the site path, so there is no collision between the two. Identical
   on every blog, so a network secret written on one blog reads on every other.
 
@@ -1101,7 +1100,7 @@ keyring (a KMS or HSM call) is invoked once per request, not once per secret.
 | Constant | Value | Description |
 |---|---|---|
 | `NETWORK_KDF_CONTEXT` | `'wpsecnet'` | KDF context for deriving the network-scope master key. Exactly 8 bytes. |
-| `NETWORK_SUBKEY_ID` | `0` | Reserved KDF subkey id for network scope. |
+| `NETWORK_SUBKEY_ID` | `0` | Reserved KDF subkey ID for network scope. |
 | `ROOT_KEY_OPTION` | `'_wp_secrets_root_key'` | Option name the wrapped root key is stored under. |
 | `SITE_KDF_CONTEXT` | `'wpsecsit'` | KDF context for deriving a site-scope master key. Exactly 8 bytes. |
 
@@ -1148,9 +1147,9 @@ public function get_master_key( string $scope, ?int $site_id = null )
 | Parameter | Type | Description |
 |---|---|---|
 | `$scope` | `string` | 'site' or 'network'. |
-| `$site_id` | `int\|null` | Blog id for site scope. Defaults to the current blog. Ignored for network scope. |
+| `$site_id` | `int\|null` | Blog ID for site scope. Defaults to the current blog. Ignored for network scope. |
 
-**Returns:** `string|WP_Error` 32-byte master key on success. WP_Error on failure, including when a caller passes an invalid scope or site id – see WP_Secrets_Cipher::validate_common() for why that is a WP_Error and not an exception.
+**Returns:** `string|WP_Error` 32-byte master key on success. WP_Error on failure, including when a caller passes an invalid scope or site ID – see WP_Secrets_Cipher::validate_common() for why that is a WP_Error and not an exception.
 
 **Since:** 7.2.0
 
@@ -1386,10 +1385,6 @@ public function is_writable(): bool
 
 Shared implementation behind wp_list_secrets() and wp_list_network_secrets().
 
-Beyond the API surface the proposal names, and justified by its statement that
-"the hooks and accessors an admin screen would need are in scope now; the screen
-itself is not."
-
 Fingerprints returned here come directly from the stored record field, not
 recomputed by decrypting each secret. That is a deliberate difference from
 WP_Secret::fingerprint(), which always recomputes – recomputing here would mean
@@ -1417,10 +1412,6 @@ public function list_secrets( string $name_prefix = '', bool $network = false )
 Shared implementation behind the two version-retirement functions.
 
 Backs wp_retire_secret_version() and wp_retire_network_secret_version().
-
-Beyond the API surface the proposal names. It states that retirement is "an
-explicit operator action" but names no function; this is this implementation's
-name for it, pending confirmation in the comments thread.
 
 ```php
 public function retire_previous( string $name, bool $network = false )

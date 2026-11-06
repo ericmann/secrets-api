@@ -20,14 +20,14 @@ There is no filter anywhere in core-bound code, and nothing on the retrieval pat
 
 Fires whenever a secret is created, updated, deleted, imported, or retired.
 
-The only hook in the core-bound Secrets API code, and it does not fire on the
-retrieval path. Fingerprints are readable; values are never passed.
+This hook does not fire on the retrieval path. Fingerprints are passed;
+values never are.
 
 | Parameter | Type | Description |
 |---|---|---|
 | `$name` | `string` | The secret's namespaced name. |
 | `$action` | `string` | One of 'created', 'updated', 'deleted', 'imported', 'retired'. |
-| `$actor_id` | `int` | The current user id, or 0. |
+| `$actor_id` | `int` | The current user ID, or 0. |
 | `$timestamp` | `int` | Unix timestamp of the change. |
 | `$old_fingerprint` | `string` | The previous fingerprint, or '' if none. |
 | `$new_fingerprint` | `string` | The new fingerprint, or '' if the secret was deleted. |
