@@ -301,6 +301,12 @@ function wp_secrets_api_notice_conflict(): void {
  * userland and is recorded in docs/journal/test-coverage-gaps.md rather than
  * silently assumed away.
  *
+ * @global bool                $wp_secrets_dropin_loaded Whether a secrets.php drop-in file was found.
+ * @global bool                $wp_secrets_dropin_broken Whether the drop-in failed to load or left an invalid override.
+ * @global WP_Secrets_Provider $wp_secrets_provider      Optional. Provider override set by the drop-in.
+ * @global WP_Secrets_Store    $wp_secrets_store         Optional. Store override set by the drop-in.
+ * @global WP_Secrets_Keyring  $wp_secrets_keyring       Optional. Keyring override set by the drop-in.
+ *
  * @return void
  */
 function wp_secrets_api_load_dropin(): void {

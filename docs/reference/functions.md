@@ -96,10 +96,9 @@ function wp_get_secret( string $name, string $version = WP_Secret_Version::CURRE
 
 Imports an existing option's value as a secret.
 
-For an explicit migration, "on their own explicit upgrade schedule,"
-in the proposal's words, because "core cannot reliably tell which options are
-credentials, and guessing would break sites." The source option is left
-untouched: this reads it, it does not move or delete it.
+For an explicit migration on the caller's own schedule, because core cannot
+reliably tell which options are credentials, and guessing would break sites. The
+source option is left untouched: this reads it, it does not move or delete it.
 
 The imported secret is flagged needs_rotation, unconditionally. A credential that
 sat in a plain option has already been through however many backups and
@@ -144,10 +143,6 @@ function wp_list_network_secrets( string $namespace = '' )
 
 Lists secrets by name and metadata. Never a value.
 
-Beyond the API surface the proposal names, and justified by its statement that
-the hooks and accessors a future admin screen needs are in scope now, even though
-the screen itself is not.
-
 ```php
 function wp_list_secrets( string $namespace = '' )
 ```
@@ -187,8 +182,6 @@ Clears a secret's previous version, retiring it for good.
 An explicit operator action, with no timers and no cron. Calling this on a secret
 that has never been rotated, or that does not exist, is a successful no-op:
 the previous slot is already absent either way.
-
-Beyond the API surface the proposal names.
 
 ```php
 function wp_retire_secret_version( string $name )
@@ -494,7 +487,7 @@ function wp_secrets_site_health_result( string $test, string $label, string $sta
 
 ## `wp_secrets_site_health_test_key_source()`
 
-Site Health test: is the site key a dedicated constant, or a weaker fallback?
+Tests whether the site key comes from a dedicated constant or a weaker fallback.
 
 ```php
 function wp_secrets_site_health_test_key_source(): array
@@ -508,7 +501,7 @@ function wp_secrets_site_health_test_key_source(): array
 
 ## `wp_secrets_site_health_test_needs_rotation()`
 
-Site Health test: are any secrets flagged as needing rotation?
+Tests whether any secrets are flagged as needing rotation.
 
 ```php
 function wp_secrets_site_health_test_needs_rotation(): array
@@ -522,7 +515,7 @@ function wp_secrets_site_health_test_needs_rotation(): array
 
 ## `wp_secrets_site_health_test_undecryptable()`
 
-Site Health test: does every stored secret still decrypt?
+Tests whether every stored secret still decrypts.
 
 Network secrets are included only for a super admin on a multisite install –
 never shown to a site administrator who is not one.
@@ -541,9 +534,8 @@ function wp_secrets_site_health_test_undecryptable(): array
 
 Registers the Secrets API's Site Health tests.
 
-No settings screen – the proposal defers that to 7.3 – but the health signal an
-operator needs to notice a broken key, a weak key source, or a pending rotation is
-in scope now.
+There is no settings screen for secrets, so these tests are how an operator
+notices a broken key, a weak key source, or a pending rotation.
 
 ```php
 function wp_secrets_site_health_tests( $tests )
@@ -572,9 +564,9 @@ so that listings and admin screens can be sensible. It confers no isolation: any
 plugin that can run PHP can read any secret, namespaced or not.
 
 An unnamespaced name ('secret-name', no '/') is accepted, but reports through
-_doing_it_wrong(). It exists for one reason: code written against the earlier
-prototype used a flat keyspace, and refusing those names outright would mean
-every such call site has to be rewritten before it can be ported at all.
+_doing_it_wrong(). It exists for one reason: existing code may already use a flat
+keyspace, and refusing those names outright would mean every such call site has
+to be rewritten before it can be ported at all.
 Accepting them keeps that migration incremental. Nothing else should use one.
 Two plugins that both choose 'api-key' collide silently, which is a real problem
 even though it is not a security one.
@@ -599,8 +591,7 @@ Encrypts and stores a network-scope secret.
 
 Site secrets and network secrets are separate functions with separate
 capabilities and separate storage prefixes, with no implicit fallback from one
-scope to the other. The proposal describes network scope but does not name these
-functions; these are this implementation's names for them.
+scope to the other.
 
 ```php
 function wp_set_network_secret( string $name, $value )
@@ -757,10 +748,10 @@ function _wp_secrets_get_provider(): WP_Secrets_Provider
 
 Returns the active secret store.
 
-No filter is applied here, or anywhere on the retrieval path. See
-docs/spec/extension-points.md. A secrets.php drop-in overrides the store by setting
-$GLOBALS['wp_secrets_store'] to an instance before this is first called, and
-that global is checked here directly, not through a hook.
+No filter is applied here, or anywhere on the retrieval path. A secrets.php
+drop-in overrides the store by setting $GLOBALS['wp_secrets_store'] to an
+instance before this is first called, and that global is checked here directly,
+not through a hook.
 
 If the global was set but is not a valid WP_Secrets_Store, or if the drop-in
 itself failed to load cleanly, this returns WP_Secrets_Broken_Store rather than
