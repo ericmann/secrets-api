@@ -278,6 +278,10 @@ function wp_secrets_api_notice_conflict(): void {
  * _wp_secrets_get_key_manager() each cache their result for the request, so this
  * only ever needs to run once regardless of how many times it is called.
  *
+ * The drop-in sets its overrides in the `$wp_secrets_provider`, `$wp_secrets_store`
+ * and `$wp_secrets_keyring` globals. They are declared global before the require, so
+ * a plain assignment such as `$wp_secrets_keyring = new My_Keyring();` works.
+ *
  * Sets $GLOBALS['wp_secrets_dropin_loaded'] as soon as the file is found, whether
  * or not it then loads cleanly: wp_using_secrets_dropin() reports presence, not
  * health.
@@ -325,6 +329,12 @@ function wp_secrets_api_load_dropin(): void {
 	}
 
 	$GLOBALS['wp_secrets_dropin_loaded'] = true;
+
+	/*
+	 * The drop-in is required inside this function. Declaring the overrides global
+	 * lets it set them as plain variables, as db.php does with $wpdb.
+	 */
+	global $wp_secrets_provider, $wp_secrets_store, $wp_secrets_keyring;
 
 	try {
 		require $dropin_path;

@@ -259,6 +259,10 @@ since _wp_secrets_get_provider(), _wp_secrets_get_store(), and
 _wp_secrets_get_key_manager() each cache their result for the request, so this
 only ever needs to run once regardless of how many times it is called.
 
+The drop-in sets its overrides in the `$wp_secrets_provider`, `$wp_secrets_store`
+and `$wp_secrets_keyring` globals. They are declared global before the require, so
+a plain assignment such as `$wp_secrets_keyring = new My_Keyring();` works.
+
 Sets $GLOBALS['wp_secrets_dropin_loaded'] as soon as the file is found, whether
 or not it then loads cleanly: wp_using_secrets_dropin() reports presence, not
 health.
