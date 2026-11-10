@@ -16,7 +16,7 @@ DB_HOST ?= 127.0.0.1
 SMOKE_DB_NAME ?= wordpress_smoke
 
 .DEFAULT_GOAL := help
-.PHONY: help install lint lint-fix compat analyse test test-ms test-examples coverage reference reference-check ci smoke clean
+.PHONY: help install lint lint-fix compat analyse test test-ms test-stand-down test-examples coverage reference reference-check ci smoke clean
 
 help: ## Show this help.
 	@grep -hE '^[a-zA-Z_-]+:.*?## ' $(MAKEFILE_LIST) \
@@ -45,6 +45,9 @@ test: ## Run the single-site suite.
 
 test-ms: ## Run the multisite suite.
 	WP_MULTISITE=1 $(VENDOR_BIN)/phpunit -c phpunit-multisite.xml.dist
+
+test-stand-down: ## On a WordPress that ships the API, check that the plugin stands down.
+	SECRETS_API_TESTS_EXPECT_CORE=1 $(VENDOR_BIN)/phpunit --group stand-down
 
 coverage: ## Run the single-site suite with coverage.
 	$(VENDOR_BIN)/phpunit --coverage-html coverage --coverage-text
