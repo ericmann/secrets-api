@@ -121,6 +121,41 @@ function wp_import_option_as_secret( string $option, string $name )
 
 **Source:** [`src/wp-includes/secrets.php`](../../src/wp-includes/secrets.php)
 
+## `wp_is_secrets_api_available()`
+
+Whether the Secrets API can store and read secrets on this site.
+
+A plugin can check this before it moves a credential into the Secrets API, and
+keep its existing storage while it returns false:
+
+    if ( wp_is_secrets_api_available() ) {
+        // Move the credential, then use wp_set_secret() and wp_get_secret().
+    } else {
+        // Keep using the existing storage.
+    }
+
+Returns false when the secrets.php drop-in failed to load, when the default
+keyring has no usable WP_SECRETS_KEY, or when WP_SECRETS_KEY cannot unwrap the
+stored root key. The last happens when a site that already stored secrets adds
+or changes the key without re-wrapping the root key.
+
+A provider or keyring from a working drop-in manages its own keys, so it is
+reported as available. Its backend can still be unreachable on a given request,
+which each call reports as a WP_Error.
+
+Whether the provider accepts writes is a separate question. See
+wp_secrets_provider_is_writable().
+
+```php
+function wp_is_secrets_api_available(): bool
+```
+
+**Returns:** `bool`
+
+**Since:** 7.2.0
+
+**Source:** [`src/wp-includes/secrets.php`](../../src/wp-includes/secrets.php)
+
 ## `wp_list_network_secrets()`
 
 Lists network-scope secrets by name and metadata. Never a value.
@@ -491,7 +526,7 @@ function wp_secrets_site_health_result( string $test, string $label, string $sta
 
 ## `wp_secrets_site_health_test_key_source()`
 
-Tests whether the site key comes from a dedicated constant or a weaker fallback.
+Tests whether the site key is defined, and in the recommended form.
 
 ```php
 function wp_secrets_site_health_test_key_source(): array

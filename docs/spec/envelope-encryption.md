@@ -21,8 +21,12 @@ The 0.1.0 code has four layers, not two. Exactly one value is ever stored wrappe
    `src/wp-includes/secrets/class-wp-secrets-config-key-provider.php` derives 32 bytes from
    `wp-config.php`, in priority order: `WP_SECRETS_KEY` when it is the canonical base64 encoding
    of exactly 32 bytes (used raw); `WP_SECRETS_KEY` of any other shape (hashed with
-   `sodium_crypto_generichash()` to 32 bytes); otherwise `LOGGED_IN_KEY . LOGGED_IN_SALT` hashed
-   the same way. The literal `wp-config-sample.php` placeholder is rejected as unusable.
+   `sodium_crypto_generichash()` to 32 bytes). There is no fallback: without a usable
+   `WP_SECRETS_KEY`, every call that needs the key returns `secret_key_unavailable`. A key that is
+   empty or only whitespace, the `wp-config-sample.php` placeholder, or equal to any of the
+   authentication keys and salts is not usable. `get_key_status()` reports which case applies, and
+   `wp_is_secrets_api_available()` reports whether the API can be used at all. See
+   [ADR 0016](../decisions/0016-require-wp-secrets-key.md).
 2. **Root key.** `WP_Secrets_Key_Manager::generate_root_key()` in
    `src/wp-includes/secrets/class-wp-secrets-key-manager.php` draws 32 random bytes once per
    install, wraps them with the keyring, and stores the result under the `_wp_secrets_root_key` site

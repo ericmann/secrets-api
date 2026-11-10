@@ -23,6 +23,20 @@ if ( ! file_exists( $_tests_dir . '/includes/functions.php' ) ) {
 require_once $_tests_dir . '/includes/functions.php';
 
 /*
+ * The Secrets API needs WP_SECRETS_KEY, which wp-tests-config.php does not define,
+ * so give the suite a fixed test key, as core's test bootstrap does since r65385.
+ * A test library from before 7.2 doesn't, so this defines it first.
+ *
+ * Not in a process-isolated test: PHPUnit sets $GLOBALS['__PHPUNIT_BOOTSTRAP']
+ * while it loads this file in a child process, and the Secrets API tests that run
+ * isolated do so precisely to define WP_SECRETS_KEY themselves, or to leave it
+ * undefined.
+ */
+if ( ! defined( 'WP_SECRETS_KEY' ) && ! isset( $GLOBALS['__PHPUNIT_BOOTSTRAP'] ) ) {
+	define( 'WP_SECRETS_KEY', base64_encode( str_repeat( 'k', 32 ) ) );
+}
+
+/*
  * Loaded, and WP_CLI defined, before the plugin itself ever bootstraps below: the
  * plugin's own bootstrap checks defined( 'WP_CLI' ) && WP_CLI to decide whether to
  * load cli/, exactly as it will under real WP-CLI, so this has to be in place before

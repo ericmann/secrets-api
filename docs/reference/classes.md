@@ -974,21 +974,27 @@ The default keyring.
 Derives a site key from wp-config.php and uses it to wrap and unwrap the root key
 with authenticated encryption.
 
-Site key derivation, in priority order:
+Site key derivation:
 
-1. WP_SECRETS_KEY is defined and base64-decodes (strictly) to exactly 32 bytes:
-   those decoded bytes are used raw. This is the documented, recommended form;
-   `wp secret generate-key` emits it.
-2. WP_SECRETS_KEY is defined in any other shape: the literal constant string is
-   hashed with a keyed BLAKE2b to 32 bytes. This is the legacy interpretation –
-   sites arriving from a prior plugin with a constant of arbitrary shape are not
-   locked out of their own credentials by a hard failure here.
-3. WP_SECRETS_KEY is undefined: LOGGED_IN_KEY . LOGGED_IN_SALT is hashed the same
-   way. Deliberately byte-identical to the legacy interpretation's hashing, not a
-   coincidence – it is what makes salt-fallback sites migrate with zero
-   credential re-entry.
+1. WP_SECRETS_KEY base64-decodes (strictly) to exactly 32 bytes: those decoded
+   bytes are used raw. This is the recommended form, such as the output of
+   base64_encode( random_bytes( 32 ) ).
+2. WP_SECRETS_KEY is any other string: the literal constant string is hashed
+   with BLAKE2b to 32 bytes. This is the legacy interpretation – sites arriving
+   from a prior plugin with a constant of arbitrary shape are not locked out of
+   their own credentials by a hard failure here.
 
-WP_SECRETS_KEY_PREVIOUS follows the same three rules and exists only so a site-key
+There is no fallback. Without a usable WP_SECRETS_KEY, every Secrets API call
+that needs the key returns WP_Error. Deriving a key from the authentication keys
+and salts would make every stored secret unreadable whenever the salts are
+rotated, which is routine advice for them.
+
+The wp-config-sample.php placeholder is not usable, and neither is a value that
+one of the authentication keys and salts also has. A sample that was never
+filled in gives every constant the same phrase, translated in localized samples,
+so the second check rejects the placeholder in any language.
+
+WP_SECRETS_KEY_PREVIOUS follows the same rules and exists only so a site-key
 rotation can unwrap under the old key before wrapping under the new one.
 
 **Since:** 7.2.0
@@ -1000,7 +1006,12 @@ rotation can unwrap under the old key before wrapping under the new one.
 | Constant | Value | Description |
 |---|---|---|
 | `AAD` | `'wp-secrets-root-key-v1'` | AAD binding the root key's wrapped form to this purpose. |
-| `KNOWN_PLACEHOLDER` | `'put your unique phrase here'` | The exact text wp-config-sample.php ships for every auth and salt constant. |
+| `AUTH_CONSTANTS` | `array( 'AUTH_KEY', 'SECURE_AUTH_KEY', 'LOGGED_IN_KEY', 'NONCE_KEY', 'AUTH_SALT', 'SECURE_AUTH_SALT', 'LOGGED_IN_SALT', 'NONCE_SALT', )` | The authentication keys and salts that wp-config-sample.php defines. |
+| `KEY_STATUS_BASE64` | `'base64'` | WP_SECRETS_KEY is the base64 encoding of 32 bytes, the recommended form. |
+| `KEY_STATUS_LEGACY` | `'legacy'` | WP_SECRETS_KEY is usable but in another form, so it is hashed to 32 bytes. |
+| `KEY_STATUS_UNDEFINED` | `'undefined'` | WP_SECRETS_KEY is not defined. |
+| `KEY_STATUS_UNUSABLE` | `'unusable'` | WP_SECRETS_KEY is defined, but empty, the placeholder, or equal to a key or salt. |
+| `KNOWN_PLACEHOLDER` | `'put your unique phrase here'` | The exact text wp-config-sample.php ships for every key and salt constant. |
 
 ### Methods
 
@@ -1027,6 +1038,21 @@ public function get_key_source(): string
 ```
 
 **Returns:** `string`
+
+**Since:** 7.2.0
+
+#### `WP_Secrets_Config_Key_Provider::get_key_status()`
+
+Reports the state of WP_SECRETS_KEY.
+
+Site Health and wp_is_secrets_api_available() use this rather than the text of
+get_key_source(), which is translated.
+
+```php
+public function get_key_status(): string
+```
+
+**Returns:** `string` One of the KEY_STATUS_* constants.
 
 **Since:** 7.2.0
 

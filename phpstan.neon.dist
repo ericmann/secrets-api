@@ -58,3 +58,12 @@ parameters:
 			identifier: argument.type
 			path: src/wp-includes/secrets/class-wp-secrets-key-manager.php
 			count: 3
+		# r65385's get_auth_constant_values() checks is_string( constant( $name ) ) and
+		# then calls constant() again, so PHPStan can't narrow the value it appends.
+		# The value is a string at runtime. src/ stays as core committed it; core's
+		# own PHPStan level doesn't report this.
+		-
+			message: '#^Method WP_Secrets_Config_Key_Provider::get_auth_constant_values\(\) should return array<string> but returns list\.$#'
+			identifier: return.type
+			path: src/wp-includes/secrets/class-wp-secrets-config-key-provider.php
+			count: 1

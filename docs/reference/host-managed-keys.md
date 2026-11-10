@@ -58,8 +58,9 @@ is defined but not a non-empty string as an error. Every secret read then fails 
 3. Remove `WP_SECRETS_KEY_PREVIOUS`.
 
 The panel can keep as many past values as it likes; WordPress only ever needs the one it is
-rotating away from. A site that has never set `WP_SECRETS_KEY` is running on the salt-derived key,
-and its "previous" value is the string `LOGGED_IN_KEY . LOGGED_IN_SALT`. Setting that as
+rotating away from. `WP_SECRETS_KEY` is required, so a site without it can't use the API. A site
+that stored secrets under the salt-derived key of 0.4.0 and earlier, or of a 7.2 beta, has the
+string `LOGGED_IN_KEY . LOGGED_IN_SALT` as its "previous" value. Setting that as
 `WP_SECRETS_KEY_PREVIOUS` moves the site onto a host-issued key the same way.
 
 **The limit.** An environment variable is still visible to the PHP process. It can end up in
