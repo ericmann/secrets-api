@@ -129,7 +129,9 @@ function wp_secrets_api_bootstrap(): void {
 	 * is false during some of the same contexts Site Health's own async REST checks
 	 * run in, which would make the gate unreliable in exactly the cases it matters.
 	 */
-	require_once WP_SECRETS_API_PLUGIN_DIR . 'src/wp-admin/includes/secrets-site-health.php';
+	require_once WP_SECRETS_API_PLUGIN_DIR . 'plugin/class-secrets-api-site-health.php';
+
+	Secrets_API_Site_Health::register();
 
 	/*
 	 * Installed as the default store so that a site carrying prototype-format

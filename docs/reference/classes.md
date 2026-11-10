@@ -286,6 +286,103 @@ public function set( string $name, array $record, bool $network = false )
 
 **Returns:** `bool|WP_Error`
 
+## `Secrets_API_Site_Health`
+
+*final class*
+
+Adds the Secrets API's Site Health tests and debug information on WordPress before 7.2.
+
+In core they are methods of WP_Site_Health and WP_Debug_Data (r65394). A plugin cannot
+add methods to those classes, so this class carries copies of them and registers them
+through the 'site_status_tests' and 'debug_information' filters, under the same test
+IDs, labels and debug section key that core uses.
+
+Everything after add_debug_information() is copied from core trunk unchanged, so it
+passes no text domain, as core does. Porting a later core change means copying the
+methods again. On trunk, the stand-down suite compares each copy with core's.
+
+**Source:** [`plugin/class-secrets-api-site-health.php`](../../plugin/class-secrets-api-site-health.php)
+
+### Methods
+
+#### `Secrets_API_Site_Health::add_debug_information()`
+
+Adds the Secrets API section, as WP_Debug_Data::debug_data() does in core.
+
+```php
+public function add_debug_information( $info )
+```
+
+| Parameter | Type | Description |
+|---|---|---|
+| `$info` | `array<string, array<string, mixed>>` | Existing debug information sections. |
+
+**Returns:** `array<string, array<string, mixed>>`
+
+#### `Secrets_API_Site_Health::add_tests()`
+
+Registers the three tests as direct tests, as WP_Site_Health::get_tests() does in core.
+
+```php
+public function add_tests( $tests )
+```
+
+| Parameter | Type | Description |
+|---|---|---|
+| `$tests` | `array<string, array<string, array<string, mixed>>>` | Existing Site Health tests. |
+
+**Returns:** `array<string, array<string, array<string, mixed>>>`
+
+#### `Secrets_API_Site_Health::get_test_secrets_api_key_source()`
+
+Tests whether the Secrets API has a usable key.
+
+There is no settings screen for secrets, so this is how an administrator notices
+a missing or broken key, or a key that no longer unlocks the stored secrets.
+
+```php
+public function get_test_secrets_api_key_source(): array
+```
+
+**Returns:** `array` The test result.
+
+**Since:** 7.2.0
+
+#### `Secrets_API_Site_Health::get_test_secrets_api_needs_rotation()`
+
+Tests whether any secrets are flagged as needing rotation.
+
+```php
+public function get_test_secrets_api_needs_rotation(): array
+```
+
+**Returns:** `array` The test result.
+
+**Since:** 7.2.0
+
+#### `Secrets_API_Site_Health::get_test_secrets_api_undecryptable()`
+
+Tests whether every stored secret still decrypts.
+
+Network secrets are included only for a super admin on a multisite install –
+never shown to a site administrator who is not one.
+
+```php
+public function get_test_secrets_api_undecryptable(): array
+```
+
+**Returns:** `array` The test result.
+
+**Since:** 7.2.0
+
+#### `Secrets_API_Site_Health::register()`
+
+Hooks the tests and the debug information into Site Health.
+
+```php
+public static function register(): void
+```
+
 ## `WP_Secret`
 
 *final class* · implements `JsonSerializable`

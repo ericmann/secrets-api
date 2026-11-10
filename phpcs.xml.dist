@@ -73,9 +73,20 @@
 		With text domains configured, the sniff warns about any call that omits one and
 		suggests naming "default". In src/ omitting it is the point: core does not pass
 		a domain for its own strings, and review on the core patch asked for the same.
+		plugin/class-secrets-api-site-health.php carries copies of core's Site Health
+		methods, kept identical to core's so that a later change can be copied again.
 	-->
 	<rule ref="WordPress.WP.I18n.MissingArgDomainDefault">
 		<exclude-pattern>/src/*</exclude-pattern>
+		<exclude-pattern>/plugin/class-secrets-api-site-health\.php$</exclude-pattern>
+	</rule>
+
+	<!--
+		The key source test generates an example WP_SECRETS_KEY with base64_encode(). That is
+		core's code, copied unchanged, and it encodes key bytes for display.
+	-->
+	<rule ref="WordPress.PHP.DiscouragedPHPFunctions.obfuscation_base64_encode">
+		<exclude-pattern>/plugin/class-secrets-api-site-health\.php$</exclude-pattern>
 	</rule>
 
 	<rule ref="WordPress.NamingConventions.PrefixAllGlobals">

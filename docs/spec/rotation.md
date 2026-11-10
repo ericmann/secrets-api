@@ -61,8 +61,7 @@ reached through the CLI.
 
 **Flagging for rotation.** Every slot carries `needs_rotation`. `wp_import_option_as_secret()`
 sets it to `true`; ordinary writes set `false`. It surfaces in `wp_list_secrets()`, in the Site
-Health test `secrets_api_needs_rotation` in `src/wp-admin/includes/secrets-site-health.php`, and
-in `wp secret health`.
+Health test `secrets_api_needs_rotation`, and in `wp secret health`.
 
 ## Why
 

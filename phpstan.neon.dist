@@ -25,6 +25,9 @@ parameters:
 		- vendor/php-stubs/wp-cli-stubs/wp-cli-stubs.php
 		- vendor/php-stubs/wp-cli-stubs/wp-cli-commands-stubs.php
 		- tests/phpstan/compat-stubs.php
+		- tests/phpstan/beta-site-health-stubs.php
+	stubFiles:
+		- tests/phpstan/site-health-7-2-stubs.php
 	bootstrapFiles:
 		- tests/phpstan-bootstrap.php
 	treatPhpDocTypesAsCertain: false
@@ -66,4 +69,14 @@ parameters:
 			message: '#^Method WP_Secrets_Config_Key_Provider::get_auth_constant_values\(\) should return array<string> but returns list\.$#'
 			identifier: return.type
 			path: src/wp-includes/secrets/class-wp-secrets-config-key-provider.php
+			count: 1
+		# r65394's WP_Debug_Data::get_wp_secrets_api() documents its return as
+		# array<string, string|array>, as the other sections of WP_Debug_Data do, and
+		# level 10 wants the inner array typed too. The method is a copy of core's,
+		# kept identical so it can be compared with core on trunk; core's own PHPStan
+		# level doesn't report this.
+		-
+			message: '#^Method Secrets_API_Site_Health::get_wp_secrets_api\(\) return type has no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			path: plugin/class-secrets-api-site-health.php
 			count: 1
