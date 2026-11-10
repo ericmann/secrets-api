@@ -25,7 +25,7 @@ explanation rather than silence.
 
 ## Scope
 
-This is a pre-release feature plugin (`0.4.0`). The API is in WordPress core trunk for 7.2, and
+This is a pre-release feature plugin (`0.5.0`). The API is in WordPress core trunk for 7.2, and
 `src/` follows it. There is no supported-version matrix yet: `main` is the only supported branch,
 and fixes land there.
 
