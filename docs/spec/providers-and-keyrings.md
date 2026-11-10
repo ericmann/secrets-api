@@ -73,7 +73,8 @@ stub of each of the three classes and the globals that install them.
 shipped provider, and remain public. A drop-in may set `wp_secrets_store`, `wp_secrets_keyring`,
 both, or neither, and get the shipped provider built around them. Setting `wp_secrets_provider`
 replaces the whole thing, and any store or keyring globals are then ignored on the read and
-write path. Site Health still reads the keyring global to describe the key source. The most
+write path. Site Health then says the provider manages its own keys, and Site Health Info marks
+the keyring class and key source as not used by the provider. The most
 common host integration is a keyring alone: three methods.
 
 **Sensitive parameters.** The interfaces mark the provider's `set()` `$value` and the keyring's

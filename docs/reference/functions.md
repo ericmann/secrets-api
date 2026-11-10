@@ -451,14 +451,14 @@ function wp_secrets_provider_label(): string
 Counts secrets flagged needs_rotation, for one scope.
 
 ```php
-function wp_secrets_site_health_count_needing_rotation( bool $network ): int
+function wp_secrets_site_health_count_needing_rotation( bool $network )
 ```
 
 | Parameter | Type | Description |
 |---|---|---|
 | `$network` | `bool` | Whether to check network-scope secrets. |
 
-**Returns:** `int`
+**Returns:** `int|WP_Error` The number of secrets, or WP_Error when the secrets cannot be listed.
 
 **Since:** 7.2.0
 
@@ -490,14 +490,14 @@ function wp_secrets_site_health_debug_info( $info )
 Finds secrets that fail to decrypt, for one scope.
 
 ```php
-function wp_secrets_site_health_find_undecryptable( bool $network ): array
+function wp_secrets_site_health_find_undecryptable( bool $network )
 ```
 
 | Parameter | Type | Description |
 |---|---|---|
 | `$network` | `bool` | Whether to check network-scope secrets. |
 
-**Returns:** `array` List of array( 'name' => ..., 'fingerprint' => ... ).
+**Returns:** `array|WP_Error` List of array( 'name' => ..., 'fingerprint' => ... ), or WP_Error when the secrets cannot be listed.
 
 **Since:** 7.2.0
 
@@ -585,6 +585,27 @@ function wp_secrets_site_health_tests( $tests )
 | `$tests` | `array<string, array<string, array<string, mixed>>>` | Existing Site Health tests. |
 
 **Returns:** `array<string, array<string, array<string, mixed>>>`
+
+**Since:** 7.2.0
+
+**Source:** [`src/wp-admin/includes/secrets-site-health.php`](../../src/wp-admin/includes/secrets-site-health.php)
+
+## `wp_secrets_site_health_uses_keyring()`
+
+Whether the active provider protects secrets with the keyring.
+
+A secrets.php drop-in can replace the whole provider, which then protects secrets
+with its own keys. The default keyring, and WP_SECRETS_KEY, are not used at all.
+
+```php
+function wp_secrets_site_health_uses_keyring( WP_Secrets_Provider $provider ): bool
+```
+
+| Parameter | Type | Description |
+|---|---|---|
+| `$provider` | `WP_Secrets_Provider` | The active provider. |
+
+**Returns:** `bool`
 
 **Since:** 7.2.0
 
