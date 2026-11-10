@@ -15,20 +15,20 @@ questions, asking whether providers could stand in for a retrieval filter, but n
 
 ## As built
 
-**Three interfaces, outermost first.**
+**Three abstract classes, outermost first.**
 
-| Interface | File | Methods |
+| Class | File | Methods |
 |---|---|---|
-| `WP_Secrets_Provider` | `src/wp-includes/secrets/interface-wp-secrets-provider.php` | `get()`, `set()`, `delete()`, `retire_previous()`, `list_secrets()`, `get_label()`, `get_protection_boundary()`, `is_writable()` |
-| `WP_Secrets_Store` | `src/wp-includes/secrets/interface-wp-secrets-store.php` | `get()`, `set()`, `delete()`, `list_names()` |
-| `WP_Secrets_Keyring` | `src/wp-includes/secrets/interface-wp-secrets-keyring.php` | `wrap()`, `unwrap()`, `get_key_source()` |
+| `WP_Secrets_Provider` | `src/wp-includes/secrets/class-wp-secrets-provider.php` | `get()`, `set()`, `delete()`, `retire_previous()`, `list_secrets()`, `get_label()`, `get_protection_boundary()`, `is_writable()` |
+| `WP_Secrets_Store` | `src/wp-includes/secrets/class-wp-secrets-store.php` | `get()`, `set()`, `delete()`, `list_names()` |
+| `WP_Secrets_Keyring` | `src/wp-includes/secrets/class-wp-secrets-keyring.php` | `wrap()`, `unwrap()`, `get_key_source()` |
 
 `WP_Secrets_Provider` also declares `BOUNDARY_WORDPRESS` and `BOUNDARY_PROVIDER` for
 `get_protection_boundary()`.
 
 **Resolution.** `_wp_secrets_get_provider()` in `src/wp-includes/secrets.php`: if the drop-in is
 flagged broken, `WP_Secrets_Broken_Provider`; else if `$GLOBALS['wp_secrets_provider']` is set, it
-is used when it implements the interface and replaced with `WP_Secrets_Broken_Provider` when it
+is used when it extends the class and replaced with `WP_Secrets_Broken_Provider` when it
 does not; else `new WP_Secrets_Libsodium_Provider( _wp_secrets_get_store(), _wp_secrets_get_key_manager() )`.
 
 `_wp_secrets_get_store()` returns `$GLOBALS['wp_secrets_store']` when set to a `WP_Secrets_Store`,
@@ -65,7 +65,7 @@ A missing global is fine. A throw or a wrong type sets `$GLOBALS['wp_secrets_dro
 The three globals are declared before the `require`, so the drop-in can set them as plain
 variables, such as `$wp_secrets_keyring = new My_Keyring();`, as well as through `$GLOBALS`.
 `wp_using_secrets_dropin()` reports presence. In the plugin, this runs after every core-bound
-interface has been required, since a drop-in class needs the interface to compile.
+class has been required, since a drop-in class needs its parent class to compile.
 [`docs/reference/drop-in-example.php`](../reference/drop-in-example.php) is a skeleton with a
 stub of each of the three classes and the globals that install them.
 
@@ -73,10 +73,11 @@ stub of each of the three classes and the globals that install them.
 shipped provider, and remain public. A drop-in may set `wp_secrets_store`, `wp_secrets_keyring`,
 both, or neither, and get the shipped provider built around them. Setting `wp_secrets_provider`
 replaces the whole thing, and any store or keyring globals are then ignored on the read and
-write path. Site Health still reads the keyring global to describe the key source. The most
+write path. Site Health then says the provider manages its own keys, and Site Health Info marks
+the keyring class and key source as not used by the provider. The most
 common host integration is a keyring alone: three methods.
 
-**Sensitive parameters.** The interfaces mark the provider's `set()` `$value` and the keyring's
+**Sensitive parameters.** The abstract classes mark the provider's `set()` `$value` and the keyring's
 `wrap()` `$key_material` with `#[\SensitiveParameter]`, so a stack trace from a failed save shows
 neither. Attributes are not inherited, so an implementation adds the attribute itself, as the
 examples and `docs/reference/drop-in-example.php` do. On PHP 7.4 the attribute line is a comment.

@@ -20,10 +20,10 @@ missing. See "Two extension points, independently replaceable" and "Feedback wan
 for a secret: storing it, protecting it, and handing it back. WordPress ships
 `WP_Secrets_Libsodium_Provider`, which encrypts with libsodium and keeps ciphertext in the options
 tables. That is the default and nothing more. A platform that protects credentials in a KMS, an
-HSM, or its own control panel implements the same interface and stands on equal footing. The
-interface has eight methods: `get()`, `set()`, `delete()`, `retire_previous()`, `list_secrets()`,
+HSM, or its own control panel extends the same abstract class and stands on equal footing. The
+class has eight abstract methods: `get()`, `set()`, `delete()`, `retire_previous()`, `list_secrets()`,
 `get_label()`, `get_protection_boundary()`, and `is_writable()`, in
-`src/wp-includes/secrets/interface-wp-secrets-provider.php`.
+`src/wp-includes/secrets/class-wp-secrets-provider.php`.
 
 Every provider has to be **stronger than the default, never weaker**. A provider still cannot
 store a plaintext where the default would have stored ciphertext. Taking a value over an
@@ -66,7 +66,7 @@ so there is a known-good subject to compare failures against. It also runs again
 provider example on a real dev server in `make test-examples`, so there is a second known-good
 subject whose backend does not share the two-slot shape.
 
-**The two inner interfaces.** The store and keyring are the internals of the shipped provider,
+**The two inner classes.** The store and keyring are the internals of the shipped provider,
 and either can still be replaced on its own. A host who wants their own key custody but is happy
 with WordPress's storage swaps the keyring and writes no provider at all. Both live in
 `src/wp-includes/secrets/`, and both are part of the API surface intended for core.
@@ -74,11 +74,11 @@ with WordPress's storage swaps the keyring and writes no provider at all. Both l
 **`WP_Secrets_Store`: where records live.**
 
 ```php
-interface WP_Secrets_Store {
-    public function get( $name, $network = false );
-    public function set( $name, $record, $network = false );
-    public function delete( $name, $network = false );
-    public function list_names( $network = false );
+abstract class WP_Secrets_Store {
+    abstract public function get( string $name, bool $network = false );
+    abstract public function set( string $name, array $record, bool $network = false );
+    abstract public function delete( string $name, bool $network = false );
+    abstract public function list_names( bool $network = false );
 }
 ```
 
@@ -92,7 +92,7 @@ there is no plaintext for a store to see in the first place. See
 
 `get()` returns three things, not two: the record array, `null` if the name has never been set,
 or `WP_Error` if the store cannot currently tell which. Collapsing the last two, treating
-"unreachable" as "absent", is exactly the bug this interface exists to make impossible. A network
+"unreachable" as "absent", is exactly the bug this class exists to make impossible. A network
 outage must never look like a deleted credential.
 
 There is no capability flag. A store that cannot perform an operation says so from that
@@ -109,16 +109,16 @@ $GLOBALS['wp_secrets_store'] = new My_Platform_Store();
 **`WP_Secrets_Keyring`: where the root key lives.**
 
 ```php
-interface WP_Secrets_Keyring {
-    public function wrap( $key_material );
-    public function unwrap( $wrapped );
-    public function get_key_source();
+abstract class WP_Secrets_Keyring {
+    abstract public function wrap( string $key_material );
+    abstract public function unwrap( string $wrapped );
+    abstract public function get_key_source(): string;
 }
 ```
 
-A smaller interface, but everything else depends on it: every other key in the system derives
+A smaller class, but everything else depends on it: every other key in the system derives
 from what this one protects. `wrap()` and `unwrap()` only ever handle 32 bytes of root key
-material, never a secret value. In a real deployment a KMS or HSM sits behind this interface. The
+material, never a secret value. In a real deployment a KMS or HSM sits behind this class. The
 shipped default, `WP_Secrets_Config_Key_Provider`, wraps the root key with a key derived from
 `wp-config.php`, since that is the only thing guaranteed to exist on every WordPress install.
 
@@ -160,7 +160,7 @@ once, which is what a platform doing its own encryption should do. See
 one exists, and checks the type of whatever ends up in `$GLOBALS['wp_secrets_provider']`,
 `$GLOBALS['wp_secrets_store']`, and `$GLOBALS['wp_secrets_keyring']` afterward. Leaving a global
 unset is fine; plenty of drop-ins set only one. Setting one to something that is not an instance
-of the matching interface is not, and neither is a drop-in that throws or has a syntax error.
+of the matching class is not, and neither is a drop-in that throws or has a syntax error.
 Either way the whole drop-in fails closed, through `WP_Secrets_Broken_Provider`,
 `WP_Secrets_Broken_Store`, and `WP_Secrets_Broken_Keyring`, which turn every operation into a
 `WP_Error` instead of quietly falling back to the default. A broken credential backend must never
@@ -169,7 +169,9 @@ look like a working one that happens to have no secrets in it yet.
 
 There is one gap worth knowing about. PHP treats some class declaration errors in the drop-in as
 an uncatchable fatal, even inside the `try`/`catch` around the `require`. The usual culprit is a
-class that `implements` an interface but omits one of its methods. Userland cannot intercept that,
+class that `extends` one of the three but omits one of its abstract methods. A class that still uses
+`implements` on one of them, as drop-ins written for interfaces did before 0.5.0 and 7.2 beta 5,
+is the same kind of fatal: PHP reports it while compiling the drop-in. Userland cannot intercept that,
 and it takes down the whole request rather than failing in a contained way. Run `php -l` over a
 drop-in and load a real request before trusting it in production. `tests/smoke/smoke.sh` case D
 checks the syntax-error, throw-on-load, and wrong-type cases through the real loader; only the

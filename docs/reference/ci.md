@@ -132,7 +132,7 @@ person pasted.
 |---|---|---|---|
 | `static` | 8.3 | — | lint + compat + analyse. Gates everything else. |
 | `test` | 7.4, 8.0, 8.3, 8.5; 7.4 | 7.1.x; 6.8 | Single site |
-| `stand-down` | 7.4, 8.5 | trunk | `make test-stand-down`: core serves the API, and the plugin loads none of its own layer |
+| `stand-down` | 7.4, 8.5 | trunk | `make test-stand-down`: core serves the API, and the plugin loads none of its own layer. Core is wordpress-develop trunk's `src/`, from the same tarball as the test suite, not the nightly zip, which can lag a day behind it. |
 | `test-multisite` | 8.3 | 7.1.x | Multisite suite |
 | `smoke` | 7.4, 8.3, 8.5; 8.3 | 7.1.x; nightly | WP-CLI end to end, single site then multisite. The nightly leg runs the commands on core's implementation. |
 | `examples` | 8.3 | 7.1.x | `make test-examples` against Moto (an AWS emulator) and a Vault dev server, both pinned by digest, single site then multisite. Not part of `make ci`. |

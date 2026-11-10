@@ -20,7 +20,7 @@ scope", and "Timeline" in the [proposal][proposal].
 
 **Core-bound versus plugin-only.** Everything under `src/` is written to be copied into
 `wordpress-develop` unchanged: `src/wp-includes/secrets.php` holds the public functions,
-`src/wp-includes/secrets/` holds the classes and interfaces, and
+`src/wp-includes/secrets/` holds the classes, and
 `src/wp-admin/includes/secrets-site-health.php` holds Site Health. `plugin/` and `cli/` are never
 copied. `tests/phpunit/test-architecture.php` enforces the boundary: no reference to `WP_CLI`,
 `plugin/`, or `cli/` under `src/`; no self-guarding `function_exists()` or `class_exists()`; every

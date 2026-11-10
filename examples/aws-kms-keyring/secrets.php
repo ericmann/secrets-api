@@ -23,7 +23,7 @@
  * 2. How does an existing site move onto a new keyring? `wp secret rotate
  *    --from=config`, which unwraps with the site's current config key and
  *    re-wraps with whatever keyring is now active – this one, once installed.
- * 3. What must a keyring guarantee that the interface does not say? That
+ * 3. What must a keyring guarantee that the class does not say? That
  *    wrap() is non-deterministic (two calls on the same bytes must not return
  *    the same wrapped value) and that unwrap() fails closed on anything it did
  *    not produce, rather than returning a plausible-looking wrong key.
@@ -36,7 +36,7 @@ defined( 'ABSPATH' ) || exit;
 /**
  * Wraps and unwraps the site's root key using an AWS KMS customer master key.
  */
-final class AWS_KMS_Keyring implements WP_Secrets_Keyring {
+final class AWS_KMS_Keyring extends WP_Secrets_Keyring {
 
 	/**
 	 * Marks a wrapped value as ours. unwrap() uses its absence to give a
