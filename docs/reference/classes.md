@@ -1141,13 +1141,14 @@ public function get_keyring(): WP_Secrets_Keyring
 Derives a scope's master key from the root key.
 
 ```php
-public function get_master_key( string $scope, ?int $site_id = null )
+public function get_master_key( string $scope, ?int $site_id = null, bool $create_root_key = true )
 ```
 
 | Parameter | Type | Description |
 |---|---|---|
 | `$scope` | `string` | 'site' or 'network'. |
 | `$site_id` | `int\|null` | Blog ID for site scope. Defaults to the current blog. Ignored for network scope. |
+| `$create_root_key` | `bool` | Optional. Whether to generate and store a root key if none exists. Pass false when only reading secrets. Default true. |
 
 **Returns:** `string|WP_Error` 32-byte master key on success. WP_Error on failure, including when a caller passes an invalid scope or site ID – see WP_Secrets_Cipher::validate_common() for why that is a WP_Error and not an exception.
 
@@ -1157,9 +1158,17 @@ public function get_master_key( string $scope, ?int $site_id = null )
 
 Returns the root key, generating and persisting one on first use.
 
+get_site_option() also returns false when its query fails, so a false result is
+checked against the database before a new root key is generated. Generating one
+while another is stored would make every existing secret undecryptable.
+
 ```php
-public function get_root_key()
+public function get_root_key( bool $create = true )
 ```
+
+| Parameter | Type | Description |
+|---|---|---|
+| `$create` | `bool` | Optional. Whether to generate and store a root key if none exists. Default true. |
 
 **Returns:** `string|WP_Error` 32 raw bytes on success. WP_Error on failure.
 
