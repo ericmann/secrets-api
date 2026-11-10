@@ -48,6 +48,10 @@ download() {
 	fi
 }
 
+# A branch with a trailing ".x", such as 7.1.x, means the newest release on that
+# branch. See bin/resolve-wp-version.sh.
+WP_VERSION=$("$(dirname "$0")/resolve-wp-version.sh" "$WP_VERSION")
+
 if [[ $WP_VERSION =~ ^[0-9]+\.[0-9]+\-(beta|RC)[0-9]+$ ]]; then
 	WP_BRANCH=${WP_VERSION%\-*}
 	WP_TESTS_TAG="branches/$WP_BRANCH"

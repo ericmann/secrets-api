@@ -12,6 +12,7 @@
  * wp_secrets_api_bootstrap() again exercises the real branches with no simulation.
  *
  * @group secrets
+ * @group stand-down
  */
 class Tests_Secrets_NoopGate extends WP_UnitTestCase {
 
