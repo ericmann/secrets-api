@@ -15,10 +15,15 @@ make compat    # PHPCompatibilityWP, testVersion 7.4-
 make analyse   # phpstan, level 10
 make test      # phpunit, single site
 make test-ms   # phpunit, multisite
+make test-stand-down  # on a WordPress that ships the API: the plugin stands down
 make reference-check  # docs/reference/ matches the source docblocks
 make smoke     # WP-CLI end to end against a throwaway install in .smoke/
-make ci        # all of the above
+make ci        # all of the above, except test-stand-down
 ```
+
+`make test-stand-down` needs a WordPress that ships the Secrets API, such as trunk, so it is not
+part of `make ci`. It runs the `stand-down` group with `SECRETS_API_TESTS_EXPECT_CORE=1`, which
+makes the stand-down tests fail instead of skip on a WordPress without the API.
 
 ## The always-works path
 
@@ -44,7 +49,9 @@ make ci
 ```
 
 `bin/install-wp-tests.sh` takes `<db-name> <db-user> <db-pass> [db-host] [wp-version]` and honours
-`WP_TESTS_DIR` and `WP_CORE_DIR`.
+`WP_TESTS_DIR` and `WP_CORE_DIR`. A version with a trailing `.x`, such as `7.1.x`, means the newest
+release on that branch. `bin/resolve-wp-version.sh` looks it up in the version-check API's offers,
+and `bin/smoke-install.sh` uses it too.
 
 ### The WP-CLI smoke test
 
@@ -73,7 +80,7 @@ wordpress.org:
 |---|---|
 | `WP_MIRROR_BASE` | Substituted for `https://wordpress.org` when downloading WordPress itself |
 | `WP_TESTS_ZIP_URL` | Full URL to a WordPress archive, overriding version lookup entirely |
-| `WP_API_BASE` | Substituted for `https://api.wordpress.org`, used only to resolve what "latest" means |
+| `WP_API_BASE` | Substituted for `https://api.wordpress.org`, used only to resolve "latest" and versions such as `7.1.x` |
 | `WP_DEVELOP_BASE` | Substituted for `https://github.com/WordPress/wordpress-develop`, where the test suite comes from |
 
 Three separate hosts, deliberately: a mirror of wordpress.org downloads is not automatically a
@@ -94,7 +101,7 @@ reliable egress to Packagist.
 hosted pipeline.
 
 **github.com, hosted runners.** Static analysis gates a PHP 7.4 / 8.0 / 8.3 / 8.5 × WordPress
-latest / trunk matrix, plus a multisite job. `shivammathur/setup-php` provides the interpreter and
+7.1.x matrix with a WordPress 6.8 floor leg, a multisite job, and a stand-down job on trunk. `shivammathur/setup-php` provides the interpreter and
 asks for the `sodium` extension by name. The whole API is built on libsodium, so relying on
 whatever the runner image happens to ship wasn't good enough. The `examples` job is the only one
 with service containers beyond the database: a pinned Moto instance, which the AWS Secrets Manager
@@ -124,11 +131,17 @@ person pasted.
 | Job | PHP | WordPress | Notes |
 |---|---|---|---|
 | `static` | 8.3 | — | lint + compat + analyse. Gates everything else. |
-| `test` | 7.4, 8.0, 8.3, 8.5 | latest, trunk | Single site |
-| `test-multisite` | 8.3 | latest | Multisite suite |
-| `smoke` | 7.4, 8.3, 8.5 | latest | WP-CLI end to end, single site then multisite |
-| `examples` | 8.3 | latest | `make test-examples` against Moto (an AWS emulator) and a Vault dev server, both pinned by digest, single site then multisite. Not part of `make ci`. |
+| `test` | 7.4, 8.0, 8.3, 8.5; 7.4 | 7.1.x; 6.8 | Single site |
+| `stand-down` | 7.4, 8.5 | trunk | `make test-stand-down`: core serves the API, and the plugin loads none of its own layer |
+| `test-multisite` | 8.3 | 7.1.x | Multisite suite |
+| `smoke` | 7.4, 8.3, 8.5; 8.3 | 7.1.x; nightly | WP-CLI end to end, single site then multisite. The nightly leg runs the commands on core's implementation. |
+| `examples` | 8.3 | 7.1.x | `make test-examples` against Moto (an AWS emulator) and a Vault dev server, both pinned by digest, single site then multisite. Not part of `make ci`. |
 | `reference-docs` | 8.3 | — | `bin/gen-reference.php --check`: the committed docs/reference/ matches the source. No Composer install. |
+
+The full suite runs only on WordPress below 7.2, the versions the plugin serves. On 7.2 and trunk
+the plugin stands down and core's implementation serves every call, so the full suite there would
+only test core with core's tests, and it fails whenever a port gets ahead of the nightly build.
+`7.1.x` rather than `latest` keeps the matrix on 7.1 when 7.2 ships.
 
 The 7.4 leg is not optional. Core's floor is 7.4 and `src/` must run there; PHPCompatibilityWP
 catches syntax statically, but only a running 7.4 catches runtime behaviour differences.
