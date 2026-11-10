@@ -26,7 +26,12 @@ The 0.1.0 code has four layers, not two. Exactly one value is ever stored wrappe
 2. **Root key.** `WP_Secrets_Key_Manager::generate_root_key()` in
    `src/wp-includes/secrets/class-wp-secrets-key-manager.php` draws 32 random bytes once per
    install, wraps them with the keyring, and stores the result under the `_wp_secrets_root_key` site
-   option via `add_site_option()`, handling the two-requests-race by re-reading the winner. The
+   option. Only a write creates it: reading a secret before any root key exists returns an error.
+   `get_site_option()` also returns `false` when its query fails, so a `false` is checked against
+   the database before a key is generated, and a failed check returns `WP_Error` without writing.
+   The key is written with `$wpdb` directly: `INSERT IGNORE` on a single site, so a stored key is
+   never overwritten, and on multisite every request uses the oldest row, and a request that lost
+   the race deletes its own. The
    default keyring wraps with `sodium_crypto_aead_xchacha20poly1305_ietf_encrypt()` under the fixed
    AAD `wp-secrets-root-key-v1`, storing `nonce . ciphertext` base64-encoded. The key manager keeps
    the unwrapped root key in memory for the rest of the request, so a remote keyring is invoked once

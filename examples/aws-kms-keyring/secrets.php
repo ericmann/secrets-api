@@ -107,7 +107,10 @@ final class AWS_KMS_Keyring implements WP_Secrets_Keyring {
 	 *
 	 * @return string|WP_Error
 	 */
-	public function wrap( string $key_material ) {
+	public function wrap(
+		#[\SensitiveParameter]
+		string $key_material
+	) {
 		if ( ! is_string( $key_material ) || '' === $key_material ) {
 			return new WP_Error( WP_SECRETS_ERROR_INVALID_VALUE, 'AWS_KMS_Keyring: key material must be a non-empty string.' );
 		}

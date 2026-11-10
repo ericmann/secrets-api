@@ -62,6 +62,8 @@ copy and are responsible for zeroing it; the manager's own cached copy is not th
 **Drop-in loading.** `wp_secrets_api_load_dropin()` in `secrets-api.php` requires
 `wp-content/secrets.php` inside `try`/`catch ( \Throwable )`, then type-checks all three globals.
 A missing global is fine. A throw or a wrong type sets `$GLOBALS['wp_secrets_dropin_broken']`.
+The three globals are declared before the `require`, so the drop-in can set them as plain
+variables, such as `$wp_secrets_keyring = new My_Keyring();`, as well as through `$GLOBALS`.
 `wp_using_secrets_dropin()` reports presence. In the plugin, this runs after every core-bound
 interface has been required, since a drop-in class needs the interface to compile.
 [`docs/reference/drop-in-example.php`](../reference/drop-in-example.php) is a skeleton with a
@@ -73,6 +75,11 @@ both, or neither, and get the shipped provider built around them. Setting `wp_se
 replaces the whole thing, and any store or keyring globals are then ignored on the read and
 write path. Site Health still reads the keyring global to describe the key source. The most
 common host integration is a keyring alone: three methods.
+
+**Sensitive parameters.** The interfaces mark the provider's `set()` `$value` and the keyring's
+`wrap()` `$key_material` with `#[\SensitiveParameter]`, so a stack trace from a failed save shows
+neither. Attributes are not inherited, so an implementation adds the attribute itself, as the
+examples and `docs/reference/drop-in-example.php` do. On PHP 7.4 the attribute line is a comment.
 
 **Supporting surface.** `wp_secrets_provider_is_writable()` and `wp_secrets_provider_label()` in
 `src/wp-includes/secrets.php`. `WP_SECRETS_ERROR_PROVIDER_READ_ONLY` for writes a provider

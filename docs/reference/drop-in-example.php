@@ -110,7 +110,14 @@ final class Example_Platform_Provider implements WP_Secrets_Provider {
 	 *
 	 * @return true|WP_Error
 	 */
-	public function set( string $name, $value, bool $network = false, bool $needs_rotation = false, ?string $action = null ) {
+	public function set(
+		string $name,
+		#[\SensitiveParameter]
+		$value,
+		bool $network = false,
+		bool $needs_rotation = false,
+		?string $action = null
+	) {
 		return new WP_Error( WP_SECRETS_ERROR_PROVIDER_READ_ONLY, 'This platform manages credentials outside of WordPress.' );
 	}
 
@@ -290,7 +297,10 @@ final class Example_KMS_Keyring implements WP_Secrets_Keyring {
 	 *
 	 * @return string|WP_Error Opaque wrapped value on success.
 	 */
-	public function wrap( string $key_material ) {
+	public function wrap(
+		#[\SensitiveParameter]
+		string $key_material
+	) {
 		/*
 		 * Replace with a real KMS encrypt call, e.g.:
 		 *
