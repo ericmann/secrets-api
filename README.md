@@ -131,9 +131,9 @@ and what does not flex.
 
 ## Extending
 
-Three interfaces, outermost first:
+Three abstract classes, outermost first:
 
-| Interface | Replaces | Reach for it when |
+| Class | Replaces | Reach for it when |
 |---|---|---|
 | `WP_Secrets_Provider` | Everything — the platform is the system of record | A control panel, Secrets Manager, or an HSM holds the credential |
 | `WP_Secrets_Keyring` | How the root key is wrapped | A KMS holds your keys, but secrets stay in WordPress |
@@ -151,7 +151,7 @@ never become this project's. Read its README before writing one: a key-managemen
 KMS, Google Cloud KMS) is a `WP_Secrets_Keyring` and takes three methods, while a secret store
 (Secrets Manager, Parameter Store) is a `WP_Secrets_Provider` and takes eight. People routinely
 pick the wrong one and pay for it in per-operation API calls. Start from
-[`examples/aws-kms-keyring/`](examples/aws-kms-keyring/) — it is the smaller interface, and it is
+[`examples/aws-kms-keyring/`](examples/aws-kms-keyring/) — it is the smaller class, and it is
 what most hosts are actually after: key custody moves to the KMS and nothing else changes. Two
 `WP_Secrets_Provider` examples ship alongside it, AWS Secrets Manager and HashiCorp Vault KV v2.
 `make test-examples` runs all three against Moto and a Vault dev server.

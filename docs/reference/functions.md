@@ -306,7 +306,7 @@ Sets $GLOBALS['wp_secrets_dropin_broken'] in two cases. First, when the require
 throws: a syntax error, a thrown exception, or most runtime errors are caught as
 \Throwable. Second, when any of $GLOBALS['wp_secrets_provider'],
 $GLOBALS['wp_secrets_store'], or $GLOBALS['wp_secrets_keyring'] is set afterward
-to something that is not an instance of its interface. A global left unset is
+to something that is not an instance of its class. A global left unset is
 fine; a drop-in overriding only the keyring legitimately leaves the other two
 alone. Once the flag is set, the getters install WP_Secrets_Broken_Provider,
 WP_Secrets_Broken_Store, and WP_Secrets_Broken_Keyring for the rest of the
@@ -314,10 +314,11 @@ request, so every operation returns WP_Error rather than falling back to the
 default. A malformed drop-in must not turn into a white screen for the rest of
 the site, and must not look like a working site with no secrets in it yet.
 
-This is not airtight: PHP treats some class declaration errors – notably a class
-that `implements` an interface but omits a required method – as an uncatchable
+This is not airtight: PHP treats some class declaration errors as an uncatchable
 fatal even inside a try/catch around the require, confirmed empirically on both
-PHP 7.4 and 8.5 before writing this comment. That gap is unavoidable from
+PHP 7.4 and 8.5 before writing this comment. Notably, a class that `extends` one
+of the three abstract classes but omits one of its abstract methods, or a class
+that still uses `implements` on one, as drop-ins written for interfaces did. That gap is unavoidable from
 userland and is recorded in docs/journal/test-coverage-gaps.md rather than
 silently assumed away.
 

@@ -76,7 +76,7 @@ extension function, a local agent over a Unix socket, a metadata endpoint, or it
 
 ```php
 // wp-content/secrets.php, installed and owned by the host.
-final class Host_Panel_Keyring implements WP_Secrets_Keyring {
+final class Host_Panel_Keyring extends WP_Secrets_Keyring {
 
 	public function wrap( $key_material ) {
 		// The host's function wraps under the site's newest key version and

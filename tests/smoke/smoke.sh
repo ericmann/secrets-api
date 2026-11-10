@@ -636,20 +636,35 @@ case_d_dropin() {
 	assert_out_contains "Provider: WP_Secrets_Libsodium_Provider" "a drop-in that sets nothing leaves the shipped provider in place"
 	remove_dropin
 
-	# Uncatchable fatal: a class that implements the keyring interface but
-	# omits its methods. Recorded as expected behaviour -- a non-zero exit
+	# Uncatchable fatal: a class that extends the keyring class but omits its
+	# abstract methods. Recorded as expected behaviour -- a non-zero exit
 	# with a PHP fatal on stderr -- not as something desired; a future PHP
 	# that makes this catchable would show up here as a change.
 	write_dropin <<-'EOF'
-	<?php final class Smoke_Incomplete_Keyring implements WP_Secrets_Keyring {}
+	<?php final class Smoke_Incomplete_Keyring extends WP_Secrets_Keyring {}
 	EOF
 	run "${WP[@]}" secret get "$d"
 	if [ "$STATUS" -ne 0 ]; then
-		ok "a class missing interface methods makes get exit non-zero"
+		ok "a class missing abstract methods makes get exit non-zero"
 	else
-		not_ok "a class missing interface methods makes get exit non-zero" "exit status was 0"
+		not_ok "a class missing abstract methods makes get exit non-zero" "exit status was 0"
 	fi
-	assert_err_contains "Fatal error" "a class missing interface methods is an uncatchable fatal (recorded, not desired)"
+	assert_err_contains "Fatal error" "a class missing abstract methods is an uncatchable fatal (recorded, not desired)"
+	remove_dropin
+
+	# Uncatchable fatal: a drop-in written for the interfaces, before 0.5.0 and
+	# 7.2 beta 5, that still uses `implements`. Recorded for the same reason as
+	# the case above, and because the changelog and ADR 0017 say it is a fatal.
+	write_dropin <<-'EOF'
+	<?php final class Smoke_Implements_Keyring implements WP_Secrets_Keyring {}
+	EOF
+	run "${WP[@]}" secret get "$d"
+	if [ "$STATUS" -ne 0 ]; then
+		ok "a drop-in that still uses implements makes get exit non-zero"
+	else
+		not_ok "a drop-in that still uses implements makes get exit non-zero" "exit status was 0"
+	fi
+	assert_err_contains "not an interface" "a drop-in that still uses implements is an uncatchable fatal (recorded, not desired)"
 	remove_dropin
 
 	run "${WP[@]}" secret dropin

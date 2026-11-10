@@ -30,7 +30,7 @@ defined( 'ABSPATH' ) || exit;
 /**
  * Serves secrets from AWS Secrets Manager.
  */
-final class AWS_Secrets_Manager_Provider implements WP_Secrets_Provider {
+final class AWS_Secrets_Manager_Provider extends WP_Secrets_Provider {
 
 	/**
 	 * Maps this API's version constants onto Secrets Manager staging labels.

@@ -55,7 +55,7 @@ directory holds everything longer than that.
 - [`examples.md`](reference/examples.md) — the AWS KMS, AWS Secrets Manager, and Vault drop-ins, and which to start from.
 - [`host-managed-keys.md`](reference/host-managed-keys.md) — a host owning the site key: environment variable, host keyring, or host provider.
 - [`functions.md`](reference/functions.md) — every function, generated from docblocks.
-- [`classes.md`](reference/classes.md) — every class and interface with public constants and methods, generated.
+- [`classes.md`](reference/classes.md) — every class with public constants and methods, generated.
 - [`hooks.md`](reference/hooks.md) — every action and filter, generated.
 - [`wp-cli.md`](reference/wp-cli.md) — every `wp secret` and `wp network-secret` subcommand, generated.
 

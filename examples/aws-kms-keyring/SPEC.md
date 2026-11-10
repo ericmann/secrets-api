@@ -46,7 +46,7 @@ A single-file drop-in, following the conventions of the AWS Secrets Manager exam
 no SDK, SigV4 by hand, `wp_remote_post()`. The SigV4 signer is copied rather than shared, because
 each example has to be one file a reviewer can read from top to bottom.
 
-`final class AWS_KMS_Keyring implements WP_Secrets_Keyring`:
+`final class AWS_KMS_Keyring extends WP_Secrets_Keyring`:
 
 | Method | Behaviour |
 |---|---|

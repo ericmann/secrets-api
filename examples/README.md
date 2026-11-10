@@ -20,10 +20,10 @@ The documentation site covers all three in
 [`docs/reference/examples.md`](../docs/reference/examples.md), and a host that wants to own the
 site's key in [`docs/reference/host-managed-keys.md`](../docs/reference/host-managed-keys.md).
 
-## Which interface do you need?
+## Which class do you extend?
 
 Worth getting right before you write anything. **A key-management service is not a secret store**,
-and the two map to different interfaces:
+and the two map to different classes:
 
 | Service | Holds | Implement | Effort |
 |---|---|---|---|
@@ -83,7 +83,7 @@ class Tests_My_Platform_Provider extends WP_Secrets_Provider_Conformance {
 }
 ```
 
-It covers what `implements WP_Secrets_Provider` can't: absence reported as `null`, deleting
+It covers what `extends WP_Secrets_Provider` can't: absence reported as `null`, deleting
 something absent succeeding, fingerprints staying stable for the same value, an unchanged write
 keeping the previous version, listings never
 containing a plaintext, and a read-only declaration actually being honoured. See

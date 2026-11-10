@@ -108,7 +108,7 @@ Each case writes `wp-content/secrets.php`, runs the assertions, and removes the 
 
 Exit 2 against exit 1 is ADR 0007's distinction between unreachable and absent. This is the first
 test that checks it through the real `require` in `wp_secrets_api_load_dropin()` rather than by
-setting globals. The known uncatchable case, a class that implements an interface but omits a
+setting globals. The known uncatchable case, a class that extends an abstract class but omits a
 method, is recorded as a fatal: a non-zero exit with a PHP fatal in stderr. It is written down as
 expected behaviour so a future PHP that makes it catchable shows up as a change.
 

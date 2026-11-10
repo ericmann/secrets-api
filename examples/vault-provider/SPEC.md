@@ -37,7 +37,7 @@ server rather than an emulator.
 A single-file drop-in: no Composer, no SDK. Vault's HTTP API needs only a token header, so this
 is simpler than the AWS examples.
 
-`final class Vault_KV2_Provider implements WP_Secrets_Provider`, configured by
+`final class Vault_KV2_Provider extends WP_Secrets_Provider`, configured by
 `WP_SECRETS_VAULT_ADDR`, `WP_SECRETS_VAULT_TOKEN`, `WP_SECRETS_VAULT_MOUNT` (default `secret`),
 and an optional `WP_SECRETS_VAULT_NAMESPACE`, which is sent as `X-Vault-Namespace` for Vault
 Enterprise and HCP. It is installed only when the address and token are non-empty, for the same

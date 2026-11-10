@@ -44,7 +44,7 @@
  * the right outcome – a host serving secrets from its own platform has no
  * prototype rows to inherit.
  */
-final class Secrets_API_Prototype_Fallback_Store implements WP_Secrets_Store {
+final class Secrets_API_Prototype_Fallback_Store extends WP_Secrets_Store {
 
 	/**
 	 * The store actually holding current-format records.
