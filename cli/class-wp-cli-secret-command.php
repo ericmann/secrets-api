@@ -649,17 +649,34 @@ class WP_CLI_Secret_Command {
 	 * @param array<string, string|bool> $assoc_args Associative arguments.
 	 */
 	public function health( array $args, array $assoc_args ): void {
-		// Core loads its Site Health tests only for the Site Health screen, so on a
-		// WordPress that ships the API they are not loaded under WP-CLI.
-		if ( ! function_exists( 'wp_secrets_site_health_test_key_source' ) ) {
-			require_once ABSPATH . 'wp-admin/includes/secrets-site-health.php';
+		if ( class_exists( 'Secrets_API_Site_Health', false ) ) {
+			// Before 7.2, the plugin's copies of core's tests.
+			$site_health = new Secrets_API_Site_Health();
+		} else {
+			// Core loads WP_Site_Health only for the Site Health screen, so it is not
+			// loaded under WP-CLI.
+			if ( ! class_exists( 'WP_Site_Health', false ) ) {
+				require_once ABSPATH . 'wp-admin/includes/class-wp-site-health.php';
+			}
+
+			$site_health = WP_Site_Health::get_instance();
 		}
 
-		$results = array(
-			wp_secrets_site_health_test_key_source(),
-			wp_secrets_site_health_test_undecryptable(),
-			wp_secrets_site_health_test_needs_rotation(),
-		);
+		if ( method_exists( $site_health, 'get_test_secrets_api_key_source' ) ) {
+			$results = array(
+				$site_health->get_test_secrets_api_key_source(),
+				$site_health->get_test_secrets_api_undecryptable(),
+				$site_health->get_test_secrets_api_needs_rotation(),
+			);
+		} else {
+			// The 7.2 betas before r65394 have the tests as functions, which
+			// class-wp-site-health.php loads. Remove once 7.2 is released.
+			$results = array(
+				wp_secrets_site_health_test_key_source(),
+				wp_secrets_site_health_test_undecryptable(),
+				wp_secrets_site_health_test_needs_rotation(),
+			);
+		}
 
 		$items = array();
 

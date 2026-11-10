@@ -154,16 +154,14 @@ class Tests_Secrets_Architecture extends WP_UnitTestCase {
 	/**
 	 * The src/ directory mirrors wordpress-develop's own directory shape: the public
 	 * functions in wp-includes/secrets.php, the classes in
-	 * wp-includes/secrets/ (as abilities-api/ and ai-client/ do in core), and Site
-	 * Health in wp-admin/includes, with no other subdirectories a core patch would
-	 * have to rearrange.
+	 * wp-includes/secrets/ (as abilities-api/ and ai-client/ do in core), with no
+	 * other subdirectories a core patch would have to rearrange. Site Health is part
+	 * of core's WP_Site_Health and WP_Debug_Data, so it has no file here.
 	 */
 	public function test_src_has_no_unexpected_subdirectories() {
 		$allowed = array(
 			WP_SECRETS_API_PLUGIN_DIR . 'src/wp-includes',
 			WP_SECRETS_API_PLUGIN_DIR . 'src/wp-includes/secrets',
-			WP_SECRETS_API_PLUGIN_DIR . 'src/wp-admin',
-			WP_SECRETS_API_PLUGIN_DIR . 'src/wp-admin/includes',
 		);
 
 		$iterator = new RecursiveIteratorIterator(

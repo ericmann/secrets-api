@@ -23,7 +23,10 @@ make ci        # all of the above, except test-stand-down
 
 `make test-stand-down` needs a WordPress that ships the Secrets API, such as trunk, so it is not
 part of `make ci`. It runs the `stand-down` group with `SECRETS_API_TESTS_EXPECT_CORE=1`, which
-makes the stand-down tests fail instead of skip on a WordPress without the API.
+makes the stand-down tests fail instead of skip on a WordPress without the API. The group also
+holds the Site Health parity tests: `plugin/class-secrets-api-site-health.php` copies methods
+from core's `WP_Site_Health` and `WP_Debug_Data` for WordPress before 7.2, and on trunk each copy
+is compared with core's. When one fails, copy the method again from core.
 
 ## The always-works path
 
@@ -132,7 +135,7 @@ person pasted.
 |---|---|---|---|
 | `static` | 8.3 | — | lint + compat + analyse. Gates everything else. |
 | `test` | 7.4, 8.0, 8.3, 8.5; 7.4 | 7.1.x; 6.8 | Single site |
-| `stand-down` | 7.4, 8.5 | trunk | `make test-stand-down`: core serves the API, and the plugin loads none of its own layer. Core is wordpress-develop trunk's `src/`, from the same tarball as the test suite, not the nightly zip, which can lag a day behind it. |
+| `stand-down` | 7.4, 8.5 | trunk | `make test-stand-down`: core serves the API, the plugin loads none of its own layer, and the plugin's copies of core's Site Health methods match core's. Core is wordpress-develop trunk's `src/`, from the same tarball as the test suite, not the nightly zip, which can lag a day behind it. |
 | `test-multisite` | 8.3 | 7.1.x | Multisite suite |
 | `smoke` | 7.4, 8.3, 8.5; 8.3 | 7.1.x; nightly | WP-CLI end to end, single site then multisite. The nightly leg runs the commands on core's implementation. |
 | `examples` | 8.3 | 7.1.x | `make test-examples` against Moto (an AWS emulator) and a Vault dev server, both pinned by digest, single site then multisite. Not part of `make ci`. |

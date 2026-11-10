@@ -57,9 +57,26 @@ class Tests_Secrets_StandDown extends WP_UnitTestCase {
 	 * @covers ::wp_secrets_api_bootstrap
 	 */
 	public function test_the_plugin_only_layer_is_not_loaded(): void {
-		foreach ( array( 'Secrets_API_Migrator', 'Secrets_API_Legacy_Reader', 'Secrets_API_Prototype_Fallback_Store' ) as $name ) {
+		foreach ( array( 'Secrets_API_Migrator', 'Secrets_API_Legacy_Reader', 'Secrets_API_Prototype_Fallback_Store', 'Secrets_API_Site_Health' ) as $name ) {
 			$this->assertFalse( class_exists( $name, false ), "{$name} should not be loaded when core ships the API." );
 		}
+	}
+
+	/**
+	 * Ensure that `wp secret health` runs core's Site Health checks.
+	 *
+	 * Core loads WP_Site_Health only for the Site Health screen, so the command has to load
+	 * it itself. The plugin's own copies of the checks are not loaded on this WordPress.
+	 *
+	 * @covers WP_CLI_Secret_Command::health
+	 */
+	public function test_cli_health_runs_core_checks(): void {
+		WP_CLI::reset();
+
+		( new WP_CLI_Secret_Command() )->health( array(), array() );
+
+		$this->assertTrue( class_exists( 'WP_Site_Health', false ), 'The command should load WP_Site_Health.' );
+		$this->assertCount( 3, WP_CLI::$formatted_items[0]['items'], 'The command should report core\'s three Secrets API checks.' );
 	}
 
 	/**

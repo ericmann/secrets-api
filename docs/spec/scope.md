@@ -19,13 +19,11 @@ scope", and "Timeline" in the [proposal][proposal].
 `Requires PHP: 7.4`.
 
 **Core-bound versus plugin-only.** Everything under `src/` is written to be copied into
-`wordpress-develop` unchanged: `src/wp-includes/secrets.php` holds the public functions,
-`src/wp-includes/secrets/` holds the classes, and
-`src/wp-admin/includes/secrets-site-health.php` holds Site Health. `plugin/` and `cli/` are never
-copied. `tests/phpunit/test-architecture.php` enforces the boundary: no reference to `WP_CLI`,
+`wordpress-develop` unchanged: `src/wp-includes/secrets.php` holds the public functions, and
+`src/wp-includes/secrets/` holds the classes. `plugin/` and `cli/` are never copied. `tests/phpunit/test-architecture.php` enforces the boundary: no reference to `WP_CLI`,
 `plugin/`, or `cli/` under `src/`; no self-guarding `function_exists()` or `class_exists()`; every
 file carries `@since 7.2.0`; no text domain passed to a translation function; no subdirectory other than the
-three core paths; no prototype-compatibility symbol.
+two core paths; no prototype-compatibility symbol.
 
 **The core patch.** Trac ticket [#66187](https://core.trac.wordpress.org/ticket/66187), under
 review in [WordPress/wordpress-develop#13759](https://github.com/WordPress/wordpress-develop/pull/13759).
@@ -67,9 +65,13 @@ defined and true. On a WordPress that ships the API they run on core's implement
 `migrate-legacy` refuses, since its migrator loads only with the plugin's copy. Both are exercised
 end to end against a real `wp` binary by `tests/smoke/smoke.sh`, on single site and multisite.
 
-**Site Health.** Three tests (`secrets_api_key_source`, undecryptable secrets,
-`secrets_api_needs_rotation`) and a debug-information section, in
-`src/wp-admin/includes/secrets-site-health.php`.
+**Site Health.** Three tests (`secrets_api_key_source`, `secrets_api_undecryptable`,
+`secrets_api_needs_rotation`) and a debug-information section under the key `wp-secrets-api`. In
+core they are methods of `WP_Site_Health` and `WP_Debug_Data`
+([r65394](https://core.trac.wordpress.org/changeset/65394)). A plugin can't add methods to those
+classes, so before 7.2 `plugin/class-secrets-api-site-health.php` registers copies of them through
+the `site_status_tests` and `debug_information` filters. On trunk, a stand-down test compares each
+copy with core's, so a core change that needs porting fails CI.
 
 **No UI.** There is no settings screen, no options page, and no admin menu entry.
 

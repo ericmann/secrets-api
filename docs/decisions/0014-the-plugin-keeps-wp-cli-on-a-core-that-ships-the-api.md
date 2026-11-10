@@ -27,9 +27,10 @@ exactly the release the commit message promised them for.
 nothing else.** It loads none of `src/` or `plugin/`. The commands call the public API and the
 internals core has as well (`_wp_secrets_get_key_manager()`, `_wp_secrets_get_provider()`,
 `_wp_secrets_get_store()`, `WP_Secrets_Config_Key_Provider`), so the same `cli/` runs on core's
-implementation unchanged. `wp secret health` loads core's
-`wp-admin/includes/secrets-site-health.php` itself, since core loads it only for the Site Health
-screen.
+implementation unchanged. `wp secret health` loads core's `WP_Site_Health` itself, since core
+loads it only for the Site Health screen. (When this was decided, the tests were functions in
+`wp-admin/includes/secrets-site-health.php`. [r65394](https://core.trac.wordpress.org/changeset/65394)
+made them methods of `WP_Site_Health`.)
 
 **`migrate-legacy` does not come along.** The prototype was deprecated and its users told to
 migrate more than a month before 7.2. The migrator and legacy reader load only with the plugin's
