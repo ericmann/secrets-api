@@ -655,6 +655,9 @@ case_d_dropin() {
 	# Uncatchable fatal: a drop-in written for the interfaces, before 0.5.0 and
 	# 7.2 beta 5, that still uses `implements`. Recorded for the same reason as
 	# the case above, and because the changelog and ADR 0017 say it is a fatal.
+	# PHP says "... it is not an interface". Only "Fatal error" is checked, because
+	# the nightly leg can run on a nightly built before the classes, where the
+	# same drop-in is a different fatal.
 	write_dropin <<-'EOF'
 	<?php final class Smoke_Implements_Keyring implements WP_Secrets_Keyring {}
 	EOF
@@ -664,7 +667,7 @@ case_d_dropin() {
 	else
 		not_ok "a drop-in that still uses implements makes get exit non-zero" "exit status was 0"
 	fi
-	assert_err_contains "not an interface" "a drop-in that still uses implements is an uncatchable fatal (recorded, not desired)"
+	assert_err_contains "Fatal error" "a drop-in that still uses implements is an uncatchable fatal (recorded, not desired)"
 	remove_dropin
 
 	run "${WP[@]}" secret dropin
