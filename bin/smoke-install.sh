@@ -26,6 +26,9 @@ DB_USER="${DB_USER:-root}"
 DB_PASS="${DB_PASS:-}"
 DB_HOST="${DB_HOST:-127.0.0.1}"
 WP_VERSION="${WP_VERSION:-latest}"
+# A branch with a trailing ".x", such as 7.1.x, means the newest release on that
+# branch. See bin/resolve-wp-version.sh.
+WP_VERSION=$("$(dirname "$0")/resolve-wp-version.sh" "$WP_VERSION")
 SMOKE_URL="${SMOKE_URL:-http://smoke.test}"
 
 # The PHPUnit suite drops and recreates wordpress_test on every run; this
