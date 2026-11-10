@@ -619,7 +619,7 @@ public function unwrap( string $wrapped ): WP_Error
 Always fails closed.
 
 ```php
-public function wrap( string $key_material ): WP_Error
+public function wrap( #[\SensitiveParameter] string $key_material ): WP_Error
 ```
 
 | Parameter | Type | Description |
@@ -765,7 +765,7 @@ public function retire_previous( string $name, bool $network = false ): WP_Error
 Always an error.
 
 ```php
-public function set( string $name, $value, bool $network = false, bool $needs_rotation = false, ?string $action = null ): WP_Error
+public function set( string $name, #[\SensitiveParameter] $value, bool $network = false, bool $needs_rotation = false, ?string $action = null ): WP_Error
 ```
 
 | Parameter | Type | Description |
@@ -904,7 +904,7 @@ slot's worth of material, encrypt or decrypt it correctly.
 Decrypts a single record slot back to its plaintext.
 
 ```php
-public function decrypt_value( string $master_key, string $scope, int $site_id, string $name, string $slot, $record )
+public function decrypt_value( #[\SensitiveParameter] string $master_key, string $scope, int $site_id, string $name, string $slot, $record )
 ```
 
 | Parameter | Type | Description |
@@ -925,7 +925,7 @@ public function decrypt_value( string $master_key, string $scope, int $site_id, 
 Encrypts a plaintext into a single record slot.
 
 ```php
-public function encrypt_value( string $master_key, string $scope, int $site_id, string $name, string $slot, $plaintext )
+public function encrypt_value( #[\SensitiveParameter] string $master_key, string $scope, int $site_id, string $name, string $slot, #[\SensitiveParameter] $plaintext )
 ```
 
 | Parameter | Type | Description |
@@ -953,7 +953,7 @@ decrypted plaintext and compare – never trust a fingerprint read back from a
 record, which sits outside the AAD and is not authenticated.
 
 ```php
-public function fingerprint( string $master_key, $plaintext )
+public function fingerprint( #[\SensitiveParameter] string $master_key, #[\SensitiveParameter] $plaintext )
 ```
 
 | Parameter | Type | Description |
@@ -1051,7 +1051,7 @@ public function unwrap( string $wrapped )
 Wraps raw key material under the derived site key.
 
 ```php
-public function wrap( string $key_material )
+public function wrap( #[\SensitiveParameter] string $key_material )
 ```
 
 | Parameter | Type | Description |
@@ -1252,8 +1252,11 @@ different values. WP_Secrets_Key_Manager::rotate_site_key() stores the
 re-wrapped value with update_site_option(), which reports an unchanged value
 as a failure, and WP_Secrets_Keyring_Conformance checks this.
 
+Attributes are not inherited, so an implementation must mark $key_material
+with #[\SensitiveParameter] itself to keep it out of stack traces.
+
 ```php
-public function wrap( string $key_material )
+public function wrap( #[\SensitiveParameter] string $key_material )
 ```
 
 | Parameter | Type | Description |
@@ -1443,7 +1446,7 @@ Backs wp_set_secret(), wp_set_network_secret(), and wp_import_option_as_secret()
 which select their behavior through the last two parameters.
 
 ```php
-public function set( string $name, $value, bool $network = false, bool $needs_rotation = false, ?string $action = null )
+public function set( string $name, #[\SensitiveParameter] $value, bool $network = false, bool $needs_rotation = false, ?string $action = null )
 ```
 
 | Parameter | Type | Description |
@@ -1777,7 +1780,7 @@ but a provider that cannot tell the value is unchanged without an additional
 read may write it and report it.
 
 ```php
-public function set( string $name, $value, bool $network = false, bool $needs_rotation = false, ?string $action = null )
+public function set( string $name, #[\SensitiveParameter] $value, bool $network = false, bool $needs_rotation = false, ?string $action = null )
 ```
 
 | Parameter | Type | Description |

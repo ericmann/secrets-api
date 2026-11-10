@@ -594,7 +594,7 @@ capabilities and separate storage prefixes, with no implicit fallback from one
 scope to the other.
 
 ```php
-function wp_set_network_secret( string $name, $value )
+function wp_set_network_secret( string $name, #[\SensitiveParameter] $value )
 ```
 
 | Parameter | Type | Description |
@@ -618,7 +618,7 @@ cron, REST, and front-end requests where no user is logged in. Enforce
 capabilities at the operator boundary (CLI, an admin screen) instead.
 
 ```php
-function wp_set_secret( string $name, $value )
+function wp_set_secret( string $name, #[\SensitiveParameter] $value )
 ```
 
 | Parameter | Type | Description |
@@ -812,7 +812,7 @@ function _wp_secrets_retire( string $name, bool $network )
 Shared implementation behind wp_set_secret() and wp_set_network_secret().
 
 ```php
-function _wp_secrets_set( string $name, $value, bool $network, bool $needs_rotation = false, ?string $action_override = null )
+function _wp_secrets_set( string $name, #[\SensitiveParameter] $value, bool $network, bool $needs_rotation = false, ?string $action_override = null )
 ```
 
 | Parameter | Type | Description |
