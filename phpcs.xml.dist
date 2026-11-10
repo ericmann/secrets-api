@@ -99,6 +99,15 @@
 	</rule>
 
 	<!--
+		src/ is ported from core trunk byte for byte, and core's own ruleset does not
+		include WordPress-Docs. Core's docblocks may open a paragraph with a function
+		name, as in "get_site_option() also returns false...", which this sniff rejects.
+	-->
+	<rule ref="Generic.Commenting.DocComment.LongNotCapital">
+		<exclude-pattern>/src/*</exclude-pattern>
+	</rule>
+
+	<!--
 		The test suite follows core's own conventions for its tests, which differ from
 		the standard applied to shipped code: PHPUnit assertion methods are camelCase,
 		the bootstrap writes to STDOUT before WordPress exists to escape with, and
