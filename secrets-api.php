@@ -105,13 +105,13 @@ function wp_secrets_api_bootstrap(): void {
 		'secrets.php',
 		'secrets/class-wp-secret-version.php',
 		'secrets/class-wp-secret.php',
-		'secrets/interface-wp-secrets-provider.php',
-		'secrets/interface-wp-secrets-keyring.php',
+		'secrets/class-wp-secrets-provider.php',
+		'secrets/class-wp-secrets-keyring.php',
 		'secrets/class-wp-secrets-config-key-provider.php',
 		'secrets/class-wp-secrets-broken-keyring.php',
 		'secrets/class-wp-secrets-cipher.php',
 		'secrets/class-wp-secrets-key-manager.php',
-		'secrets/interface-wp-secrets-store.php',
+		'secrets/class-wp-secrets-store.php',
 		'secrets/class-wp-secrets-option-store.php',
 		'secrets/class-wp-secrets-broken-store.php',
 		'secrets/class-wp-secrets-libsodium-provider.php',
@@ -148,12 +148,12 @@ function wp_secrets_api_bootstrap(): void {
 	$GLOBALS['wp_secrets_store'] = new Secrets_API_Prototype_Fallback_Store( new WP_Secrets_Option_Store() );
 
 	/*
-	 * Loaded only now, after every core-bound interface and class this plugin
+	 * Loaded only now, after every core-bound class this plugin
 	 * defines: a drop-in that declares `class My_Store implements
-	 * WP_Secrets_Store` needs that interface to already exist to compile at all.
+	 * WP_Secrets_Store` needs that class to already exist to compile at all.
 	 * This is "as early as it can" for a plugin specifically because of that
 	 * ordering constraint; the core patch moves this into wp-settings.php, ahead
-	 * of plugins_loaded entirely, once the interfaces live in wp-includes from
+	 * of plugins_loaded entirely, once the classes live in wp-includes from
 	 * the start of the request.
 	 */
 	wp_secrets_api_load_dropin();
@@ -278,6 +278,10 @@ function wp_secrets_api_notice_conflict(): void {
  * _wp_secrets_get_key_manager() each cache their result for the request, so this
  * only ever needs to run once regardless of how many times it is called.
  *
+ * The drop-in sets its overrides in the `$wp_secrets_provider`, `$wp_secrets_store`
+ * and `$wp_secrets_keyring` globals. They are declared global before the require, so
+ * a plain assignment such as `$wp_secrets_keyring = new My_Keyring();` works.
+ *
  * Sets $GLOBALS['wp_secrets_dropin_loaded'] as soon as the file is found, whether
  * or not it then loads cleanly: wp_using_secrets_dropin() reports presence, not
  * health.
@@ -286,7 +290,7 @@ function wp_secrets_api_notice_conflict(): void {
  * throws: a syntax error, a thrown exception, or most runtime errors are caught as
  * \Throwable. Second, when any of $GLOBALS['wp_secrets_provider'],
  * $GLOBALS['wp_secrets_store'], or $GLOBALS['wp_secrets_keyring'] is set afterward
- * to something that is not an instance of its interface. A global left unset is
+ * to something that is not an instance of its class. A global left unset is
  * fine; a drop-in overriding only the keyring legitimately leaves the other two
  * alone. Once the flag is set, the getters install WP_Secrets_Broken_Provider,
  * WP_Secrets_Broken_Store, and WP_Secrets_Broken_Keyring for the rest of the
@@ -294,10 +298,11 @@ function wp_secrets_api_notice_conflict(): void {
  * default. A malformed drop-in must not turn into a white screen for the rest of
  * the site, and must not look like a working site with no secrets in it yet.
  *
- * This is not airtight: PHP treats some class declaration errors – notably a class
- * that `implements` an interface but omits a required method – as an uncatchable
+ * This is not airtight: PHP treats some class declaration errors as an uncatchable
  * fatal even inside a try/catch around the require, confirmed empirically on both
- * PHP 7.4 and 8.5 before writing this comment. That gap is unavoidable from
+ * PHP 7.4 and 8.5 before writing this comment. Notably, a class that `extends` one
+ * of the three abstract classes but omits one of its abstract methods, or a class
+ * that still uses `implements` on one, as drop-ins written for interfaces did. That gap is unavoidable from
  * userland and is recorded in docs/journal/test-coverage-gaps.md rather than
  * silently assumed away.
  *
@@ -325,6 +330,12 @@ function wp_secrets_api_load_dropin(): void {
 	}
 
 	$GLOBALS['wp_secrets_dropin_loaded'] = true;
+
+	/*
+	 * The drop-in is required inside this function. Declaring the overrides global
+	 * lets it set them as plain variables, as db.php does with $wpdb.
+	 */
+	global $wp_secrets_provider, $wp_secrets_store, $wp_secrets_keyring;
 
 	try {
 		require $dropin_path;

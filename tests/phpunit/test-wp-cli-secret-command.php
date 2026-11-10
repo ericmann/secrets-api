@@ -432,6 +432,8 @@ class Tests_Secrets_WPCLISecretCommand extends WP_UnitTestCase {
 	 * @preserveGlobalState disabled
 	 */
 	public function test_rotate_from_config_moves_the_root_key_onto_the_dropin_keyring() {
+		define( 'WP_SECRETS_KEY', base64_encode( str_repeat( 'k', 32 ) ) );
+
 		$root = random_bytes( 32 );
 		update_site_option( WP_Secrets_Key_Manager::ROOT_KEY_OPTION, ( new WP_Secrets_Config_Key_Provider() )->wrap( $root ) );
 
@@ -469,6 +471,8 @@ class Tests_Secrets_WPCLISecretCommand extends WP_UnitTestCase {
 	 * @preserveGlobalState disabled
 	 */
 	public function test_rotate_never_logs_key_material() {
+		define( 'WP_SECRETS_KEY', base64_encode( str_repeat( 'k', 32 ) ) );
+
 		$root = random_bytes( 32 );
 		update_site_option( WP_Secrets_Key_Manager::ROOT_KEY_OPTION, ( new WP_Secrets_Config_Key_Provider() )->wrap( $root ) );
 
@@ -561,6 +565,8 @@ class Tests_Secrets_WPCLISecretCommand extends WP_UnitTestCase {
 	 * @preserveGlobalState disabled
 	 */
 	public function test_migrate_legacy_warns_and_still_migrates_when_vendor_class_is_present() {
+		define( 'WP_SECRETS_KEY', base64_encode( str_repeat( 'k', 32 ) ) );
+
 		$this->require_the_migrator();
 
 		$this->setExpectedIncorrectUsage( 'wp_secrets_validate_name' );

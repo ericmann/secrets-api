@@ -131,7 +131,7 @@ class Tests_AWS_Secrets_Manager_Provider extends WP_Secrets_Provider_Conformance
 }
 ```
 
-That checks the properties `implements WP_Secrets_Provider` cannot: absence reported as `null`
+That checks the properties `extends WP_Secrets_Provider` cannot: absence reported as `null`
 rather than an error, deleting something absent succeeding, fingerprints stable for the same
 value, and listings never containing a plaintext. It makes real API calls, so point it at a
 throwaway AWS account. The repository itself now runs this class against Moto, an AWS emulator, in

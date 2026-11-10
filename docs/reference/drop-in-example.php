@@ -31,7 +31,8 @@
  * Before trusting a drop-in in production, run `php -l` over it and load a real
  * request. A drop-in that throws or sets a global to the wrong type fails closed
  * (every operation returns WP_Error rather than falling back to the default), but a
- * class that implements an interface and omits one of its methods is an
+ * class that extends one of these and omits one of its abstract methods, or
+ * that still uses `implements` on one, is an
  * uncatchable PHP fatal that no try/catch can contain.
  *
  * @package SecretsAPI
@@ -44,9 +45,9 @@
  * in its own control panel or key service, and served to WordPress over an
  * authenticated channel. Under the proposal's original two extension points that
  * deployment was banned, because the store would have been handed something
- * WordPress did not encrypt. The provider interface is the resolution: a provider
+ * WordPress did not encrypt. The provider class is the resolution: a provider
  * must be stronger than the default, never weaker, and a platform that meets that
- * bar implements this interface instead of pretending to be a store. See
+ * bar extends this class instead of pretending to be a store. See
  * docs/decisions/0001-provider-as-outermost-extension-point.md.
  *
  * Every method below is a one-line stub. The comments say what a real
@@ -55,7 +56,7 @@
  * platform protects it (no wp_cache_set() of a raw value; memoize per request
  * only).
  */
-final class Example_Platform_Provider implements WP_Secrets_Provider {
+final class Example_Platform_Provider extends WP_Secrets_Provider {
 
 	/**
 	 * Retrieves a secret from the platform. Stubbed to always report absence.
@@ -110,7 +111,14 @@ final class Example_Platform_Provider implements WP_Secrets_Provider {
 	 *
 	 * @return true|WP_Error
 	 */
-	public function set( string $name, $value, bool $network = false, bool $needs_rotation = false, ?string $action = null ) {
+	public function set(
+		string $name,
+		#[\SensitiveParameter]
+		$value,
+		bool $network = false,
+		bool $needs_rotation = false,
+		?string $action = null
+	) {
 		return new WP_Error( WP_SECRETS_ERROR_PROVIDER_READ_ONLY, 'This platform manages credentials outside of WordPress.' );
 	}
 
@@ -195,7 +203,7 @@ final class Example_Platform_Provider implements WP_Secrets_Provider {
  * wp_set_secret() surfaces the WP_Error rather than silently no-opping or, worse,
  * accepting a write it cannot honour.
  */
-final class Example_Platform_Store implements WP_Secrets_Store {
+final class Example_Platform_Store extends WP_Secrets_Store {
 
 	/**
 	 * Reads a record from the platform. Stubbed to always report absence.
@@ -281,7 +289,7 @@ final class Example_Platform_Store implements WP_Secrets_Store {
  * anything else: every master key, data key, and secret still derives the same
  * way, from whatever wrap()/unwrap() hand back.
  */
-final class Example_KMS_Keyring implements WP_Secrets_Keyring {
+final class Example_KMS_Keyring extends WP_Secrets_Keyring {
 
 	/**
 	 * Wraps root key material via the platform's KMS. Stubbed to always fail.
@@ -290,7 +298,10 @@ final class Example_KMS_Keyring implements WP_Secrets_Keyring {
 	 *
 	 * @return string|WP_Error Opaque wrapped value on success.
 	 */
-	public function wrap( string $key_material ) {
+	public function wrap(
+		#[\SensitiveParameter]
+		string $key_material
+	) {
 		/*
 		 * Replace with a real KMS encrypt call, e.g.:
 		 *
@@ -333,7 +344,7 @@ final class Example_KMS_Keyring implements WP_Secrets_Keyring {
  * The globals a drop-in sets. wp_secrets_api_load_dropin() (or, once this lands
  * in core, the equivalent bootstrap code in wp-settings.php) checks the type of
  * whatever ends up in each of them immediately after this file is required.
- * Anything other than an instance of the matching interface, including a variable
+ * Anything other than an instance of the matching class, including a variable
  * left set to null, a string, or a half-constructed object from a caught error,
  * fails the whole API closed for the rest of the request through
  * WP_Secrets_Broken_Provider / WP_Secrets_Broken_Store / WP_Secrets_Broken_Keyring.

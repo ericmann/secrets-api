@@ -97,9 +97,29 @@ install_wp() {
 
 	mkdir -p "$WP_CORE_DIR"
 
+	# trunk is core's src/ from the same wordpress-develop tarball as the test suite,
+	# as core runs its own tests. The nightly zip is built about once a day, so a
+	# test suite from trunk can be ahead of it: on 2026-11-10 the suite's mocks
+	# extended classes the nightly still declared as interfaces, and every test
+	# died in the bootstrap. nightly still means the nightly zip, which is what
+	# a site running the nightly actually has.
+	if [ -z "${WP_TESTS_ZIP_URL-}" ] && [[ $WP_VERSION == 'trunk' ]]; then
+		echo "Fetching WordPress from ${DEVELOP_BASE}/archive/refs/heads/trunk.tar.gz (src/)"
+
+		rm -rf "$TMPDIR/wp-develop-core"
+		mkdir -p "$TMPDIR/wp-develop-core"
+		download "${DEVELOP_BASE}/archive/refs/heads/trunk.tar.gz" "$TMPDIR/wp-develop-core.tar.gz"
+		tar --strip-components=1 -zxmf "$TMPDIR/wp-develop-core.tar.gz" -C "$TMPDIR/wp-develop-core"
+		cp -R "$TMPDIR/wp-develop-core/src/." "$WP_CORE_DIR/"
+		rm -rf "$TMPDIR/wp-develop-core" "$TMPDIR/wp-develop-core.tar.gz"
+
+		download "${MIRROR_BASE}/wp-content/db.php" "$WP_CORE_DIR/wp-content/db.php" 2>/dev/null || true
+		return
+	fi
+
 	if [ -n "${WP_TESTS_ZIP_URL-}" ]; then
 		ARCHIVE_URL="$WP_TESTS_ZIP_URL"
-	elif [[ $WP_VERSION == 'nightly' || $WP_VERSION == 'trunk' ]]; then
+	elif [[ $WP_VERSION == 'nightly' ]]; then
 		ARCHIVE_URL="${MIRROR_BASE}/nightly-builds/wordpress-latest.zip"
 	elif [[ $WP_VERSION == 'latest' ]]; then
 		ARCHIVE_URL="${MIRROR_BASE}/latest.tar.gz"

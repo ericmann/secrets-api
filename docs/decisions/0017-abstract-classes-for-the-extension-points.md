@@ -48,6 +48,11 @@ and the class docblocks say so.
 
 - A drop-in changes `implements` to `extends`. Nothing else in the contract changes. 7.2 has not
   shipped, so the only drop-ins affected are those written against the beta or this plugin.
+- A drop-in that still uses `implements` is a fatal error on every request, WP-CLI included. It
+  does not fail closed. PHP reports it while compiling the drop-in, before the `try`/`catch`
+  around the `require` can run. Catching it would mean reading the drop-in's source before
+  requiring it, on every request, which isn't worth it for drop-ins written against a beta. The
+  0.5.0 changelog and the 7.2 beta 5 announcement call it out instead.
 - A drop-in class can no longer extend another base class, such as an SDK client. It can still hold
   one and delegate to it, as the examples already do.
 - The conformance suites, `WP_Secrets_Provider_Conformance` and `WP_Secrets_Keyring_Conformance`,

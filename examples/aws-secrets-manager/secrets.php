@@ -30,7 +30,7 @@ defined( 'ABSPATH' ) || exit;
 /**
  * Serves secrets from AWS Secrets Manager.
  */
-final class AWS_Secrets_Manager_Provider implements WP_Secrets_Provider {
+final class AWS_Secrets_Manager_Provider extends WP_Secrets_Provider {
 
 	/**
 	 * Maps this API's version constants onto Secrets Manager staging labels.
@@ -135,7 +135,14 @@ final class AWS_Secrets_Manager_Provider implements WP_Secrets_Provider {
 	 *
 	 * @return true|WP_Error
 	 */
-	public function set( string $name, $value, bool $network = false, bool $needs_rotation = false, ?string $action = null ) {
+	public function set(
+		string $name,
+		#[\SensitiveParameter]
+		$value,
+		bool $network = false,
+		bool $needs_rotation = false,
+		?string $action = null
+	) {
 		$aws_name = $this->aws_name( $name, $network );
 
 		// PutSecretValue makes a new version even for the value AWSCURRENT

@@ -153,7 +153,7 @@ class Tests_Secrets_Architecture extends WP_UnitTestCase {
 
 	/**
 	 * The src/ directory mirrors wordpress-develop's own directory shape: the public
-	 * functions in wp-includes/secrets.php, the classes and interfaces in
+	 * functions in wp-includes/secrets.php, the classes in
 	 * wp-includes/secrets/ (as abilities-api/ and ai-client/ do in core), and Site
 	 * Health in wp-admin/includes, with no other subdirectories a core patch would
 	 * have to rearrange.

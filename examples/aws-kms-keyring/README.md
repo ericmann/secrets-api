@@ -164,7 +164,7 @@ class Tests_AWS_KMS_Keyring_Conformance extends WP_Secrets_Keyring_Conformance {
 }
 ```
 
-That checks the properties `implements WP_Secrets_Keyring` cannot: `wrap()` is non-deterministic,
+That checks the properties `extends WP_Secrets_Keyring` cannot: `wrap()` is non-deterministic,
 `unwrap()` round-trips exactly the bytes that went in, and garbage, truncated, or tampered input
 fails closed as `WP_Error` rather than returning a plausible-looking wrong key. It makes real API
 calls, so point it at a throwaway AWS account.

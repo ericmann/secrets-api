@@ -151,7 +151,7 @@ public function migrate( array $args = array() ): array
 
 ## `Secrets_API_Prototype_Fallback_Store`
 
-*final class* · implements `WP_Secrets_Store`
+*final class* · extends `WP_Secrets_Store`
 
 Serves a read whose new-format record does not exist yet from the prototype's option row instead, upgrading it to the current format on the way through.
 
@@ -568,7 +568,7 @@ and this class ships in core, whose minimum supported PHP version is 7.4.
 
 ## `WP_Secrets_Broken_Keyring`
 
-*final class* · implements `WP_Secrets_Keyring`
+*final class* · extends `WP_Secrets_Keyring`
 
 Stands in for the keyring when a drop-in leaves an invalid value behind.
 
@@ -619,7 +619,7 @@ public function unwrap( string $wrapped ): WP_Error
 Always fails closed.
 
 ```php
-public function wrap( string $key_material ): WP_Error
+public function wrap( #[\SensitiveParameter] string $key_material ): WP_Error
 ```
 
 | Parameter | Type | Description |
@@ -632,7 +632,7 @@ public function wrap( string $key_material ): WP_Error
 
 ## `WP_Secrets_Broken_Provider`
 
-*final class* · implements `WP_Secrets_Provider`
+*final class* · extends `WP_Secrets_Provider`
 
 The provider installed when a secrets.php drop-in did not load correctly.
 
@@ -765,7 +765,7 @@ public function retire_previous( string $name, bool $network = false ): WP_Error
 Always an error.
 
 ```php
-public function set( string $name, $value, bool $network = false, bool $needs_rotation = false, ?string $action = null ): WP_Error
+public function set( string $name, #[\SensitiveParameter] $value, bool $network = false, bool $needs_rotation = false, ?string $action = null ): WP_Error
 ```
 
 | Parameter | Type | Description |
@@ -782,7 +782,7 @@ public function set( string $name, $value, bool $network = false, bool $needs_ro
 
 ## `WP_Secrets_Broken_Store`
 
-*final class* · implements `WP_Secrets_Store`
+*final class* · extends `WP_Secrets_Store`
 
 Stands in for the store when a drop-in leaves an invalid value behind.
 
@@ -904,7 +904,7 @@ slot's worth of material, encrypt or decrypt it correctly.
 Decrypts a single record slot back to its plaintext.
 
 ```php
-public function decrypt_value( string $master_key, string $scope, int $site_id, string $name, string $slot, $record )
+public function decrypt_value( #[\SensitiveParameter] string $master_key, string $scope, int $site_id, string $name, string $slot, $record )
 ```
 
 | Parameter | Type | Description |
@@ -925,7 +925,7 @@ public function decrypt_value( string $master_key, string $scope, int $site_id, 
 Encrypts a plaintext into a single record slot.
 
 ```php
-public function encrypt_value( string $master_key, string $scope, int $site_id, string $name, string $slot, $plaintext )
+public function encrypt_value( #[\SensitiveParameter] string $master_key, string $scope, int $site_id, string $name, string $slot, #[\SensitiveParameter] $plaintext )
 ```
 
 | Parameter | Type | Description |
@@ -953,7 +953,7 @@ decrypted plaintext and compare – never trust a fingerprint read back from a
 record, which sits outside the AAD and is not authenticated.
 
 ```php
-public function fingerprint( string $master_key, $plaintext )
+public function fingerprint( #[\SensitiveParameter] string $master_key, #[\SensitiveParameter] $plaintext )
 ```
 
 | Parameter | Type | Description |
@@ -967,28 +967,34 @@ public function fingerprint( string $master_key, $plaintext )
 
 ## `WP_Secrets_Config_Key_Provider`
 
-*final class* · implements `WP_Secrets_Keyring`
+*final class* · extends `WP_Secrets_Keyring`
 
 The default keyring.
 
 Derives a site key from wp-config.php and uses it to wrap and unwrap the root key
 with authenticated encryption.
 
-Site key derivation, in priority order:
+Site key derivation:
 
-1. WP_SECRETS_KEY is defined and base64-decodes (strictly) to exactly 32 bytes:
-   those decoded bytes are used raw. This is the documented, recommended form;
-   `wp secret generate-key` emits it.
-2. WP_SECRETS_KEY is defined in any other shape: the literal constant string is
-   hashed with a keyed BLAKE2b to 32 bytes. This is the legacy interpretation –
-   sites arriving from a prior plugin with a constant of arbitrary shape are not
-   locked out of their own credentials by a hard failure here.
-3. WP_SECRETS_KEY is undefined: LOGGED_IN_KEY . LOGGED_IN_SALT is hashed the same
-   way. Deliberately byte-identical to the legacy interpretation's hashing, not a
-   coincidence – it is what makes salt-fallback sites migrate with zero
-   credential re-entry.
+1. WP_SECRETS_KEY base64-decodes (strictly) to exactly 32 bytes: those decoded
+   bytes are used raw. This is the recommended form, such as the output of
+   base64_encode( random_bytes( 32 ) ).
+2. WP_SECRETS_KEY is any other string: the literal constant string is hashed
+   with BLAKE2b to 32 bytes. This is the legacy interpretation – sites arriving
+   from a prior plugin with a constant of arbitrary shape are not locked out of
+   their own credentials by a hard failure here.
 
-WP_SECRETS_KEY_PREVIOUS follows the same three rules and exists only so a site-key
+There is no fallback. Without a usable WP_SECRETS_KEY, every Secrets API call
+that needs the key returns WP_Error. Deriving a key from the authentication keys
+and salts would make every stored secret unreadable whenever the salts are
+rotated, which is routine advice for them.
+
+The wp-config-sample.php placeholder is not usable, and neither is a value that
+one of the authentication keys and salts also has. A sample that was never
+filled in gives every constant the same phrase, translated in localized samples,
+so the second check rejects the placeholder in any language.
+
+WP_SECRETS_KEY_PREVIOUS follows the same rules and exists only so a site-key
 rotation can unwrap under the old key before wrapping under the new one.
 
 **Since:** 7.2.0
@@ -1000,7 +1006,12 @@ rotation can unwrap under the old key before wrapping under the new one.
 | Constant | Value | Description |
 |---|---|---|
 | `AAD` | `'wp-secrets-root-key-v1'` | AAD binding the root key's wrapped form to this purpose. |
-| `KNOWN_PLACEHOLDER` | `'put your unique phrase here'` | The exact text wp-config-sample.php ships for every auth and salt constant. |
+| `AUTH_CONSTANTS` | `array( 'AUTH_KEY', 'SECURE_AUTH_KEY', 'LOGGED_IN_KEY', 'NONCE_KEY', 'AUTH_SALT', 'SECURE_AUTH_SALT', 'LOGGED_IN_SALT', 'NONCE_SALT', )` | The authentication keys and salts that wp-config-sample.php defines. |
+| `KEY_STATUS_BASE64` | `'base64'` | WP_SECRETS_KEY is the base64 encoding of 32 bytes, the recommended form. |
+| `KEY_STATUS_LEGACY` | `'legacy'` | WP_SECRETS_KEY is usable but in another form, so it is hashed to 32 bytes. |
+| `KEY_STATUS_UNDEFINED` | `'undefined'` | WP_SECRETS_KEY is not defined. |
+| `KEY_STATUS_UNUSABLE` | `'unusable'` | WP_SECRETS_KEY is defined, but empty, the placeholder, or equal to a key or salt. |
+| `KNOWN_PLACEHOLDER` | `'put your unique phrase here'` | The exact text wp-config-sample.php ships for every key and salt constant. |
 
 ### Methods
 
@@ -1030,6 +1041,21 @@ public function get_key_source(): string
 
 **Since:** 7.2.0
 
+#### `WP_Secrets_Config_Key_Provider::get_key_status()`
+
+Reports the state of WP_SECRETS_KEY.
+
+Site Health and wp_is_secrets_api_available() use this rather than the text of
+get_key_source(), which is translated.
+
+```php
+public function get_key_status(): string
+```
+
+**Returns:** `string` One of the KEY_STATUS_* constants.
+
+**Since:** 7.2.0
+
 #### `WP_Secrets_Config_Key_Provider::unwrap()`
 
 Unwraps key material previously wrapped by wrap().
@@ -1051,7 +1077,7 @@ public function unwrap( string $wrapped )
 Wraps raw key material under the derived site key.
 
 ```php
-public function wrap( string $key_material )
+public function wrap( #[\SensitiveParameter] string $key_material )
 ```
 
 | Parameter | Type | Description |
@@ -1141,13 +1167,14 @@ public function get_keyring(): WP_Secrets_Keyring
 Derives a scope's master key from the root key.
 
 ```php
-public function get_master_key( string $scope, ?int $site_id = null )
+public function get_master_key( string $scope, ?int $site_id = null, bool $create_root_key = true )
 ```
 
 | Parameter | Type | Description |
 |---|---|---|
 | `$scope` | `string` | 'site' or 'network'. |
 | `$site_id` | `int\|null` | Blog ID for site scope. Defaults to the current blog. Ignored for network scope. |
+| `$create_root_key` | `bool` | Optional. Whether to generate and store a root key if none exists. Pass false when only reading secrets. Default true. |
 
 **Returns:** `string|WP_Error` 32-byte master key on success. WP_Error on failure, including when a caller passes an invalid scope or site ID – see WP_Secrets_Cipher::validate_common() for why that is a WP_Error and not an exception.
 
@@ -1157,9 +1184,17 @@ public function get_master_key( string $scope, ?int $site_id = null )
 
 Returns the root key, generating and persisting one on first use.
 
+get_site_option() also returns false when its query fails, so a false result is
+checked against the database before a new root key is generated. Generating one
+while another is stored would make every existing secret undecryptable.
+
 ```php
-public function get_root_key()
+public function get_root_key( bool $create = true )
 ```
+
+| Parameter | Type | Description |
+|---|---|---|
+| `$create` | `bool` | Optional. Whether to generate and store a root key if none exists. Default true. |
 
 **Returns:** `string|WP_Error` 32 raw bytes on success. WP_Error on failure.
 
@@ -1188,11 +1223,11 @@ public function rotate_site_key( WP_Secrets_Keyring $old_keyring, WP_Secrets_Key
 
 ## `WP_Secrets_Keyring`
 
-*interface*
+*abstract class*
 
 Wraps and unwraps the root key that everything else in this API derives from.
 
-A KMS or HSM lives behind this interface in a production deployment. An
+A KMS or HSM lives behind this class in a production deployment. An
 implementation is never handed a plaintext secret, only 32 bytes of key material,
 and cannot turn encryption off. There is no method here that
 accepts a plaintext secret value at all.
@@ -1200,9 +1235,13 @@ accepts a plaintext secret value at all.
 An implementation should run WP_Secrets_Keyring_Conformance against itself before
 shipping.
 
+Implementations extend this class. It is abstract rather than an interface so
+that a later release can add a method with a default implementation, and every
+existing subclass keeps working.
+
 **Since:** 7.2.0
 
-**Source:** [`src/wp-includes/secrets/interface-wp-secrets-keyring.php`](../../src/wp-includes/secrets/interface-wp-secrets-keyring.php)
+**Source:** [`src/wp-includes/secrets/class-wp-secrets-keyring.php`](../../src/wp-includes/secrets/class-wp-secrets-keyring.php)
 
 ### Methods
 
@@ -1211,7 +1250,7 @@ shipping.
 A human-readable description of the key source, for Site Health.
 
 ```php
-public function get_key_source(): string
+abstract public function get_key_source(): string
 ```
 
 **Returns:** `string`
@@ -1223,7 +1262,7 @@ public function get_key_source(): string
 Unwraps (decrypts) previously wrapped key material.
 
 ```php
-public function unwrap( string $wrapped )
+abstract public function unwrap( string $wrapped )
 ```
 
 | Parameter | Type | Description |
@@ -1243,8 +1282,11 @@ different values. WP_Secrets_Key_Manager::rotate_site_key() stores the
 re-wrapped value with update_site_option(), which reports an unchanged value
 as a failure, and WP_Secrets_Keyring_Conformance checks this.
 
+Attributes are not inherited, so an implementation must mark $key_material
+with #[\SensitiveParameter] itself to keep it out of stack traces.
+
 ```php
-public function wrap( string $key_material )
+abstract public function wrap( #[\SensitiveParameter] string $key_material )
 ```
 
 | Parameter | Type | Description |
@@ -1257,14 +1299,14 @@ public function wrap( string $key_material )
 
 ## `WP_Secrets_Libsodium_Provider`
 
-*final class* · implements `WP_Secrets_Provider`
+*final class* · extends `WP_Secrets_Provider`
 
 The provider WordPress ships.
 
 Uses libsodium envelope encryption and stores ciphertext in the options tables.
 
 This is the default rather than a privileged case. Everything it does is expressed
-through WP_Secrets_Provider, the same interface a platform implements, so a KMS-
+through WP_Secrets_Provider, the same class a platform extends, so a KMS-
 or HSM-backed provider is a peer rather than an exception carved into the side of
 this one.
 
@@ -1434,7 +1476,7 @@ Backs wp_set_secret(), wp_set_network_secret(), and wp_import_option_as_secret()
 which select their behavior through the last two parameters.
 
 ```php
-public function set( string $name, $value, bool $network = false, bool $needs_rotation = false, ?string $action = null )
+public function set( string $name, #[\SensitiveParameter] $value, bool $network = false, bool $needs_rotation = false, ?string $action = null )
 ```
 
 | Parameter | Type | Description |
@@ -1451,7 +1493,7 @@ public function set( string $name, $value, bool $network = false, bool $needs_ro
 
 ## `WP_Secrets_Option_Store`
 
-*final class* · implements `WP_Secrets_Store`
+*final class* · extends `WP_Secrets_Store`
 
 The default secret store.
 
@@ -1547,22 +1589,22 @@ public function set( string $name, array $record, bool $network = false )
 
 ## `WP_Secrets_Provider`
 
-*interface*
+*abstract class*
 
-Interface for a secrets provider.
+Base class for a secrets provider.
 
 A provider is responsible for a secret: storing it, protecting it, and returning
 it to a caller. It is the outermost extension point in the Secrets API, and the
-one a hosting platform implements.
+one a hosting platform extends.
 
 WordPress ships WP_Secrets_Libsodium_Provider, which encrypts with libsodium and
 stores ciphertext in the options tables. That provider is the default rather than
 a privileged case: a platform that protects credentials in a key management
-service, a hardware security module, or its own control panel implements this
-same interface.
+service, a hardware security module, or its own control panel extends this
+same class.
 
 A provider must be stronger than the default, never weaker. Storing a plaintext
-where the default would have stored ciphertext is what this interface exists to
+where the default would have stored ciphertext is what this class exists to
 prevent. Receiving a value over an authenticated channel and holding it in a
 hardware security module satisfies that requirement.
 
@@ -1590,9 +1632,13 @@ Every implementation shares these contracts:
   caching the raw value alongside it would undo that. Memoize within the request
   only.
 
+Implementations extend this class. It is abstract rather than an interface so
+that a later release can add a method with a default implementation, and every
+existing subclass keeps working.
+
 **Since:** 7.2.0
 
-**Source:** [`src/wp-includes/secrets/interface-wp-secrets-provider.php`](../../src/wp-includes/secrets/interface-wp-secrets-provider.php)
+**Source:** [`src/wp-includes/secrets/class-wp-secrets-provider.php`](../../src/wp-includes/secrets/class-wp-secrets-provider.php)
 
 ### Constants
 
@@ -1614,7 +1660,7 @@ deleted, for the reason given on set(). A provider that can tell nothing was
 there to delete fires nothing.
 
 ```php
-public function delete( string $name, bool $network = false )
+abstract public function delete( string $name, bool $network = false )
 ```
 
 | Parameter | Type | Description |
@@ -1636,7 +1682,7 @@ view, and keeping them distinct would require a provider to enumerate names
 it has never heard of.
 
 ```php
-public function get( string $name, string $version, bool $network = false )
+abstract public function get( string $name, string $version, bool $network = false )
 ```
 
 | Parameter | Type | Description |
@@ -1658,7 +1704,7 @@ Describes the protection, not the vendor's marketing: "AWS KMS
 Never key material, never a credential, never a value.
 
 ```php
-public function get_label(): string
+abstract public function get_label(): string
 ```
 
 **Returns:** `string`
@@ -1676,7 +1722,7 @@ they currently have no way to answer, and the one hosts asked to be able to
 answer honestly.
 
 ```php
-public function get_protection_boundary(): string
+abstract public function get_protection_boundary(): string
 ```
 
 **Returns:** `string`
@@ -1693,7 +1739,7 @@ disable its save control before an operator types a credential into a field
 that will only reject it.
 
 ```php
-public function is_writable(): bool
+abstract public function is_writable(): bool
 ```
 
 **Returns:** `bool`
@@ -1705,7 +1751,7 @@ public function is_writable(): bool
 Lists secrets by name and metadata. Never values.
 
 ```php
-public function list_secrets( string $name_prefix = '', bool $network = false )
+abstract public function list_secrets( string $name_prefix = '', bool $network = false )
 ```
 
 | Parameter | Type | Description |
@@ -1729,7 +1775,7 @@ has been cleared, for the reason given on set(). Nothing fires when there was
 no previous version to clear.
 
 ```php
-public function retire_previous( string $name, bool $network = false )
+abstract public function retire_previous( string $name, bool $network = false )
 ```
 
 | Parameter | Type | Description |
@@ -1768,7 +1814,7 @@ but a provider that cannot tell the value is unchanged without an additional
 read may write it and report it.
 
 ```php
-public function set( string $name, $value, bool $network = false, bool $needs_rotation = false, ?string $action = null )
+abstract public function set( string $name, #[\SensitiveParameter] $value, bool $network = false, bool $needs_rotation = false, ?string $action = null )
 ```
 
 | Parameter | Type | Description |
@@ -1785,7 +1831,7 @@ public function set( string $name, $value, bool $network = false, bool $needs_ro
 
 ## `WP_Secrets_Store`
 
-*interface*
+*abstract class*
 
 Where a secret's encrypted record lives.
 
@@ -1799,9 +1845,13 @@ by a separate CLI or dashboard, returns WP_Error from set() rather than pretendi
 the write succeeded. Providers declare writability up front through
 WP_Secrets_Provider::is_writable().
 
+Implementations extend this class. It is abstract rather than an interface so
+that a later release can add a method with a default implementation, and every
+existing subclass keeps working.
+
 **Since:** 7.2.0
 
-**Source:** [`src/wp-includes/secrets/interface-wp-secrets-store.php`](../../src/wp-includes/secrets/interface-wp-secrets-store.php)
+**Source:** [`src/wp-includes/secrets/class-wp-secrets-store.php`](../../src/wp-includes/secrets/class-wp-secrets-store.php)
 
 ### Methods
 
@@ -1810,7 +1860,7 @@ WP_Secrets_Provider::is_writable().
 Deletes a secret's record.
 
 ```php
-public function delete( string $name, bool $network = false )
+abstract public function delete( string $name, bool $network = false )
 ```
 
 | Parameter | Type | Description |
@@ -1827,7 +1877,7 @@ public function delete( string $name, bool $network = false )
 Reads a secret's stored record.
 
 ```php
-public function get( string $name, bool $network = false )
+abstract public function get( string $name, bool $network = false )
 ```
 
 | Parameter | Type | Description |
@@ -1844,7 +1894,7 @@ public function get( string $name, bool $network = false )
 Lists the names of every secret in this store, for this scope. Never a value.
 
 ```php
-public function list_names( bool $network = false )
+abstract public function list_names( bool $network = false )
 ```
 
 | Parameter | Type | Description |
@@ -1860,7 +1910,7 @@ public function list_names( bool $network = false )
 Writes a secret's record.
 
 ```php
-public function set( string $name, array $record, bool $network = false )
+abstract public function set( string $name, array $record, bool $network = false )
 ```
 
 | Parameter | Type | Description |

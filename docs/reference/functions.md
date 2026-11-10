@@ -121,6 +121,41 @@ function wp_import_option_as_secret( string $option, string $name )
 
 **Source:** [`src/wp-includes/secrets.php`](../../src/wp-includes/secrets.php)
 
+## `wp_is_secrets_api_available()`
+
+Whether the Secrets API can store and read secrets on this site.
+
+A plugin can check this before it moves a credential into the Secrets API, and
+keep its existing storage while it returns false:
+
+    if ( wp_is_secrets_api_available() ) {
+        // Move the credential, then use wp_set_secret() and wp_get_secret().
+    } else {
+        // Keep using the existing storage.
+    }
+
+Returns false when the secrets.php drop-in failed to load, when the default
+keyring has no usable WP_SECRETS_KEY, or when WP_SECRETS_KEY cannot unwrap the
+stored root key. The last happens when a site that already stored secrets adds
+or changes the key without re-wrapping the root key.
+
+A provider or keyring from a working drop-in manages its own keys, so it is
+reported as available. Its backend can still be unreachable on a given request,
+which each call reports as a WP_Error.
+
+Whether the provider accepts writes is a separate question. See
+wp_secrets_provider_is_writable().
+
+```php
+function wp_is_secrets_api_available(): bool
+```
+
+**Returns:** `bool`
+
+**Since:** 7.2.0
+
+**Source:** [`src/wp-includes/secrets.php`](../../src/wp-includes/secrets.php)
+
 ## `wp_list_network_secrets()`
 
 Lists network-scope secrets by name and metadata. Never a value.
@@ -259,6 +294,10 @@ since _wp_secrets_get_provider(), _wp_secrets_get_store(), and
 _wp_secrets_get_key_manager() each cache their result for the request, so this
 only ever needs to run once regardless of how many times it is called.
 
+The drop-in sets its overrides in the `$wp_secrets_provider`, `$wp_secrets_store`
+and `$wp_secrets_keyring` globals. They are declared global before the require, so
+a plain assignment such as `$wp_secrets_keyring = new My_Keyring();` works.
+
 Sets $GLOBALS['wp_secrets_dropin_loaded'] as soon as the file is found, whether
 or not it then loads cleanly: wp_using_secrets_dropin() reports presence, not
 health.
@@ -267,7 +306,7 @@ Sets $GLOBALS['wp_secrets_dropin_broken'] in two cases. First, when the require
 throws: a syntax error, a thrown exception, or most runtime errors are caught as
 \Throwable. Second, when any of $GLOBALS['wp_secrets_provider'],
 $GLOBALS['wp_secrets_store'], or $GLOBALS['wp_secrets_keyring'] is set afterward
-to something that is not an instance of its interface. A global left unset is
+to something that is not an instance of its class. A global left unset is
 fine; a drop-in overriding only the keyring legitimately leaves the other two
 alone. Once the flag is set, the getters install WP_Secrets_Broken_Provider,
 WP_Secrets_Broken_Store, and WP_Secrets_Broken_Keyring for the rest of the
@@ -275,10 +314,11 @@ request, so every operation returns WP_Error rather than falling back to the
 default. A malformed drop-in must not turn into a white screen for the rest of
 the site, and must not look like a working site with no secrets in it yet.
 
-This is not airtight: PHP treats some class declaration errors – notably a class
-that `implements` an interface but omits a required method – as an uncatchable
+This is not airtight: PHP treats some class declaration errors as an uncatchable
 fatal even inside a try/catch around the require, confirmed empirically on both
-PHP 7.4 and 8.5 before writing this comment. That gap is unavoidable from
+PHP 7.4 and 8.5 before writing this comment. Notably, a class that `extends` one
+of the three abstract classes but omits one of its abstract methods, or a class
+that still uses `implements` on one, as drop-ins written for interfaces did. That gap is unavoidable from
 userland and is recorded in docs/journal/test-coverage-gaps.md rather than
 silently assumed away.
 
@@ -412,14 +452,14 @@ function wp_secrets_provider_label(): string
 Counts secrets flagged needs_rotation, for one scope.
 
 ```php
-function wp_secrets_site_health_count_needing_rotation( bool $network ): int
+function wp_secrets_site_health_count_needing_rotation( bool $network )
 ```
 
 | Parameter | Type | Description |
 |---|---|---|
 | `$network` | `bool` | Whether to check network-scope secrets. |
 
-**Returns:** `int`
+**Returns:** `int|WP_Error` The number of secrets, or WP_Error when the secrets cannot be listed.
 
 **Since:** 7.2.0
 
@@ -451,14 +491,14 @@ function wp_secrets_site_health_debug_info( $info )
 Finds secrets that fail to decrypt, for one scope.
 
 ```php
-function wp_secrets_site_health_find_undecryptable( bool $network ): array
+function wp_secrets_site_health_find_undecryptable( bool $network )
 ```
 
 | Parameter | Type | Description |
 |---|---|---|
 | `$network` | `bool` | Whether to check network-scope secrets. |
 
-**Returns:** `array` List of array( 'name' => ..., 'fingerprint' => ... ).
+**Returns:** `array|WP_Error` List of array( 'name' => ..., 'fingerprint' => ... ), or WP_Error when the secrets cannot be listed.
 
 **Since:** 7.2.0
 
@@ -487,7 +527,7 @@ function wp_secrets_site_health_result( string $test, string $label, string $sta
 
 ## `wp_secrets_site_health_test_key_source()`
 
-Tests whether the site key comes from a dedicated constant or a weaker fallback.
+Tests whether the site key is defined, and in the recommended form.
 
 ```php
 function wp_secrets_site_health_test_key_source(): array
@@ -551,6 +591,27 @@ function wp_secrets_site_health_tests( $tests )
 
 **Source:** [`src/wp-admin/includes/secrets-site-health.php`](../../src/wp-admin/includes/secrets-site-health.php)
 
+## `wp_secrets_site_health_uses_keyring()`
+
+Whether the active provider protects secrets with the keyring.
+
+A secrets.php drop-in can replace the whole provider, which then protects secrets
+with its own keys. The default keyring, and WP_SECRETS_KEY, are not used at all.
+
+```php
+function wp_secrets_site_health_uses_keyring( WP_Secrets_Provider $provider ): bool
+```
+
+| Parameter | Type | Description |
+|---|---|---|
+| `$provider` | `WP_Secrets_Provider` | The active provider. |
+
+**Returns:** `bool`
+
+**Since:** 7.2.0
+
+**Source:** [`src/wp-admin/includes/secrets-site-health.php`](../../src/wp-admin/includes/secrets-site-health.php)
+
 ## `wp_secrets_validate_name()`
 
 Validates a secret's name.
@@ -594,7 +655,7 @@ capabilities and separate storage prefixes, with no implicit fallback from one
 scope to the other.
 
 ```php
-function wp_set_network_secret( string $name, $value )
+function wp_set_network_secret( string $name, #[\SensitiveParameter] $value )
 ```
 
 | Parameter | Type | Description |
@@ -618,7 +679,7 @@ cron, REST, and front-end requests where no user is logged in. Enforce
 capabilities at the operator boundary (CLI, an admin screen) instead.
 
 ```php
-function wp_set_secret( string $name, $value )
+function wp_set_secret( string $name, #[\SensitiveParameter] $value )
 ```
 
 | Parameter | Type | Description |
@@ -812,7 +873,7 @@ function _wp_secrets_retire( string $name, bool $network )
 Shared implementation behind wp_set_secret() and wp_set_network_secret().
 
 ```php
-function _wp_secrets_set( string $name, $value, bool $network, bool $needs_rotation = false, ?string $action_override = null )
+function _wp_secrets_set( string $name, #[\SensitiveParameter] $value, bool $network, bool $needs_rotation = false, ?string $action_override = null )
 ```
 
 | Parameter | Type | Description |

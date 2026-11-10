@@ -37,7 +37,7 @@ defined( 'ABSPATH' ) || exit;
  *
  * The rotation flag uses custom_metadata, which requires Vault 1.9+.
  */
-final class Vault_KV2_Provider implements WP_Secrets_Provider {
+final class Vault_KV2_Provider extends WP_Secrets_Provider {
 
 	/** Versions kept per secret in Vault; makes it a two-slot store. See README.md question 2. @var int */
 	const MAX_VERSIONS = 2;
@@ -159,7 +159,14 @@ final class Vault_KV2_Provider implements WP_Secrets_Provider {
 	 *
 	 * @return true|WP_Error
 	 */
-	public function set( string $name, $value, bool $network = false, bool $needs_rotation = false, ?string $action = null ) {
+	public function set(
+		string $name,
+		#[\SensitiveParameter]
+		$value,
+		bool $network = false,
+		bool $needs_rotation = false,
+		?string $action = null
+	) {
 		$vault_path = $this->vault_path( $name, $network );
 		$meta       = $this->read_metadata( $name, $network );
 
