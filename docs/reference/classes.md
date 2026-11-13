@@ -440,7 +440,7 @@ Nothing outside this API constructs a WP_Secret in normal use; the values
 passed here come from _wp_secrets_get() having just decrypted them.
 
 ```php
-public function __construct( string $name, $value, string $fingerprint )
+public function __construct( string $name, #[\SensitiveParameter] $value, string $fingerprint )
 ```
 
 | Parameter | Type | Description |
